@@ -62,7 +62,7 @@ html, body, #root {
 
 .chat__header .css-b62m3t-container {
   flex: 1;
-  max-width: 320px;
+  min-width: 0;
 }
 
 .chat__new-session-btn {
@@ -379,6 +379,7 @@ html, body, #root {
 /* Tool calls */
 .tool-call {
   margin-top: 8px;
+  margin-bottom: 8px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
@@ -461,6 +462,7 @@ html, body, #root {
 /* Tool call groups */
 .tool-call-group {
   margin-top: 8px;
+  margin-bottom: 8px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;

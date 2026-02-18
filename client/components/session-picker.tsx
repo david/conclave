@@ -22,7 +22,6 @@ const styles: StylesConfig<SessionOption, false> = {
     background: "var(--bg)",
     borderColor: "var(--border)",
     minWidth: 200,
-    maxWidth: 320,
     fontSize: 12,
     fontFamily: "var(--font-mono)",
     "&:hover": { borderColor: "var(--accent)" },
