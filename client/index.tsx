@@ -4,28 +4,39 @@ import { useEventStore } from "./reducer.ts";
 import { Chat } from "./components/chat.tsx";
 import { Workspace } from "./components/workspace.tsx";
 import type { WsEvent, Command, ImageAttachment } from "../server/types.ts";
+import { getSessionIdFromUrl, pushSessionUrl, replaceSessionUrl, onPopState } from "./router.ts";
 
 function App() {
   const { state, append } = useEventStore();
   const wsRef = useRef<WebSocket | null>(null);
 
-  // Workspace is visible whenever there's workspace-relevant content
-  const workspaceVisible =
-    state.currentMode === "plan" ||
-    !!state.planContent ||
-    state.pendingPermission !== null ||
-    state.planEntries.length > 0;
+  // Workspace is visible during plan review or while actively processing
+  const isPlanReview = state.currentMode === "plan" || state.pendingPermission !== null;
+  const hasWorkContent = state.planEntries.length > 0 || state.fileChanges.length > 0 || !!state.planContent;
+  const workspaceVisible = isPlanReview || (state.isProcessing && hasWorkContent);
 
   useEffect(() => {
     function connect() {
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
+      const sessionId = getSessionIdFromUrl();
+      const query = sessionId ? `?sessionId=${encodeURIComponent(sessionId)}` : "";
+      const ws = new WebSocket(`${protocol}//${window.location.host}/ws${query}`);
       wsRef.current = ws;
 
       ws.onmessage = (msg) => {
         try {
-          const event = JSON.parse(msg.data) as WsEvent;
-          append(event);
+          const data = JSON.parse(msg.data);
+          if (data.type === "Reload") {
+            const overlay = document.createElement("div");
+            overlay.className = "reload-overlay";
+            overlay.innerHTML =
+              '<div class="reload-overlay__bar"></div>' +
+              '<div class="reload-overlay__label">rebuilding</div>';
+            document.body.appendChild(overlay);
+            setTimeout(() => window.location.reload(), 600);
+            return;
+          }
+          append(data as WsEvent);
         } catch {
           // Ignore malformed messages
         }
@@ -82,7 +93,7 @@ function App() {
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if ((e.ctrlKey || e.metaKey) && e.key === "l") {
+      if ((e.ctrlKey || e.metaKey) && e.key === "n") {
         e.preventDefault();
         handleCreateSession();
       }
@@ -90,6 +101,27 @@ function App() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleCreateSession]);
+
+  // Sync URL to current session
+  const isFirstSession = useRef(true);
+  useEffect(() => {
+    if (!state.sessionId) return;
+    if (isFirstSession.current) {
+      replaceSessionUrl(state.sessionId);
+      isFirstSession.current = false;
+    } else {
+      pushSessionUrl(state.sessionId);
+    }
+  }, [state.sessionId]);
+
+  // Handle browser back/forward
+  useEffect(() => {
+    return onPopState((sessionId) => {
+      if (sessionId && sessionId !== state.sessionId) {
+        handleSwitchSession(sessionId);
+      }
+    });
+  }, [handleSwitchSession, state.sessionId]);
 
   const handlePermissionResponse = useCallback(
     (optionId: string, feedback?: string) => {
@@ -102,8 +134,10 @@ function App() {
     <div className={`app-layout${workspaceVisible ? " app-layout--workspace-visible" : ""}`}>
       <Workspace
         entries={state.planEntries}
+        fileChanges={state.fileChanges}
         currentMode={state.currentMode}
         planContent={state.planContent}
+        isProcessing={state.isProcessing}
         pendingPermission={state.pendingPermission}
         onPermissionResponse={handlePermissionResponse}
       />
