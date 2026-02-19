@@ -23,6 +23,15 @@ export type PlanEntryInfo = {
   priority: string;
 };
 
+export type FileChangeAction = "modified" | "deleted";
+
+export type FileChangeInfo = {
+  filePath: string;
+  action: FileChangeAction;
+  toolCallId: string;
+  status: string;
+};
+
 export type TextBlock = { type: "text"; text: string };
 export type ImageBlock = { type: "image"; data: string; mimeType: string };
 export type ToolCallBlock = { type: "tool_call"; toolCall: ToolCallInfo };
@@ -52,6 +61,7 @@ export type AppState = {
   messages: Message[];
   streamingContent: ContentBlock[];
   planEntries: PlanEntryInfo[];
+  fileChanges: FileChangeInfo[];
   currentMode: string;
   planContent: string;
   pendingPermission: PendingPermission | null;
@@ -67,6 +77,7 @@ export const initialState: AppState = {
   messages: [],
   streamingContent: [],
   planEntries: [],
+  fileChanges: [],
   currentMode: "",
   planContent: "",
   pendingPermission: null,

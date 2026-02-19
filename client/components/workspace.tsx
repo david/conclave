@@ -1,12 +1,14 @@
 import React, { useState, useCallback } from "react";
 import { MarkdownText } from "./markdown-text.tsx";
-import { TaskIcon } from "./icons.tsx";
-import type { PlanEntryInfo, PendingPermission } from "../reducer.ts";
+import { TaskIcon, FileActionIcon } from "./icons.tsx";
+import type { PlanEntryInfo, PendingPermission, FileChangeInfo } from "../reducer.ts";
 
 type WorkspaceProps = {
   entries: PlanEntryInfo[];
+  fileChanges: FileChangeInfo[];
   currentMode: string;
   planContent: string;
+  isProcessing: boolean;
   pendingPermission: PendingPermission | null;
   onPermissionResponse: (optionId: string, feedback?: string) => void;
 };
@@ -25,10 +27,30 @@ function PlanEntry({ entry }: { entry: PlanEntryInfo }) {
   );
 }
 
+function FileChangeRow({ fileChange }: { fileChange: FileChangeInfo }) {
+  const fileName = fileChange.filePath.split("/").pop() || fileChange.filePath;
+
+  return (
+    <div className={`file-change file-change--${fileChange.status}`}>
+      <span className="file-change__icon">
+        <FileActionIcon action={fileChange.action} />
+      </span>
+      <span className="file-change__name" title={fileChange.filePath}>
+        {fileName}
+      </span>
+      <span className={`file-change__action file-change__action--${fileChange.action}`}>
+        {fileChange.action}
+      </span>
+    </div>
+  );
+}
+
 export function Workspace({
   entries,
+  fileChanges,
   currentMode,
   planContent,
+  isProcessing,
   pendingPermission,
   onPermissionResponse,
 }: WorkspaceProps) {
@@ -36,13 +58,13 @@ export function Workspace({
   const [feedback, setFeedback] = useState("");
   const [feedbackOptionId, setFeedbackOptionId] = useState<string | null>(null);
 
-  const displayText = planContent;
+  const isPlanReview = currentMode === "plan" || pendingPermission !== null;
+  const isWip = !isPlanReview && isProcessing && (fileChanges.length > 0 || entries.length > 0);
   const isPlanning = currentMode === "plan" && !pendingPermission && !planContent;
 
   const handleOptionClick = useCallback(
     (optionId: string, kind: string) => {
       if (kind === "reject_once") {
-        // Show feedback input for rejection
         setFeedbackOptionId(optionId);
         setShowFeedback(true);
       } else {
@@ -84,32 +106,68 @@ export function Workspace({
     <div className="workspace">
       <header className="workspace__header">
         Workspace
-        {currentMode === "plan" && (
+        {isPlanReview && (
           <span className="workspace__mode-badge">Planning</span>
+        )}
+        {isWip && (
+          <span className="workspace__mode-badge workspace__mode-badge--wip">Working</span>
         )}
       </header>
       <div className="workspace__content">
-        {!displayText && !isPlanning && entries.length === 0 && (
+        {/* Plan review view */}
+        {isPlanReview && (
+          <>
+            {!planContent && isPlanning && (
+              <div className="workspace__streaming-indicator">Planning...</div>
+            )}
+            {planContent && (
+              <div className="workspace__markdown">
+                <MarkdownText text={planContent} />
+              </div>
+            )}
+            {entries.length > 0 && (
+              <div className="workspace__tasks-section">
+                <div className="workspace__tasks-label">Tasks</div>
+                <div className="workspace__entries">
+                  {entries.map((entry, i) => (
+                    <PlanEntry key={i} entry={entry} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* WIP view */}
+        {isWip && (
+          <>
+            {entries.length > 0 && (
+              <div className="workspace__tasks-section workspace__tasks-section--primary">
+                <div className="workspace__tasks-label">Tasks</div>
+                <div className="workspace__entries">
+                  {entries.map((entry, i) => (
+                    <PlanEntry key={i} entry={entry} />
+                  ))}
+                </div>
+              </div>
+            )}
+            {fileChanges.length > 0 && (
+              <div className="workspace__files-section">
+                <div className="workspace__files-label">Files</div>
+                <div className="workspace__files">
+                  {fileChanges.map((fc) => (
+                    <FileChangeRow key={fc.filePath} fileChange={fc} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Empty state */}
+        {!isPlanReview && !isWip && (
           <div className="workspace__empty">
             No plan yet. Start a conversation and Claude will build a plan here.
-          </div>
-        )}
-        {displayText && (
-          <div className="workspace__markdown">
-            <MarkdownText text={displayText} />
-          </div>
-        )}
-        {isPlanning && !displayText && (
-          <div className="workspace__streaming-indicator">Planning...</div>
-        )}
-        {entries.length > 0 && (
-          <div className="workspace__tasks-section">
-            <div className="workspace__tasks-label">Tasks</div>
-            <div className="workspace__entries">
-              {entries.map((entry, i) => (
-                <PlanEntry key={i} entry={entry} />
-              ))}
-            </div>
           </div>
         )}
       </div>

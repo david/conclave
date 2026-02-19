@@ -58,6 +58,39 @@ export function Chevron({
   );
 }
 
+/* ── File action icons ──────────────────────────── */
+
+export function FileActionIcon({
+  action,
+  size = 14,
+  className,
+}: IconProps & { action: string }) {
+  return (
+    <span className={`file-icon file-icon--${action} ${className ?? ""}`}>
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 14 14"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        {/* Base file shape */}
+        <path d="M3,1.5 L9,1.5 L11.5,4 L11.5,12.5 L3,12.5 Z" />
+        <polyline points="9,1.5 9,4 11.5,4" />
+        {action === "modified" && (
+          <line x1="5.5" y1="8" x2="9" y2="8" />
+        )}
+        {action === "deleted" && (
+          <line x1="5.5" y1="8.25" x2="8.75" y2="8.25" />
+        )}
+      </svg>
+    </span>
+  );
+}
+
 /* ── Task status icons (for plan entries) ───────── */
 
 export function TaskIcon({
