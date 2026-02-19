@@ -1,312 +1,49 @@
-import type { WsEvent, PermissionOption } from "../server/types.ts";
+import { useState, useCallback } from "react";
+import { combinedReducer } from "./slices/index.ts";
+import { initialState } from "./types.ts";
+import type { ClientEvent, AppState } from "./types.ts";
 
-export type ToolCallInfo = {
-  toolCallId: string;
-  toolName: string;
-  kind?: string | null;
-  input?: unknown;
-  status: string;
-  content?: unknown;
-  output?: unknown;
-};
+// Re-export all types so existing consumers don't need to change imports
+export type {
+  ToolCallInfo,
+  SessionInfo,
+  PlanEntryInfo,
+  TextBlock,
+  ImageBlock,
+  ToolCallBlock,
+  ThoughtBlock,
+  ContentBlock,
+  Message,
+  PendingPermission,
+  UsageInfo,
+  AppState,
+  ClientEvent,
+} from "./types.ts";
 
-export type SessionInfo = {
-  sessionId: string;
-  name: string;
-  title: string | null;
-  firstPrompt: string | null;
-};
+export { initialState } from "./types.ts";
 
-export type PlanEntryInfo = {
-  content: string;
-  status: string;
-  priority: string;
-};
+export function applyEvent(state: AppState, event: ClientEvent): AppState {
+  return combinedReducer(state, event);
+}
 
-export type TextBlock = { type: "text"; text: string };
-export type ImageBlock = { type: "image"; data: string; mimeType: string };
-export type ToolCallBlock = { type: "tool_call"; toolCall: ToolCallInfo };
-export type ThoughtBlock = { type: "thought"; text: string };
-export type ContentBlock = TextBlock | ImageBlock | ToolCallBlock | ThoughtBlock;
+export function fold(events: ClientEvent[]): AppState {
+  return events.reduce(applyEvent, initialState);
+}
 
-export type Message = {
-  role: "user" | "assistant";
-  content: ContentBlock[];
-};
+export function useEventStore() {
+  const [events, setEvents] = useState<ClientEvent[]>([]);
+  const [state, setState] = useState<AppState>(initialState);
 
-export type PendingPermission = {
-  options: PermissionOption[];
-  toolName?: string;
-};
-
-export type UsageInfo = {
-  size: number;
-  used: number;
-  costAmount?: number;
-  costCurrency?: string;
-};
-
-export type AppState = {
-  sessionId: string | null;
-  sessions: SessionInfo[];
-  messages: Message[];
-  streamingContent: ContentBlock[];
-  planEntries: PlanEntryInfo[];
-  currentMode: string;
-  planContent: string;
-  pendingPermission: PendingPermission | null;
-  isProcessing: boolean;
-  creatingSession: boolean;
-  error: string | null;
-  usage: UsageInfo | null;
-};
-
-export const initialState: AppState = {
-  sessionId: null,
-  sessions: [],
-  messages: [],
-  streamingContent: [],
-  planEntries: [],
-  currentMode: "",
-  planContent: "",
-  pendingPermission: null,
-  isProcessing: false,
-  creatingSession: false,
-  error: null,
-  usage: null,
-};
-
-type LocalAction = { type: "CreatingSession" };
-export type ReducerEvent = WsEvent | LocalAction;
-
-export function reducer(state: AppState, event: ReducerEvent): AppState {
-  switch (event.type) {
-    case "CreatingSession":
-      return { ...state, creatingSession: true };
-
-    case "SessionCreated":
-      return { ...state, sessionId: event.sessionId, creatingSession: false };
-
-    case "SessionSwitched":
-      return {
-        ...initialState,
-        sessions: state.sessions,
-        sessionId: event.sessionId,
-      };
-
-    case "SessionList":
-      return { ...state, sessions: event.sessions };
-
-    case "ModeChanged": {
-      if (event.modeId === "plan") {
-        return {
-          ...state,
-          currentMode: "plan",
-          planContent: "",
-          pendingPermission: null,
-        };
+  const append = useCallback((event: ClientEvent) => {
+    setEvents((prev) => {
+      // On session switch, clear the log (keep SessionList meta-events)
+      if (event.type === "SessionSwitched") {
+        return [...prev.filter((e) => e.type === "SessionList"), event];
       }
-      return {
-        ...state,
-        currentMode: event.modeId,
-        pendingPermission: null,
-      };
-    }
+      return [...prev, event];
+    });
+    setState((prev) => applyEvent(prev, event));
+  }, []);
 
-    case "PromptSubmitted": {
-      const userContent: ContentBlock[] = [];
-      if (event.images?.length) {
-        for (const img of event.images) {
-          userContent.push({ type: "image", data: img.data, mimeType: img.mimeType });
-        }
-      }
-      if (event.text) {
-        userContent.push({ type: "text", text: event.text });
-      }
-      // Merge with preceding user message if it exists and has no text yet (replay image+text chunks)
-      const prevMessages = [...state.messages];
-      const lastMsg = prevMessages[prevMessages.length - 1];
-      if (lastMsg && lastMsg.role === "user" && state.isProcessing) {
-        lastMsg.content = [...lastMsg.content, ...userContent];
-        return { ...state, messages: prevMessages, isProcessing: true, pendingPermission: null, error: null };
-      }
-      return {
-        ...state,
-        messages: [
-          ...state.messages,
-          { role: "user", content: userContent },
-        ],
-        isProcessing: true,
-        pendingPermission: null,
-        error: null,
-      };
-    }
-
-    case "AgentText": {
-      // All agent text goes to streamingContent (chat), even in plan mode.
-      // The actual plan document is captured from the plan file via PermissionRequested.
-      const content = [...state.streamingContent];
-      const last = content[content.length - 1];
-      if (last && last.type === "text") {
-        content[content.length - 1] = {
-          type: "text",
-          text: last.text + event.text,
-        };
-      } else {
-        content.push({ type: "text", text: event.text });
-      }
-      return { ...state, streamingContent: content };
-    }
-
-    case "AgentThought": {
-      const content = [...state.streamingContent];
-      const last = content[content.length - 1];
-      if (last && last.type === "thought") {
-        content[content.length - 1] = {
-          type: "thought",
-          text: last.text + event.text,
-        };
-      } else {
-        content.push({ type: "thought", text: event.text });
-      }
-      return { ...state, streamingContent: content };
-    }
-
-    case "ToolCallStarted": {
-      // ExitPlanMode tool call (kind: "switch_mode") in plan mode —
-      // don't add to streamingContent (it's not a visible tool call).
-      if (state.currentMode === "plan" && event.kind === "switch_mode") {
-        return state;
-      }
-
-      // Deduplicate: ACP agent sends tool_call twice (stream + message completion)
-      const alreadyExists = state.streamingContent.some(
-        (block) =>
-          block.type === "tool_call" &&
-          block.toolCall.toolCallId === event.toolCallId,
-      );
-      if (alreadyExists) return state;
-
-      const toolCall: ToolCallInfo = {
-        toolCallId: event.toolCallId,
-        toolName: event.toolName,
-        kind: event.kind,
-        input: event.input,
-        status: "pending",
-      };
-
-      return {
-        ...state,
-        streamingContent: [
-          ...state.streamingContent,
-          { type: "tool_call" as const, toolCall },
-        ],
-      };
-    }
-
-    case "ToolCallUpdated": {
-      const content = state.streamingContent.map((block) => {
-        if (
-          block.type === "tool_call" &&
-          block.toolCall.toolCallId === event.toolCallId
-        ) {
-          return {
-            type: "tool_call" as const,
-            toolCall: {
-              ...block.toolCall,
-              status: event.status,
-              content: event.content ?? block.toolCall.content,
-            },
-          };
-        }
-        return block;
-      });
-      return { ...state, streamingContent: content };
-    }
-
-    case "ToolCallCompleted": {
-      const content = state.streamingContent.map((block) => {
-        if (
-          block.type === "tool_call" &&
-          block.toolCall.toolCallId === event.toolCallId
-        ) {
-          return {
-            type: "tool_call" as const,
-            toolCall: {
-              ...block.toolCall,
-              status: event.status,
-              output: event.output,
-            },
-          };
-        }
-        return block;
-      });
-      return { ...state, streamingContent: content };
-    }
-
-    case "PlanUpdated":
-      return { ...state, planEntries: event.entries };
-
-    case "PermissionRequested": {
-      return {
-        ...state,
-        // Plan content comes from the plan file captured by the server
-        planContent: event.planContent || state.planContent,
-        pendingPermission: {
-          options: event.options,
-          toolName: event.toolName,
-        },
-      };
-    }
-
-    case "TurnCompleted": {
-      const hasContent = state.streamingContent.length > 0;
-      const newMessages = hasContent
-        ? [
-            ...state.messages,
-            {
-              role: "assistant" as const,
-              content: state.streamingContent,
-            },
-          ]
-        : state.messages;
-
-      return {
-        ...state,
-        messages: newMessages,
-        streamingContent: [],
-        isProcessing: false,
-      };
-    }
-
-    case "Error":
-      return {
-        ...state,
-        error: event.message,
-        isProcessing: false,
-      };
-
-    case "UsageUpdated":
-      return {
-        ...state,
-        usage: {
-          size: event.size,
-          used: event.used,
-          costAmount: event.costAmount,
-          costCurrency: event.costCurrency,
-        },
-      };
-
-    case "SessionInfoUpdated": {
-      const updatedSessions = state.sessions.map((s) =>
-        s.sessionId === event.sessionId
-          ? { ...s, title: event.title ?? s.title }
-          : s,
-      );
-      return { ...state, sessions: updatedSessions };
-    }
-
-    default:
-      return state;
-  }
+  return { state, events, append };
 }

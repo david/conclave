@@ -36,7 +36,15 @@ Claude Code ACP subprocess → AcpBridge → EventStore → WebSocket → React 
 
 ### Client (`client/`)
 - **index.tsx** — App root. Manages WebSocket connection with auto-reconnect, dispatches events to the reducer. Renders two-pane layout: `Workspace` (left) and `Chat` (right). Sends commands: `submit_prompt`, `cancel`, `create_session`, `switch_session`, `permission_response`.
-- **reducer.ts** — `useReducer`-based state management. Tracks sessions list, streaming content, plan entries, current mode, plan content, and pending permissions. Groups streaming text/tool-call blocks and flushes on `TurnCompleted`.
+- **types.ts** — Shared client types (`AppState`, `ClientEvent`, `ContentBlock`, `Message`, etc.) and `initialState`. Breaks the circular dependency between `reducer.ts` and slices.
+- **reducer.ts** — Thin facade over slice reducers. Exports `applyEvent`, `fold`, and `useEventStore` hook. Re-exports all types from `types.ts` so consumers don't need to change imports.
+- **slices/** — Composable slice reducers, each owning a subset of `AppState`. Signature: `(sliceState, event, fullState?) → sliceState`. Combined in `slices/index.ts`.
+  - `sessions.ts` — `sessionId`, `sessions`, `creatingSession`
+  - `messages.ts` — `messages`, `streamingContent`, `isProcessing` (reads `fullState.currentMode` for plan-mode tool call suppression)
+  - `plan.ts` — `currentMode`, `planContent`, `planEntries`
+  - `permissions.ts` — `pendingPermission`
+  - `usage.ts` — `usage`
+  - `error.ts` — `error`
 - **components/**:
   - `chat.tsx` — Main chat container with header (session picker + new session button), error display, message list, and input bar.
   - `message-list.tsx` — Renders messages with auto-scroll. Groups consecutive tool calls into `ToolCallGroup` segments. Shows markdown for assistant text, plain text for user messages. Includes empty state, streaming indicator, and thinking dots.

@@ -1,12 +1,12 @@
-import React, { useReducer, useEffect, useRef, useCallback } from "react";
+import React, { useEffect, useRef, useCallback } from "react";
 import { createRoot } from "react-dom/client";
-import { reducer, initialState, type ReducerEvent } from "./reducer.ts";
+import { useEventStore } from "./reducer.ts";
 import { Chat } from "./components/chat.tsx";
 import { Workspace } from "./components/workspace.tsx";
 import type { WsEvent, Command, ImageAttachment } from "../server/types.ts";
 
 function App() {
-  const [state, dispatch] = useReducer(reducer, initialState);
+  const { state, append } = useEventStore();
   const wsRef = useRef<WebSocket | null>(null);
 
   // Workspace is visible whenever there's workspace-relevant content
@@ -25,7 +25,7 @@ function App() {
       ws.onmessage = (msg) => {
         try {
           const event = JSON.parse(msg.data) as WsEvent;
-          dispatch(event);
+          append(event);
         } catch {
           // Ignore malformed messages
         }
@@ -76,7 +76,7 @@ function App() {
 
   const handleCreateSession = useCallback(() => {
     if (state.creatingSession) return;
-    dispatch({ type: "CreatingSession" });
+    append({ type: "SessionInitiated" });
     sendCommand({ command: "create_session" });
   }, [sendCommand, state.creatingSession]);
 
