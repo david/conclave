@@ -29,9 +29,8 @@ export function ToolCallGroup({ blocks }: ToolCallGroupProps) {
         <span className="tool-call-group__icon">
           <StatusDot status={last.status} />
         </span>
-        <span className="tool-call-group__name">{last.toolName}</span>
-        <span className="tool-call-group__count">
-          ({count} tool call{count !== 1 ? "s" : ""})
+        <span className="tool-call-group__label">
+          {count} tool call{count !== 1 ? "s" : ""}
         </span>
         <span className="tool-call-group__toggle">
           <Chevron expanded={expanded} />

@@ -1,6 +1,6 @@
 import React, { useReducer, useEffect, useRef, useCallback } from "react";
 import { createRoot } from "react-dom/client";
-import { reducer, initialState } from "./reducer.ts";
+import { reducer, initialState, type ReducerEvent } from "./reducer.ts";
 import { Chat } from "./components/chat.tsx";
 import { Workspace } from "./components/workspace.tsx";
 import type { WsEvent, Command, ImageAttachment } from "../server/types.ts";
@@ -75,8 +75,21 @@ function App() {
   );
 
   const handleCreateSession = useCallback(() => {
+    if (state.creatingSession) return;
+    dispatch({ type: "CreatingSession" });
     sendCommand({ command: "create_session" });
-  }, [sendCommand]);
+  }, [sendCommand, state.creatingSession]);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key === "l") {
+        e.preventDefault();
+        handleCreateSession();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleCreateSession]);
 
   const handlePermissionResponse = useCallback(
     (optionId: string, feedback?: string) => {

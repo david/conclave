@@ -9,7 +9,7 @@ const CWD = process.env.CONCLAVE_CWD || process.cwd();
 const store = new EventStore();
 
 // Session metadata
-type SessionMeta = { sessionId: string; name: string; title: string | null; firstPrompt: string | null; loaded: boolean };
+type SessionMeta = { sessionId: string; name: string; title: string | null; firstPrompt: string | null; loaded: boolean; createdAt: number };
 const sessions = new Map<string, SessionMeta>();
 let sessionCounter = 0;
 
@@ -49,7 +49,7 @@ bridge.onTitleUpdate = (sessionId: string, title: string) => {
 function buildSessionList(): SessionListEvent {
   return {
     type: "SessionList",
-    sessions: Array.from(sessions.values()),
+    sessions: Array.from(sessions.values()).sort((a, b) => b.createdAt - a.createdAt),
     seq: -1,
     timestamp: Date.now(),
   };
@@ -169,7 +169,7 @@ const server = Bun.serve({
             try {
               const sessionId = await bridge.createSession();
               const name = `Session ${++sessionCounter}`;
-              sessions.set(sessionId, { sessionId, name, title: null, firstPrompt: null, loaded: true });
+              sessions.set(sessionId, { sessionId, name, title: null, firstPrompt: null, loaded: true, createdAt: Date.now() });
               store.append(sessionId, { type: "SessionCreated" });
               latestSessionId = sessionId;
 
@@ -311,7 +311,9 @@ console.log(`Conclave server listening on http://localhost:${PORT}`);
 bridge.start().then(async () => {
   // Discover existing sessions from the ACP agent
   const existing = await bridge.listSessions();
-  for (const s of existing) {
+  const now = Date.now();
+  for (let i = 0; i < existing.length; i++) {
+    const s = existing[i];
     const name = s.title || `Session ${++sessionCounter}`;
     sessions.set(s.sessionId, {
       sessionId: s.sessionId,
@@ -319,6 +321,7 @@ bridge.start().then(async () => {
       title: s.title ?? null,
       firstPrompt: null,
       loaded: false,
+      createdAt: now - i,
     });
   }
 
@@ -332,7 +335,7 @@ bridge.start().then(async () => {
   try {
     const sessionId = await bridge.createSession();
     const name = `Session ${++sessionCounter}`;
-    sessions.set(sessionId, { sessionId, name, title: null, firstPrompt: null, loaded: true });
+    sessions.set(sessionId, { sessionId, name, title: null, firstPrompt: null, loaded: true, createdAt: Date.now() });
     store.append(sessionId, { type: "SessionCreated" });
     latestSessionId = sessionId;
   } catch (err) {

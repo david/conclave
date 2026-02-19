@@ -843,16 +843,11 @@ body::before {
   color: var(--error);
 }
 
-.tool-call-group__name {
+.tool-call-group__label {
   font-family: var(--font-mono);
   font-size: 12px;
   font-weight: 500;
   color: var(--text-secondary);
-}
-
-.tool-call-group__count {
-  font-size: 11px;
-  color: var(--text-muted);
 }
 
 .tool-call-group__toggle {
