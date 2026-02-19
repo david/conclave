@@ -32,9 +32,6 @@ async function build() {
   const css = await Bun.file(join(clientDir, "style.css")).text();
   await Bun.write(join(distDir, "style.css"), css);
 
-  // Signal build completion for live reload
-  await Bun.write(join(distDir, ".build-stamp"), String(Date.now()));
-
   console.log("Build complete. Output in dist/");
   for (const output of result.outputs) {
     console.log(`  ${output.path}`);

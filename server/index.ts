@@ -2,7 +2,6 @@ import { EventStore } from "./event-store.ts";
 import { AcpBridge, formatError } from "./acp-bridge.ts";
 import type { Command, DomainEvent, WsEvent } from "./types.ts";
 import { join } from "path";
-import { watch } from "fs";
 import { createSessionRegistry } from "./projections/session-registry.ts";
 import { createLatestSessionProjection } from "./projections/latest-session.ts";
 import { createSessionListProjection, buildSessionList } from "./projections/session-list.ts";
@@ -32,9 +31,9 @@ const bridge = new AcpBridge(CWD, (sessionId, payload) => {
 
 // Reactive session list broadcast — triggers whenever a session-affecting event lands
 function broadcastSessionList() {
-  const msg = JSON.stringify(buildSessionList(sessionRegistry));
+  const event = buildSessionList(sessionRegistry);
   for (const [ws] of wsStates) {
-    (ws as { send(data: string): void }).send(msg);
+    sendWs(ws, event);
   }
 }
 
@@ -43,7 +42,14 @@ createSessionListProjection(store, sessionRegistry, () => {
 });
 
 function sendWs(ws: object, event: WsEvent) {
-  (ws as { send(data: string): void }).send(JSON.stringify(event));
+  try {
+    (ws as { send(data: string): void }).send(JSON.stringify(event));
+  } catch {
+    // Connection already closed — clean up
+    const wsState = wsStates.get(ws);
+    if (wsState?.unsubscribe) wsState.unsubscribe();
+    wsStates.delete(ws);
+  }
 }
 
 function subscribeWsToSession(ws: object, sessionId: string) {
@@ -339,16 +345,6 @@ const server = Bun.serve<{ requestedSessionId: string | null }>({
 });
 
 console.log(`Conclave server listening on http://localhost:${PORT}`);
-
-// Watch the build stamp file for completed rebuilds and tell browsers to reload
-const buildStamp = join(import.meta.dir, "..", "dist", ".build-stamp");
-watch(buildStamp, () => {
-  console.log(`Rebuild complete, sending reload to ${wsStates.size} client(s)`);
-  const msg = JSON.stringify({ type: "Reload" });
-  for (const [ws] of wsStates) {
-    (ws as { send(data: string): void }).send(msg);
-  }
-});
 
 // Start the ACP bridge, discover existing sessions, then create one if needed
 bridge.start().then(async () => {
