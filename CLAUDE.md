@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Conclave is a full-stack TypeScript/React chat interface that bridges to Claude Code via the Agent Client Protocol (ACP). It uses an event-sourced architecture where all state changes flow through an in-memory EventStore and are streamed to the browser over WebSocket.
+Conclave is a full-stack TypeScript/React chat interface that bridges to Claude Code via the Agent Client Protocol (ACP). It uses an event-sourced architecture where all state changes flow through an in-memory EventStore and are streamed to the browser over WebSocket. The UI features a two-pane layout: a workspace (left) and a chat pane (right).
 
 ## Commands
 
@@ -28,28 +28,40 @@ Claude Code ACP subprocess → AcpBridge → EventStore → WebSocket → React 
 ```
 
 ### Server (`server/`)
-- **index.ts** — Bun HTTP + WebSocket server on port 3000. Serves static files from `dist/`, replays all events on WebSocket connect, routes commands to the bridge.
-- **acp-bridge.ts** — Spawns `claude-code-acp` as a subprocess, manages the ACP session lifecycle, translates ACP updates to domain events, handles file I/O. Working directory: `CONCLAVE_CWD` env var or `cwd()`.
-- **event-store.ts** — Append-only in-memory event log with monotonic sequence numbering and pub/sub for listeners.
-- **acp-translate.ts** — Pure function mapping ACP `SessionUpdate` objects to domain events.
+- **index.ts** — Bun HTTP + WebSocket server on port 3000. Serves static files from `dist/`, replays events per session on WebSocket connect, routes commands to the bridge. Manages multi-session state: tracks session metadata (title, first prompt), broadcasts session lists, and handles session switching/loading.
+- **acp-bridge.ts** — Spawns `claude-code-acp` as a subprocess, manages the ACP session lifecycle (create, load, list, prompt, cancel, set mode), translates ACP updates to domain events, handles file I/O and permission requests. Auto-approves regular tool permissions; defers plan approval (ExitPlanMode) to the UI. Reads plan file content for the approval dialog.
+- **event-store.ts** — Append-only in-memory event log with monotonic sequence numbering, per-session filtering, and pub/sub for listeners.
+- **acp-translate.ts** — Pure function mapping ACP `SessionUpdate` objects to domain events. Handles `agent_message_chunk`, `tool_call`, `tool_call_update`, `user_message_chunk` (replay only), `plan`, and `current_mode_update`.
 - **types.ts** — Discriminated union types for all domain events and commands.
 
 ### Client (`client/`)
-- **index.tsx** — App root. Manages WebSocket connection with auto-reconnect, dispatches events to the reducer.
-- **reducer.ts** — `useReducer`-based state management. Accumulates streaming `AgentText` chunks and flushes on `TurnCompleted`.
-- **components/** — `chat.tsx` (main container), `message-list.tsx` (message rendering with auto-scroll), `input-bar.tsx` (textarea with Shift+Enter), `tool-call.tsx` (collapsible tool call cards).
+- **index.tsx** — App root. Manages WebSocket connection with auto-reconnect, dispatches events to the reducer. Renders two-pane layout: `Workspace` (left) and `Chat` (right). Sends commands: `submit_prompt`, `cancel`, `create_session`, `switch_session`, `permission_response`.
+- **reducer.ts** — `useReducer`-based state management. Tracks sessions list, streaming content, plan entries, current mode, plan content, and pending permissions. Groups streaming text/tool-call blocks and flushes on `TurnCompleted`.
+- **components/**:
+  - `chat.tsx` — Main chat container with header (session picker + new session button), error display, message list, and input bar.
+  - `message-list.tsx` — Renders messages with auto-scroll. Groups consecutive tool calls into `ToolCallGroup` segments. Shows markdown for assistant text, plain text for user messages. Includes empty state, streaming indicator, and thinking dots.
+  - `input-bar.tsx` — Textarea with Enter to send, Shift+Enter for newline. Shows cancel button (stop icon) during processing, send button otherwise.
+  - `session-picker.tsx` — `react-select` `CreatableSelect` dropdown for switching between sessions or creating new ones. Displays session title or first prompt as label.
+  - `tool-call.tsx` — Collapsible card showing tool name, status icon, kind badge, and expandable input/output details.
+  - `tool-call-group.tsx` — Groups multiple consecutive tool calls into a single collapsible summary row showing count and last tool status.
+  - `markdown-text.tsx` — Renders markdown with `react-markdown`, `remark-gfm`, and `rehype-highlight` for syntax highlighting.
+  - `workspace.tsx` — Left sidebar (workspace pane) that can hold different content types. Currently shows plan content (rendered as markdown), task entries with status icons, and permission approval buttons. Includes feedback textarea for plan rejection.
 - **style.css** — Dark theme with CSS variables, BEM-style class naming (`.component__element--modifier`).
 
 ### Domain Events
-All events carry `seq` (monotonic) and `timestamp`. Types: `SessionCreated`, `PromptSubmitted`, `AgentText`, `ToolCallStarted`, `ToolCallUpdated`, `ToolCallCompleted`, `TurnCompleted`, `Error`.
+All events carry `seq` (monotonic), `timestamp`, and `sessionId`. Types: `SessionCreated`, `PromptSubmitted`, `AgentText`, `ToolCallStarted`, `ToolCallUpdated`, `ToolCallCompleted`, `TurnCompleted`, `PlanUpdated`, `ModeChanged`, `PermissionRequested`, `Error`, `SessionSwitched`.
+
+The `SessionListEvent` is a meta-event sent over WebSocket (not stored in EventStore) with `seq: -1`.
 
 ### Commands (browser to server)
-`submit_prompt` (with text) and `cancel`, sent as JSON over WebSocket.
+`submit_prompt`, `cancel`, `create_session`, `switch_session`, and `permission_response` — sent as JSON over WebSocket.
 
 ## Key Conventions
 
 - **Runtime/bundler**: Bun exclusively (no Node, no npm/yarn)
 - **TypeScript strict mode** with discriminated unions for type-safe event handling
-- **`DistributiveOmit`** utility type in `types.ts` preserves union members when stripping `seq`/`timestamp` to create `EventPayload`
+- **`DistributiveOmit`** utility type in `types.ts` preserves union members when stripping `seq`/`timestamp`/`sessionId` to create `EventPayload`
 - **Tests** live alongside source files (`*.test.ts`), use `describe`/`test`/`expect` from Bun's test runner
 - **No linting/formatting tools** configured — follow existing code style
+- **Multi-session support**: Server discovers existing ACP sessions on startup, creates a fresh one, and supports switching/loading on demand
+- **Markdown rendering**: Assistant messages use `react-markdown` with GFM and syntax highlighting via `rehype-highlight`

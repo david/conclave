@@ -19,39 +19,44 @@ type SessionPickerProps = {
 const styles: StylesConfig<SessionOption, false> = {
   control: (base) => ({
     ...base,
-    background: "var(--bg)",
+    background: "var(--bg-surface)",
     borderColor: "var(--border)",
+    borderRadius: "var(--radius-sm)",
     minWidth: 200,
-    fontSize: 12,
-    fontFamily: "var(--font-mono)",
-    "&:hover": { borderColor: "var(--accent)" },
+    minHeight: 34,
+    fontSize: 13,
+    fontFamily: "var(--font-body)",
+    "&:hover": { borderColor: "var(--text-muted)" },
     boxShadow: "none",
   }),
   singleValue: (base) => ({
     ...base,
-    color: "var(--text)",
+    color: "var(--text-secondary)",
+    fontSize: 13,
   }),
   menu: (base) => ({
     ...base,
-    background: "var(--bg-surface)",
+    background: "var(--bg-elevated)",
     border: "1px solid var(--border)",
+    borderRadius: "var(--radius-sm)",
     zIndex: 100,
+    overflow: "hidden",
   }),
   option: (base, { isFocused, isSelected }) => ({
     ...base,
     background: isSelected
-      ? "var(--accent-dim)"
+      ? "var(--accent-subtle)"
       : isFocused
         ? "var(--bg-hover)"
         : "transparent",
-    color: "var(--text)",
-    fontSize: 12,
-    fontFamily: "var(--font-mono)",
+    color: isSelected ? "var(--accent)" : "var(--text-secondary)",
+    fontSize: 13,
+    fontFamily: "var(--font-body)",
     cursor: "pointer",
     whiteSpace: "nowrap" as const,
     overflow: "hidden",
     textOverflow: "ellipsis",
-    "&:active": { background: "var(--accent-dim)" },
+    "&:active": { background: "var(--accent-subtle)" },
   }),
   input: (base) => ({
     ...base,
@@ -61,14 +66,14 @@ const styles: StylesConfig<SessionOption, false> = {
     ...base,
     color: "var(--text-muted)",
   }),
-  indicatorSeparator: (base) => ({
-    ...base,
-    backgroundColor: "var(--border)",
+  indicatorSeparator: () => ({
+    display: "none",
   }),
   dropdownIndicator: (base) => ({
     ...base,
     color: "var(--text-muted)",
-    "&:hover": { color: "var(--text)" },
+    padding: "0 8px",
+    "&:hover": { color: "var(--text-secondary)" },
   }),
 };
 

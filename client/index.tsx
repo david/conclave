@@ -2,6 +2,7 @@ import React, { useReducer, useEffect, useRef, useCallback } from "react";
 import { createRoot } from "react-dom/client";
 import { reducer, initialState } from "./reducer.ts";
 import { Chat } from "./components/chat.tsx";
+import { Workspace } from "./components/workspace.tsx";
 import type { WsEvent, Command } from "../server/types.ts";
 
 function App() {
@@ -70,14 +71,30 @@ function App() {
     sendCommand({ command: "create_session" });
   }, [sendCommand]);
 
+  const handlePermissionResponse = useCallback(
+    (optionId: string, feedback?: string) => {
+      sendCommand({ command: "permission_response", optionId, feedback });
+    },
+    [sendCommand],
+  );
+
   return (
-    <Chat
-      state={state}
-      onSubmit={handleSubmit}
-      onCancel={handleCancel}
-      onSwitchSession={handleSwitchSession}
-      onCreateSession={handleCreateSession}
-    />
+    <div className="app-layout">
+      <Workspace
+        entries={state.planEntries}
+        currentMode={state.currentMode}
+        planContent={state.planContent}
+        pendingPermission={state.pendingPermission}
+        onPermissionResponse={handlePermissionResponse}
+      />
+      <Chat
+        state={state}
+        onSubmit={handleSubmit}
+        onCancel={handleCancel}
+        onSwitchSession={handleSwitchSession}
+        onCreateSession={handleCreateSession}
+      />
+    </div>
   );
 }
 

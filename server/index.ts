@@ -1,5 +1,5 @@
 import { EventStore } from "./event-store.ts";
-import { AcpBridge } from "./acp-bridge.ts";
+import { AcpBridge, formatError } from "./acp-bridge.ts";
 import type { Command, DomainEvent, SessionListEvent, WsEvent } from "./types.ts";
 import { join } from "path";
 
@@ -113,7 +113,9 @@ const server = Bun.serve({
     const file = Bun.file(join(distDir, filePath));
 
     if (await file.exists()) {
-      return new Response(file);
+      return new Response(file, {
+        headers: { "Cache-Control": "no-cache" },
+      });
     }
 
     return new Response("Not found", { status: 404 });
@@ -187,11 +189,43 @@ const server = Bun.serve({
             } catch (err) {
               sendWs(ws, {
                 type: "Error",
-                message: `Failed to create session: ${err instanceof Error ? err.message : String(err)}`,
+                message: `Failed to create session: ${formatError(err)}`,
                 seq: -1,
                 timestamp: Date.now(),
                 sessionId: "",
               });
+            }
+            break;
+          }
+
+          case "permission_response": {
+            const sessionId = state?.currentSessionId;
+            if (!sessionId) {
+              sendWs(ws, {
+                type: "Error",
+                message: "No active session",
+                seq: -1,
+                timestamp: Date.now(),
+                sessionId: "",
+              });
+              return;
+            }
+            if (!bridge.respondPermission(sessionId, cmd.optionId)) {
+              sendWs(ws, {
+                type: "Error",
+                message: "No pending permission request",
+                seq: -1,
+                timestamp: Date.now(),
+                sessionId: "",
+              });
+              return;
+            }
+            // If rejection feedback was provided, submit it as a new prompt
+            // after a short delay for the turn to finish.
+            if (cmd.feedback) {
+              setTimeout(() => {
+                bridge.submitPrompt(sessionId, cmd.feedback!);
+              }, 500);
             }
             break;
           }
@@ -220,7 +254,7 @@ const server = Bun.serve({
               } catch (err) {
                 sendWs(ws, {
                   type: "Error",
-                  message: `Failed to load session: ${err instanceof Error ? err.message : String(err)}`,
+                  message: `Failed to load session: ${formatError(err)}`,
                   seq: -1,
                   timestamp: Date.now(),
                   sessionId: "",
@@ -253,7 +287,7 @@ const server = Bun.serve({
       } catch (err) {
         sendWs(ws, {
           type: "Error",
-          message: `Invalid command: ${err instanceof Error ? err.message : String(err)}`,
+          message: `Invalid command: ${formatError(err)}`,
           seq: -1,
           timestamp: Date.now(),
           sessionId: "",
@@ -310,6 +344,6 @@ bridge.start().then(async () => {
   console.error("Failed to start ACP bridge:", err);
   store.append("__error__", {
     type: "Error",
-    message: `ACP bridge failed to start: ${err instanceof Error ? err.message : String(err)}`,
+    message: `ACP bridge failed to start: ${formatError(err)}`,
   });
 });

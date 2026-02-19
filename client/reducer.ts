@@ -1,4 +1,4 @@
-import type { WsEvent } from "../server/types.ts";
+import type { WsEvent, PermissionOption } from "../server/types.ts";
 
 export type ToolCallInfo = {
   toolCallId: string;
@@ -17,18 +17,35 @@ export type SessionInfo = {
   firstPrompt: string | null;
 };
 
+export type PlanEntryInfo = {
+  content: string;
+  status: string;
+  priority: string;
+};
+
+export type TextBlock = { type: "text"; text: string };
+export type ToolCallBlock = { type: "tool_call"; toolCall: ToolCallInfo };
+export type ContentBlock = TextBlock | ToolCallBlock;
+
 export type Message = {
   role: "user" | "assistant";
-  text: string;
-  toolCalls?: ToolCallInfo[];
+  content: ContentBlock[];
+};
+
+export type PendingPermission = {
+  options: PermissionOption[];
+  toolName?: string;
 };
 
 export type AppState = {
   sessionId: string | null;
   sessions: SessionInfo[];
   messages: Message[];
-  currentAgentText: string;
-  activeToolCalls: Map<string, ToolCallInfo>;
+  streamingContent: ContentBlock[];
+  planEntries: PlanEntryInfo[];
+  currentMode: string;
+  planContent: string;
+  pendingPermission: PendingPermission | null;
   isProcessing: boolean;
   error: string | null;
 };
@@ -37,8 +54,11 @@ export const initialState: AppState = {
   sessionId: null,
   sessions: [],
   messages: [],
-  currentAgentText: "",
-  activeToolCalls: new Map(),
+  streamingContent: [],
+  planEntries: [],
+  currentMode: "",
+  planContent: "",
+  pendingPermission: null,
   isProcessing: false,
   error: null,
 };
@@ -58,71 +78,145 @@ export function reducer(state: AppState, event: WsEvent): AppState {
     case "SessionList":
       return { ...state, sessions: event.sessions };
 
+    case "ModeChanged": {
+      if (event.modeId === "plan") {
+        return {
+          ...state,
+          currentMode: "plan",
+          planContent: "",
+          pendingPermission: null,
+        };
+      }
+      return {
+        ...state,
+        currentMode: event.modeId,
+        pendingPermission: null,
+      };
+    }
+
     case "PromptSubmitted":
       return {
         ...state,
-        messages: [...state.messages, { role: "user", text: event.text }],
+        messages: [
+          ...state.messages,
+          { role: "user", content: [{ type: "text", text: event.text }] },
+        ],
         isProcessing: true,
+        pendingPermission: null,
         error: null,
       };
 
-    case "AgentText":
-      return {
-        ...state,
-        currentAgentText: state.currentAgentText + event.text,
-      };
+    case "AgentText": {
+      // All agent text goes to streamingContent (chat), even in plan mode.
+      // The actual plan document is captured from the plan file via PermissionRequested.
+      const content = [...state.streamingContent];
+      const last = content[content.length - 1];
+      if (last && last.type === "text") {
+        content[content.length - 1] = {
+          type: "text",
+          text: last.text + event.text,
+        };
+      } else {
+        content.push({ type: "text", text: event.text });
+      }
+      return { ...state, streamingContent: content };
+    }
 
     case "ToolCallStarted": {
-      const newMap = new Map(state.activeToolCalls);
-      newMap.set(event.toolCallId, {
+      // ExitPlanMode tool call (kind: "switch_mode") in plan mode —
+      // don't add to streamingContent (it's not a visible tool call).
+      if (state.currentMode === "plan" && event.kind === "switch_mode") {
+        return state;
+      }
+
+      // Deduplicate: ACP agent sends tool_call twice (stream + message completion)
+      const alreadyExists = state.streamingContent.some(
+        (block) =>
+          block.type === "tool_call" &&
+          block.toolCall.toolCallId === event.toolCallId,
+      );
+      if (alreadyExists) return state;
+
+      const toolCall: ToolCallInfo = {
         toolCallId: event.toolCallId,
         toolName: event.toolName,
         kind: event.kind,
         input: event.input,
         status: "pending",
-      });
-      return { ...state, activeToolCalls: newMap };
+      };
+
+      return {
+        ...state,
+        streamingContent: [
+          ...state.streamingContent,
+          { type: "tool_call" as const, toolCall },
+        ],
+      };
     }
 
     case "ToolCallUpdated": {
-      const newMap = new Map(state.activeToolCalls);
-      const existing = newMap.get(event.toolCallId);
-      if (existing) {
-        newMap.set(event.toolCallId, {
-          ...existing,
-          status: event.status,
-          content: event.content ?? existing.content,
-        });
-      }
-      return { ...state, activeToolCalls: newMap };
+      const content = state.streamingContent.map((block) => {
+        if (
+          block.type === "tool_call" &&
+          block.toolCall.toolCallId === event.toolCallId
+        ) {
+          return {
+            type: "tool_call" as const,
+            toolCall: {
+              ...block.toolCall,
+              status: event.status,
+              content: event.content ?? block.toolCall.content,
+            },
+          };
+        }
+        return block;
+      });
+      return { ...state, streamingContent: content };
     }
 
     case "ToolCallCompleted": {
-      const newMap = new Map(state.activeToolCalls);
-      const existing = newMap.get(event.toolCallId);
-      if (existing) {
-        newMap.set(event.toolCallId, {
-          ...existing,
-          status: event.status,
-          output: event.output,
-        });
-      }
-      return { ...state, activeToolCalls: newMap };
+      const content = state.streamingContent.map((block) => {
+        if (
+          block.type === "tool_call" &&
+          block.toolCall.toolCallId === event.toolCallId
+        ) {
+          return {
+            type: "tool_call" as const,
+            toolCall: {
+              ...block.toolCall,
+              status: event.status,
+              output: event.output,
+            },
+          };
+        }
+        return block;
+      });
+      return { ...state, streamingContent: content };
+    }
+
+    case "PlanUpdated":
+      return { ...state, planEntries: event.entries };
+
+    case "PermissionRequested": {
+      return {
+        ...state,
+        // Plan content comes from the plan file captured by the server
+        planContent: event.planContent || state.planContent,
+        pendingPermission: {
+          options: event.options,
+          toolName: event.toolName,
+        },
+      };
     }
 
     case "TurnCompleted": {
-      // Flush accumulated text and tool calls into a finalized message
-      const toolCalls = Array.from(state.activeToolCalls.values());
-      const hasContent =
-        state.currentAgentText.length > 0 || toolCalls.length > 0;
-
+      const hasContent = state.streamingContent.length > 0;
       const newMessages = hasContent
         ? [
             ...state.messages,
             {
               role: "assistant" as const,
-              text: state.currentAgentText,
-              toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+              content: state.streamingContent,
             },
           ]
         : state.messages;
@@ -130,8 +224,7 @@ export function reducer(state: AppState, event: WsEvent): AppState {
       return {
         ...state,
         messages: newMessages,
-        currentAgentText: "",
-        activeToolCalls: new Map(),
+        streamingContent: [],
         isProcessing: false,
       };
     }

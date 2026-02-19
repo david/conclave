@@ -107,12 +107,45 @@ describe("translateAcpUpdate", () => {
     expect(translateAcpUpdate(update)).toHaveLength(0);
   });
 
-  test("plan → empty", () => {
+  test("current_mode_update → ModeChanged", () => {
     const update: SessionUpdate = {
-      sessionUpdate: "plan",
-      entries: [],
+      sessionUpdate: "current_mode_update",
+      currentModeId: "plan",
     };
 
-    expect(translateAcpUpdate(update)).toHaveLength(0);
+    const events = translateAcpUpdate(update);
+    expect(events).toHaveLength(1);
+    expect(events[0]).toEqual({ type: "ModeChanged", modeId: "plan" });
+  });
+
+  test("current_mode_update code → ModeChanged", () => {
+    const update: SessionUpdate = {
+      sessionUpdate: "current_mode_update",
+      currentModeId: "code",
+    };
+
+    const events = translateAcpUpdate(update);
+    expect(events).toHaveLength(1);
+    expect(events[0]).toEqual({ type: "ModeChanged", modeId: "code" });
+  });
+
+  test("plan → PlanUpdated", () => {
+    const update: SessionUpdate = {
+      sessionUpdate: "plan",
+      entries: [
+        { content: "Research codebase", status: "completed", priority: "high" },
+        { content: "Implement feature", status: "in_progress", priority: "medium" },
+      ],
+    };
+
+    const events = translateAcpUpdate(update);
+    expect(events).toHaveLength(1);
+    expect(events[0]).toEqual({
+      type: "PlanUpdated",
+      entries: [
+        { content: "Research codebase", status: "completed", priority: "high" },
+        { content: "Implement feature", status: "in_progress", priority: "medium" },
+      ],
+    });
   });
 });

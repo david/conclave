@@ -62,11 +62,21 @@ export function translateAcpUpdate(update: SessionUpdate, isReplay = false): Eve
       return [];
     }
 
-    // We don't translate these into domain events for now
-    case "agent_thought_chunk":
     case "plan":
-    case "available_commands_update":
+      return [{
+        type: "PlanUpdated",
+        entries: update.entries.map(e => ({
+          content: e.content,
+          status: e.status,
+          priority: e.priority,
+        })),
+      }];
+
     case "current_mode_update":
+      return [{ type: "ModeChanged", modeId: update.currentModeId }];
+
+    case "agent_thought_chunk":
+    case "available_commands_update":
     case "config_option_update":
     case "session_info_update":
     case "usage_update":

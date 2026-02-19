@@ -1,20 +1,6 @@
 import React, { useState } from "react";
 import type { ToolCallInfo } from "../reducer.ts";
-
-function statusIcon(status: string): string {
-  switch (status) {
-    case "pending":
-      return "\u23f3";
-    case "in_progress":
-      return "\u2699\ufe0f";
-    case "completed":
-      return "\u2705";
-    case "failed":
-      return "\u274c";
-    default:
-      return "\u2022";
-  }
-}
+import { StatusDot, Chevron } from "./icons.tsx";
 
 function formatValue(value: unknown): string {
   if (value === undefined || value === null) return "";
@@ -45,13 +31,17 @@ export function ToolCallCard({ toolCall }: { toolCall: ToolCallInfo }) {
           }
         }}
       >
-        <span className="tool-call__icon">{statusIcon(toolCall.status)}</span>
+        <span className="tool-call__icon">
+          <StatusDot status={toolCall.status} />
+        </span>
         <span className="tool-call__name">{toolCall.toolName}</span>
         {toolCall.kind && (
           <span className="tool-call__kind">{toolCall.kind}</span>
         )}
         {hasDetails && (
-          <span className="tool-call__toggle">{expanded ? "\u25bc" : "\u25b6"}</span>
+          <span className="tool-call__toggle">
+            <Chevron expanded={expanded} />
+          </span>
         )}
       </div>
       {expanded && (

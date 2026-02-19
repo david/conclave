@@ -41,7 +41,7 @@ export function InputBar({ onSubmit, onCancel, isProcessing }: InputBarProps) {
       />
       {isProcessing ? (
         <button className="input-bar__btn input-bar__btn--cancel" onClick={onCancel}>
-          Cancel
+          Stop
         </button>
       ) : (
         <button

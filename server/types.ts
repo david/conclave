@@ -57,6 +57,29 @@ export type TurnCompleted = BaseEvent & {
   stopReason: StopReason;
 };
 
+export type PlanUpdated = BaseEvent & {
+  type: "PlanUpdated";
+  entries: Array<{ content: string; status: string; priority: string }>;
+};
+
+export type ModeChanged = BaseEvent & {
+  type: "ModeChanged";
+  modeId: string;
+};
+
+export type PermissionOption = {
+  optionId: string;
+  name: string;
+  kind: string;
+};
+
+export type PermissionRequested = BaseEvent & {
+  type: "PermissionRequested";
+  options: PermissionOption[];
+  toolName?: string;
+  planContent?: string;
+};
+
 export type ErrorEvent = BaseEvent & {
   type: "Error";
   message: string;
@@ -81,6 +104,9 @@ export type DomainEvent =
   | ToolCallUpdated
   | ToolCallCompleted
   | TurnCompleted
+  | PlanUpdated
+  | ModeChanged
+  | PermissionRequested
   | ErrorEvent
   | SessionSwitched;
 
@@ -115,4 +141,10 @@ export type SwitchSessionCommand = {
   sessionId: string;
 };
 
-export type Command = SubmitPromptCommand | CancelCommand | CreateSessionCommand | SwitchSessionCommand;
+export type PermissionResponseCommand = {
+  command: "permission_response";
+  optionId: string;
+  feedback?: string;
+};
+
+export type Command = SubmitPromptCommand | CancelCommand | CreateSessionCommand | SwitchSessionCommand | PermissionResponseCommand;
