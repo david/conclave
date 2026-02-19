@@ -8,6 +8,8 @@ export type {
   ToolCallInfo,
   SessionInfo,
   PlanEntryInfo,
+  FileChangeAction,
+  FileChangeInfo,
   TextBlock,
   ImageBlock,
   ToolCallBlock,

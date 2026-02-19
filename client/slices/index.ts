@@ -1,47 +1,45 @@
 import type { ClientEvent, AppState } from "../types.ts";
-import { initialState } from "../types.ts";
-import { sessionsReducer } from "./sessions.ts";
-import { messagesReducer } from "./messages.ts";
-import { planReducer } from "./plan.ts";
-import { permissionsReducer } from "./permissions.ts";
-import { usageReducer } from "./usage.ts";
-import { errorReducer } from "./error.ts";
+import { sessionInitiatedSlice } from "./session-initiated.ts";
+import { sessionCreatedSlice } from "./session-created.ts";
+import { sessionListSlice } from "./session-list.ts";
+import { sessionInfoUpdatedSlice } from "./session-info-updated.ts";
+import { sessionSwitchedSlice } from "./session-switched.ts";
+import { modeChangedSlice } from "./mode-changed.ts";
+import { planUpdatedSlice } from "./plan-updated.ts";
+import { permissionRequestedSlice } from "./permission-requested.ts";
+import { promptSubmittedSlice } from "./prompt-submitted.ts";
+import { agentTextSlice } from "./agent-text.ts";
+import { agentThoughtSlice } from "./agent-thought.ts";
+import { toolCallStartedSlice } from "./tool-call-started.ts";
+import { toolCallUpdatedSlice } from "./tool-call-updated.ts";
+import { toolCallCompletedSlice } from "./tool-call-completed.ts";
+import { turnCompletedSlice } from "./turn-completed.ts";
+import { errorSlice } from "./error.ts";
+import { usageUpdatedSlice } from "./usage-updated.ts";
 
+type Slice = (state: AppState, event: ClientEvent) => AppState;
+
+const slices: Slice[] = [
+  sessionInitiatedSlice,
+  sessionCreatedSlice,
+  sessionListSlice,
+  sessionInfoUpdatedSlice,
+  sessionSwitchedSlice,
+  modeChangedSlice,          // must run before toolCallStartedSlice
+  planUpdatedSlice,
+  permissionRequestedSlice,
+  promptSubmittedSlice,
+  agentTextSlice,
+  agentThoughtSlice,
+  toolCallStartedSlice,      // reads state.currentMode (set by modeChangedSlice)
+  toolCallUpdatedSlice,
+  toolCallCompletedSlice,
+  turnCompletedSlice,
+  errorSlice,
+  usageUpdatedSlice,
+];
+
+/** Runs all client slices sequentially. */
 export function combinedReducer(state: AppState, event: ClientEvent): AppState {
-  // SessionSwitched resets everything except the sessions list
-  if (event.type === "SessionSwitched") {
-    return {
-      ...initialState,
-      sessions: state.sessions,
-      sessionId: event.sessionId,
-    };
-  }
-
-  return {
-    ...sessionsReducer(
-      { sessionId: state.sessionId, sessions: state.sessions, creatingSession: state.creatingSession },
-      event,
-    ),
-    ...messagesReducer(
-      { messages: state.messages, streamingContent: state.streamingContent, isProcessing: state.isProcessing },
-      event,
-      state,
-    ),
-    ...planReducer(
-      { currentMode: state.currentMode, planContent: state.planContent, planEntries: state.planEntries },
-      event,
-    ),
-    ...permissionsReducer(
-      { pendingPermission: state.pendingPermission },
-      event,
-    ),
-    ...usageReducer(
-      { usage: state.usage },
-      event,
-    ),
-    ...errorReducer(
-      { error: state.error },
-      event,
-    ),
-  };
+  return slices.reduce((s, slice) => slice(s, event), state);
 }
