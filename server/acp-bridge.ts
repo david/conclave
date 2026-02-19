@@ -80,7 +80,7 @@ export class AcpBridge {
             if (title && bridge.onTitleUpdate) {
               bridge.onTitleUpdate(params.sessionId, title);
             }
-            return;
+            // Fall through to translateAcpUpdate so a SessionInfoUpdated event is emitted
           }
 
           // Track plan file paths from tool_call events (per session)

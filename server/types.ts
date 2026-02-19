@@ -97,6 +97,25 @@ export type SessionSwitched = BaseEvent & {
   type: "SessionSwitched";
 };
 
+export type AgentThought = BaseEvent & {
+  type: "AgentThought";
+  text: string;
+};
+
+export type UsageUpdated = BaseEvent & {
+  type: "UsageUpdated";
+  size: number;
+  used: number;
+  costAmount?: number;
+  costCurrency?: string;
+};
+
+export type SessionInfoUpdated = BaseEvent & {
+  type: "SessionInfoUpdated";
+  title?: string | null;
+  updatedAt?: string | null;
+};
+
 export type SessionListEvent = {
   type: "SessionList";
   sessions: Array<{ sessionId: string; name: string; title: string | null; firstPrompt: string | null }>;
@@ -108,6 +127,7 @@ export type DomainEvent =
   | SessionCreated
   | PromptSubmitted
   | AgentText
+  | AgentThought
   | ToolCallStarted
   | ToolCallUpdated
   | ToolCallCompleted
@@ -116,7 +136,9 @@ export type DomainEvent =
   | ModeChanged
   | PermissionRequested
   | ErrorEvent
-  | SessionSwitched;
+  | SessionSwitched
+  | UsageUpdated
+  | SessionInfoUpdated;
 
 // Events sent over WebSocket (includes meta-events not stored in EventStore)
 export type WsEvent = DomainEvent | SessionListEvent;

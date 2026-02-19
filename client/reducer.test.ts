@@ -340,6 +340,43 @@ describe("reducer", () => {
     expect(state.pendingPermission).toBeNull();
   });
 
+  test("AgentThought chunks accumulate as thought blocks in streamingContent", () => {
+    let state = reducer(initialState, makeEvent("AgentThought", { text: "Hmm, " }));
+    state = reducer(state, makeEvent("AgentThought", { text: "I think..." }, 2));
+    expect(state.streamingContent).toEqual([
+      { type: "thought", text: "Hmm, I think..." },
+    ]);
+  });
+
+  test("AgentThought followed by AgentText creates separate blocks", () => {
+    let state = reducer(initialState, makeEvent("AgentThought", { text: "thinking" }));
+    state = reducer(state, makeEvent("AgentText", { text: "Here is the answer" }, 2));
+    expect(state.streamingContent).toHaveLength(2);
+    expect(state.streamingContent[0]).toEqual({ type: "thought", text: "thinking" });
+    expect(state.streamingContent[1]).toEqual({ type: "text", text: "Here is the answer" });
+  });
+
+  test("UsageUpdated sets usage state", () => {
+    const state = reducer(initialState, makeEvent("UsageUpdated", {
+      size: 200000, used: 50000, costAmount: 0.05, costCurrency: "USD",
+    }));
+    expect(state.usage).toEqual({
+      size: 200000, used: 50000, costAmount: 0.05, costCurrency: "USD",
+    });
+  });
+
+  test("SessionInfoUpdated updates matching session title", () => {
+    const stateWithSessions = {
+      ...initialState,
+      sessions: [{ sessionId: "s1", name: "Session 1", title: null, firstPrompt: "hi" }],
+    };
+    const state = reducer(
+      stateWithSessions,
+      makeEvent("SessionInfoUpdated", { title: "Refactoring Plan", updatedAt: "2026-02-19T12:00:00Z" }),
+    );
+    expect(state.sessions[0].title).toBe("Refactoring Plan");
+  });
+
   test("interleaved text and tool calls preserve order", () => {
     let state = reducer(
       initialState,

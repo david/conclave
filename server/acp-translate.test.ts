@@ -148,4 +148,76 @@ describe("translateAcpUpdate", () => {
       ],
     });
   });
+
+  test("agent_thought_chunk text → AgentThought", () => {
+    const update: SessionUpdate = {
+      sessionUpdate: "agent_thought_chunk",
+      content: { type: "text", text: "Let me think..." },
+    };
+
+    const events = translateAcpUpdate(update);
+    expect(events).toHaveLength(1);
+    expect(events[0]).toEqual({ type: "AgentThought", text: "Let me think..." });
+  });
+
+  test("agent_thought_chunk image → empty", () => {
+    const update: SessionUpdate = {
+      sessionUpdate: "agent_thought_chunk",
+      content: { type: "image", data: "abc", mimeType: "image/png" },
+    };
+
+    const events = translateAcpUpdate(update);
+    expect(events).toHaveLength(0);
+  });
+
+  test("usage_update → UsageUpdated with cost", () => {
+    const update: SessionUpdate = {
+      sessionUpdate: "usage_update",
+      size: 200000,
+      used: 45000,
+      cost: { amount: 0.0234, currency: "USD" },
+    };
+
+    const events = translateAcpUpdate(update);
+    expect(events).toHaveLength(1);
+    expect(events[0]).toEqual({
+      type: "UsageUpdated",
+      size: 200000,
+      used: 45000,
+      costAmount: 0.0234,
+      costCurrency: "USD",
+    });
+  });
+
+  test("usage_update → UsageUpdated without cost", () => {
+    const update: SessionUpdate = {
+      sessionUpdate: "usage_update",
+      size: 200000,
+      used: 45000,
+    };
+
+    const events = translateAcpUpdate(update);
+    expect(events).toHaveLength(1);
+    expect(events[0]).toEqual({
+      type: "UsageUpdated",
+      size: 200000,
+      used: 45000,
+    });
+  });
+
+  test("session_info_update → SessionInfoUpdated", () => {
+    const update: SessionUpdate = {
+      sessionUpdate: "session_info_update",
+      title: "My Chat",
+      updatedAt: "2026-02-19T12:00:00Z",
+    };
+
+    const events = translateAcpUpdate(update);
+    expect(events).toHaveLength(1);
+    expect(events[0]).toEqual({
+      type: "SessionInfoUpdated",
+      title: "My Chat",
+      updatedAt: "2026-02-19T12:00:00Z",
+    });
+  });
 });

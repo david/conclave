@@ -26,7 +26,8 @@ export type PlanEntryInfo = {
 export type TextBlock = { type: "text"; text: string };
 export type ImageBlock = { type: "image"; data: string; mimeType: string };
 export type ToolCallBlock = { type: "tool_call"; toolCall: ToolCallInfo };
-export type ContentBlock = TextBlock | ImageBlock | ToolCallBlock;
+export type ThoughtBlock = { type: "thought"; text: string };
+export type ContentBlock = TextBlock | ImageBlock | ToolCallBlock | ThoughtBlock;
 
 export type Message = {
   role: "user" | "assistant";
@@ -36,6 +37,13 @@ export type Message = {
 export type PendingPermission = {
   options: PermissionOption[];
   toolName?: string;
+};
+
+export type UsageInfo = {
+  size: number;
+  used: number;
+  costAmount?: number;
+  costCurrency?: string;
 };
 
 export type AppState = {
@@ -48,7 +56,9 @@ export type AppState = {
   planContent: string;
   pendingPermission: PendingPermission | null;
   isProcessing: boolean;
+  creatingSession: boolean;
   error: string | null;
+  usage: UsageInfo | null;
 };
 
 export const initialState: AppState = {
@@ -61,13 +71,21 @@ export const initialState: AppState = {
   planContent: "",
   pendingPermission: null,
   isProcessing: false,
+  creatingSession: false,
   error: null,
+  usage: null,
 };
 
-export function reducer(state: AppState, event: WsEvent): AppState {
+type LocalAction = { type: "CreatingSession" };
+export type ReducerEvent = WsEvent | LocalAction;
+
+export function reducer(state: AppState, event: ReducerEvent): AppState {
   switch (event.type) {
+    case "CreatingSession":
+      return { ...state, creatingSession: true };
+
     case "SessionCreated":
-      return { ...state, sessionId: event.sessionId };
+      return { ...state, sessionId: event.sessionId, creatingSession: false };
 
     case "SessionSwitched":
       return {
@@ -136,6 +154,20 @@ export function reducer(state: AppState, event: WsEvent): AppState {
         };
       } else {
         content.push({ type: "text", text: event.text });
+      }
+      return { ...state, streamingContent: content };
+    }
+
+    case "AgentThought": {
+      const content = [...state.streamingContent];
+      const last = content[content.length - 1];
+      if (last && last.type === "thought") {
+        content[content.length - 1] = {
+          type: "thought",
+          text: last.text + event.text,
+        };
+      } else {
+        content.push({ type: "thought", text: event.text });
       }
       return { ...state, streamingContent: content };
     }
@@ -253,6 +285,26 @@ export function reducer(state: AppState, event: WsEvent): AppState {
         error: event.message,
         isProcessing: false,
       };
+
+    case "UsageUpdated":
+      return {
+        ...state,
+        usage: {
+          size: event.size,
+          used: event.used,
+          costAmount: event.costAmount,
+          costCurrency: event.costCurrency,
+        },
+      };
+
+    case "SessionInfoUpdated": {
+      const updatedSessions = state.sessions.map((s) =>
+        s.sessionId === event.sessionId
+          ? { ...s, title: event.title ?? s.title }
+          : s,
+      );
+      return { ...state, sessions: updatedSessions };
+    }
 
     default:
       return state;

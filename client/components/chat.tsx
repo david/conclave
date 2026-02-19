@@ -13,6 +13,17 @@ type ChatProps = {
   onCreateSession: () => void;
 };
 
+function formatTokenCount(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return String(n);
+}
+
+function formatCost(amount: number, currency?: string): string {
+  const symbol = currency === "USD" ? "$" : currency === "EUR" ? "\u20AC" : (currency ?? "");
+  return `${symbol}${amount.toFixed(4)}`;
+}
+
 export function Chat({ state, onSubmit, onCancel, onSwitchSession, onCreateSession }: ChatProps) {
   return (
     <div className="chat">
@@ -24,9 +35,25 @@ export function Chat({ state, onSubmit, onCancel, onSwitchSession, onCreateSessi
           onCreate={onCreateSession}
           isDisabled={false}
         />
+        {state.usage && (
+          <div className="chat__usage">
+            <span className="chat__usage-tokens">
+              {formatTokenCount(state.usage.used)} / {formatTokenCount(state.usage.size)}
+            </span>
+            {state.usage.costAmount != null && (
+              <>
+                <span className="chat__usage-sep" aria-hidden="true">&middot;</span>
+                <span className="chat__usage-cost">
+                  {formatCost(state.usage.costAmount, state.usage.costCurrency)}
+                </span>
+              </>
+            )}
+          </div>
+        )}
         <button
           className="chat__new-session-btn"
           onClick={onCreateSession}
+          disabled={state.creatingSession}
           title="New session"
         >
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">

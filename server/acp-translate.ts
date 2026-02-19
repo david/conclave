@@ -78,11 +78,31 @@ export function translateAcpUpdate(update: SessionUpdate, isReplay = false): Eve
     case "current_mode_update":
       return [{ type: "ModeChanged", modeId: update.currentModeId }];
 
-    case "agent_thought_chunk":
+    case "agent_thought_chunk": {
+      const content = update.content;
+      if (content.type === "text") {
+        return [{ type: "AgentThought", text: content.text }];
+      }
+      return [];
+    }
+
+    case "usage_update":
+      return [{
+        type: "UsageUpdated",
+        size: update.size,
+        used: update.used,
+        ...(update.cost ? { costAmount: update.cost.amount, costCurrency: update.cost.currency } : {}),
+      }];
+
+    case "session_info_update":
+      return [{
+        type: "SessionInfoUpdated",
+        title: update.title,
+        updatedAt: update.updatedAt,
+      }];
+
     case "available_commands_update":
     case "config_option_update":
-    case "session_info_update":
-    case "usage_update":
       return [];
 
     default:

@@ -141,10 +141,38 @@ body::before {
   transition: border-color 0.2s, color 0.2s, background 0.2s;
 }
 
-.chat__new-session-btn:hover {
+.chat__new-session-btn:hover:not(:disabled) {
   border-color: var(--accent);
   color: var(--accent);
   background: var(--accent-subtle);
+}
+
+.chat__new-session-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.chat__usage {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.chat__usage-tokens {
+  color: var(--text-secondary);
+}
+
+.chat__usage-sep {
+  color: var(--border);
+}
+
+.chat__usage-cost {
+  color: var(--accent-dim);
 }
 
 /* Centered chat when workspace is hidden (chat-only view) */
@@ -545,6 +573,83 @@ body::before {
 
 .message__text--markdown .hljs-params {
   color: #b8b2a6;
+}
+
+/* ============================================
+   Thought Blocks (Agent Reasoning)
+   ============================================ */
+
+.thought-block {
+  margin: 8px 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border-left: 2px solid var(--text-muted);
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.thought-block:hover {
+  opacity: 0.9;
+}
+
+.thought-block__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  background: var(--bg-surface);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.thought-block__header:hover {
+  background: var(--bg-elevated);
+}
+
+.thought-block__icon {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+}
+
+.thought-block__label {
+  font-size: 11px;
+  font-weight: 500;
+  font-style: italic;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+
+.thought-block__toggle {
+  margin-left: auto;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+}
+
+.thought-block__preview {
+  padding: 4px 12px 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.thought-block__content {
+  border-top: 1px solid var(--border-subtle);
+  padding: 8px 12px;
+  background: var(--bg);
+  animation: expand-in 0.15s ease-out;
+}
+
+.thought-block__content .message__text--markdown {
+  font-size: 13px;
+  color: var(--text-secondary);
 }
 
 /* ============================================
