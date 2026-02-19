@@ -2,9 +2,11 @@ import { EventStore } from "./event-store.ts";
 import { AcpBridge, formatError } from "./acp-bridge.ts";
 import type { Command, DomainEvent, WsEvent } from "./types.ts";
 import { join } from "path";
+import { watch } from "fs";
 import { createSessionRegistry } from "./projections/session-registry.ts";
 import { createLatestSessionProjection } from "./projections/latest-session.ts";
 import { createSessionListProjection, buildSessionList } from "./projections/session-list.ts";
+import { nextNewSessionName } from "./slices/utils.ts";
 
 const PORT = Number(process.env.PORT) || 3000;
 const CWD = process.env.CONCLAVE_CWD || process.cwd();
@@ -70,7 +72,7 @@ function replaySession(ws: object, sessionId: string) {
   }
 }
 
-const server = Bun.serve({
+const server = Bun.serve<{ requestedSessionId: string | null }>({
   port: PORT,
 
   async fetch(req) {
@@ -78,7 +80,8 @@ const server = Bun.serve({
 
     // WebSocket upgrade
     if (url.pathname === "/ws") {
-      const upgraded = server.upgrade(req);
+      const requestedSessionId = url.searchParams.get("sessionId") || null;
+      const upgraded = server.upgrade(req, { data: { requestedSessionId } });
       if (!upgraded) {
         return new Response("WebSocket upgrade failed", { status: 400 });
       }
@@ -96,6 +99,13 @@ const server = Bun.serve({
       });
     }
 
+    // SPA fallback: serve index.html for /session/* routes
+    if (url.pathname.startsWith("/session/")) {
+      return new Response(Bun.file(join(distDir, "index.html")), {
+        headers: { "Cache-Control": "no-cache" },
+      });
+    }
+
     return new Response("Not found", { status: 404 });
   },
 
@@ -106,11 +116,40 @@ const server = Bun.serve({
       // Send session list
       sendWs(ws, buildSessionList(sessionRegistry));
 
-      // Replay latest session if one exists
-      const { latestSessionId } = latestSession.getState();
-      if (latestSessionId) {
-        replaySession(ws, latestSessionId);
-        subscribeWsToSession(ws, latestSessionId);
+      // Determine which session to replay: prefer URL-requested, fall back to latest
+      const requested = ws.data.requestedSessionId;
+      const validRequested = requested && sessionRegistry.getState().sessions.has(requested)
+        ? requested
+        : null;
+      const targetSessionId = validRequested ?? latestSession.getState().latestSessionId;
+
+      if (targetSessionId) {
+        const switchAndReplay = () => {
+          sendWs(ws, {
+            type: "SessionSwitched",
+            sessionId: targetSessionId,
+            seq: -1,
+            timestamp: Date.now(),
+          } as any);
+          subscribeWsToSession(ws, targetSessionId);
+          replaySession(ws, targetSessionId);
+        };
+
+        // Load discovered-but-not-loaded sessions before replaying
+        const meta = sessionRegistry.getState().sessions.get(targetSessionId);
+        if (meta && !meta.loaded) {
+          bridge.loadSession(targetSessionId).then(() => {
+            store.append(targetSessionId, { type: "TurnCompleted", stopReason: "end_turn" });
+            store.append(targetSessionId, { type: "SessionLoaded" });
+            switchAndReplay();
+          }).catch((err) => {
+            console.error(`Failed to load session ${targetSessionId} on connect:`, err);
+            // Still switch to the session so the client isn't stuck
+            switchAndReplay();
+          });
+        } else {
+          switchAndReplay();
+        }
       }
     },
 
@@ -132,6 +171,26 @@ const server = Bun.serve({
               });
               return;
             }
+
+            // Load discovered-but-not-loaded sessions before prompting
+            const meta = sessionRegistry.getState().sessions.get(sessionId);
+            if (meta && !meta.loaded) {
+              try {
+                await bridge.loadSession(sessionId);
+                store.append(sessionId, { type: "TurnCompleted", stopReason: "end_turn" });
+                store.append(sessionId, { type: "SessionLoaded" });
+              } catch (err) {
+                sendWs(ws, {
+                  type: "Error",
+                  message: `Failed to load session: ${formatError(err)}`,
+                  seq: -1,
+                  timestamp: Date.now(),
+                  sessionId: "",
+                });
+                return;
+              }
+            }
+
             bridge.submitPrompt(sessionId, cmd.text, cmd.images);
             break;
           }
@@ -281,6 +340,16 @@ const server = Bun.serve({
 
 console.log(`Conclave server listening on http://localhost:${PORT}`);
 
+// Watch the build stamp file for completed rebuilds and tell browsers to reload
+const buildStamp = join(import.meta.dir, "..", "dist", ".build-stamp");
+watch(buildStamp, () => {
+  console.log(`Rebuild complete, sending reload to ${wsStates.size} client(s)`);
+  const msg = JSON.stringify({ type: "Reload" });
+  for (const [ws] of wsStates) {
+    (ws as { send(data: string): void }).send(msg);
+  }
+});
+
 // Start the ACP bridge, discover existing sessions, then create one if needed
 bridge.start().then(async () => {
   // Discover existing sessions from the ACP agent
@@ -288,7 +357,7 @@ bridge.start().then(async () => {
   const now = Date.now();
   for (let i = 0; i < existing.length; i++) {
     const s = existing[i];
-    const name = s.title || `Session ${sessionRegistry.getState().sessionCounter + 1}`;
+    const name = s.title || nextNewSessionName(sessionRegistry.getState());
     store.append(s.sessionId, {
       type: "SessionDiscovered",
       name,

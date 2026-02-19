@@ -78,6 +78,6 @@ describe("SessionRegistry projection", () => {
     store.append("s3", { type: "SessionCreated" });
 
     expect(registry.getState().sessionCounter).toBe(3);
-    expect(registry.getState().sessions.get("s3")!.name).toBe("Session 3");
+    expect(registry.getState().sessions.get("s3")!.name).toBe("New Session");
   });
 });
