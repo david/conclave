@@ -7,7 +7,7 @@ processes:
     working_dir: .
 
   server:
-    command: bun run server/index.ts
+    command: bun --watch run server/index.ts
     working_dir: .
     readiness_probe:
       http_get:

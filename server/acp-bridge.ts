@@ -339,10 +339,17 @@ function onEventError(onEvent: OnEventCallback, sessionId: string, message: stri
 export function formatError(err: unknown): string {
   if (err instanceof Error) return err.message;
   if (typeof err === "string") return err;
-  // JSON-RPC errors from ACP SDK are plain objects
+  // JSON-RPC errors from ACP SDK are plain objects with {code, message, data?}
   if (err && typeof err === "object") {
     const obj = err as Record<string, unknown>;
-    if (typeof obj.message === "string") return obj.message;
+    if (typeof obj.message === "string") {
+      // Include data.details if present (e.g. "Internal error: Session not found")
+      const data = obj.data as Record<string, unknown> | undefined;
+      if (data && typeof data.details === "string") {
+        return `${obj.message}: ${data.details}`;
+      }
+      return obj.message;
+    }
     try { return JSON.stringify(err); } catch { /* fall through */ }
   }
   return String(err);
