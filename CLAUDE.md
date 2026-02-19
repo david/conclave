@@ -24,13 +24,35 @@ For full development (build watch + server), use `process-compose up` which orch
 
 **Data flow:**
 ```
-Claude Code ACP subprocess → AcpBridge → EventStore → WebSocket → React client
+Command → index.ts (write side) → store.append(event)
+                                        ↓
+                              store notifies subscribers
+                                 ↓              ↓
+                          Read models        WS relay to clients
+                          (projections)
+
+Claude Code ACP subprocess → AcpBridge → EventStore → Projections + WebSocket
 ```
 
 ### Server (`server/`)
-- **index.ts** — Bun HTTP + WebSocket server on port 3000. Serves static files from `dist/`, replays events per session on WebSocket connect, routes commands to the bridge. Manages multi-session state: tracks session metadata (title, first prompt), broadcasts session lists, and handles session switching/loading.
+
+The server uses event sourcing with separated write and read models. Commands emit events into the EventStore (write side). Projections subscribe to events and maintain derived read models. Each slice encapsulates a single command→event path and its projection into shared state.
+
+- **index.ts** — Bun HTTP + WebSocket server on port 3000. Serves static files from `dist/`, replays events per session on WebSocket connect. Acts as the write side: command handlers validate against read models, then emit events into the store.
 - **acp-bridge.ts** — Spawns `claude-code-acp` as a subprocess, manages the ACP session lifecycle (create, load, list, prompt, cancel, set mode), translates ACP updates to domain events, handles file I/O and permission requests. Auto-approves regular tool permissions; defers plan approval (ExitPlanMode) to the UI. Reads plan file content for the approval dialog.
-- **event-store.ts** — Append-only in-memory event log with monotonic sequence numbering, per-session filtering, and pub/sub for listeners.
+- **event-store.ts** — Append-only in-memory event log with monotonic sequence numbering, per-session filtering, and pub/sub for listeners. Stays a dumb log — no derived state.
+- **projection.ts** — Generic `Projection<S>` base class. Replays existing events on construction, then subscribes for new ones. Each projection maintains its own derived state via a reducer.
+- **server-state.ts** — Server-side domain state types (`SessionMeta`, `SessionRegistryState`, `LatestSessionState`) and initial values.
+- **slices/** — Pure reducer functions, one per command→event path. All project into the shared `SessionRegistryState`. Combined sequentially in `slices/index.ts`.
+  - `create-session.ts` — `SessionCreated` → adds session (loaded: true), increments counter
+  - `discover-session.ts` — `SessionDiscovered` → adds session (loaded: false), increments counter
+  - `load-session.ts` — `SessionLoaded` → flips loaded to true
+  - `track-first-prompt.ts` — `PromptSubmitted` → sets firstPrompt if not yet set
+  - `update-title.ts` — `SessionInfoUpdated` → updates title
+- **projections/** — Read models that subscribe to the EventStore and maintain queryable views.
+  - `session-registry.ts` — Command-side session lookups (session metadata, loaded state, counter)
+  - `latest-session.ts` — Tracks which session new WS connections should get
+  - `session-list.ts` — Reactive projection that triggers session list broadcasts on change; derives data from SessionRegistry
 - **acp-translate.ts** — Pure function mapping ACP `SessionUpdate` objects to domain events. Handles `agent_message_chunk`, `tool_call`, `tool_call_update`, `user_message_chunk` (replay only), `plan`, and `current_mode_update`.
 - **types.ts** — Discriminated union types for all domain events and commands.
 
@@ -57,7 +79,7 @@ Claude Code ACP subprocess → AcpBridge → EventStore → WebSocket → React 
 - **style.css** — Dark theme with CSS variables, BEM-style class naming (`.component__element--modifier`).
 
 ### Domain Events
-All events carry `seq` (monotonic), `timestamp`, and `sessionId`. Types: `SessionCreated`, `PromptSubmitted`, `AgentText`, `ToolCallStarted`, `ToolCallUpdated`, `ToolCallCompleted`, `TurnCompleted`, `PlanUpdated`, `ModeChanged`, `PermissionRequested`, `Error`, `SessionSwitched`.
+All events carry `seq` (monotonic), `timestamp`, and `sessionId`. Types: `SessionCreated`, `SessionDiscovered`, `SessionLoaded`, `PromptSubmitted`, `AgentText`, `ToolCallStarted`, `ToolCallUpdated`, `ToolCallCompleted`, `TurnCompleted`, `PlanUpdated`, `ModeChanged`, `PermissionRequested`, `Error`, `SessionSwitched`.
 
 The `SessionListEvent` is a meta-event sent over WebSocket (not stored in EventStore) with `seq: -1`.
 
@@ -71,5 +93,6 @@ The `SessionListEvent` is a meta-event sent over WebSocket (not stored in EventS
 - **`DistributiveOmit`** utility type in `types.ts` preserves union members when stripping `seq`/`timestamp`/`sessionId` to create `EventPayload`
 - **Tests** live alongside source files (`*.test.ts`), use `describe`/`test`/`expect` from Bun's test runner
 - **No linting/formatting tools** configured — follow existing code style
+- **Event sourcing**: Server state is derived from events via projections (read models). Each slice handles one command→event path. The EventStore is a dumb log; projections subscribe and maintain views. Write side (command handlers) emits events; read side (projections) derives state.
 - **Multi-session support**: Server discovers existing ACP sessions on startup, creates a fresh one, and supports switching/loading on demand
 - **Markdown rendering**: Assistant messages use `react-markdown` with GFM and syntax highlighting via `rehype-highlight`
