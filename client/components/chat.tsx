@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback, useState } from "react";
 import { MessageList } from "./message-list.tsx";
 import { InputBar } from "./input-bar.tsx";
 import { SessionPicker } from "./session-picker.tsx";
@@ -25,6 +25,16 @@ function formatCost(amount: number, currency?: string): string {
 }
 
 export function Chat({ state, onSubmit, onCancel, onSwitchSession, onCreateSession }: ChatProps) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopySessionId = useCallback(() => {
+    if (!state.sessionId) return;
+    navigator.clipboard.writeText(state.sessionId).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  }, [state.sessionId]);
+
   return (
     <div className="chat">
       <header className="chat__header">
@@ -60,6 +70,23 @@ export function Chat({ state, onSubmit, onCancel, onSwitchSession, onCreateSessi
             <line x1="7" y1="1" x2="7" y2="13" />
             <line x1="1" y1="7" x2="13" y2="7" />
           </svg>
+        </button>
+        <button
+          className="chat__copy-session-btn"
+          onClick={handleCopySessionId}
+          disabled={!state.sessionId}
+          title={copied ? "Copied!" : "Copy session ID"}
+        >
+          {copied ? (
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="2.5 7.5 5.5 10.5 11.5 4" />
+            </svg>
+          ) : (
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="4.5" y="4.5" width="7.5" height="7.5" rx="1.5" />
+              <path d="M9.5 4.5V3a1.5 1.5 0 0 0-1.5-1.5H3A1.5 1.5 0 0 0 1.5 3v5A1.5 1.5 0 0 0 3 9.5h1.5" />
+            </svg>
+          )}
         </button>
       </header>
       {state.error && (

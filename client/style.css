@@ -152,6 +152,32 @@ body::before {
   cursor: not-allowed;
 }
 
+.chat__copy-session-btn {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+
+.chat__copy-session-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-subtle);
+}
+
+.chat__copy-session-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 .chat__usage {
   display: flex;
   align-items: center;
