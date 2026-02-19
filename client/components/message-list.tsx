@@ -3,6 +3,7 @@ import type {
   Message,
   ContentBlock,
   TextBlock,
+  ImageBlock,
   ToolCallBlock,
 } from "../reducer.ts";
 import { ToolCallCard } from "./tool-call.tsx";
@@ -17,6 +18,7 @@ type MessageListProps = {
 
 type RenderSegment =
   | { kind: "text"; block: TextBlock }
+  | { kind: "image"; block: ImageBlock }
   | { kind: "tool_call_group"; blocks: ToolCallBlock[] };
 
 function groupContentBlocks(blocks: ContentBlock[]): RenderSegment[] {
@@ -24,6 +26,8 @@ function groupContentBlocks(blocks: ContentBlock[]): RenderSegment[] {
   for (const block of blocks) {
     if (block.type === "text") {
       segments.push({ kind: "text", block });
+    } else if (block.type === "image") {
+      segments.push({ kind: "image", block });
     } else {
       const last = segments[segments.length - 1];
       if (last && last.kind === "tool_call_group") {
@@ -48,6 +52,15 @@ function RenderSegmentView({
       return <MarkdownText text={segment.block.text} />;
     }
     return <div className="message__text">{segment.block.text}</div>;
+  }
+  if (segment.kind === "image") {
+    return (
+      <img
+        src={`data:${segment.block.mimeType};base64,${segment.block.data}`}
+        className="message__image"
+        alt=""
+      />
+    );
   }
   if (segment.blocks.length === 1) {
     return <ToolCallCard toolCall={segment.blocks[0].toolCall} />;

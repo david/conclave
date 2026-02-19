@@ -3,10 +3,11 @@ import { MessageList } from "./message-list.tsx";
 import { InputBar } from "./input-bar.tsx";
 import { SessionPicker } from "./session-picker.tsx";
 import type { AppState } from "../reducer.ts";
+import type { ImageAttachment } from "../../server/types.ts";
 
 type ChatProps = {
   state: AppState;
-  onSubmit: (text: string) => void;
+  onSubmit: (text: string, images?: ImageAttachment[]) => void;
   onCancel: () => void;
   onSwitchSession: (sessionId: string) => void;
   onCreateSession: () => void;

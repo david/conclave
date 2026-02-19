@@ -91,8 +91,13 @@ body::before {
 
 .app-layout {
   display: grid;
-  grid-template-columns: 2fr 3fr;
+  grid-template-columns: 0fr 5fr;
   height: 100%;
+  transition: grid-template-columns 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.app-layout--workspace-visible {
+  grid-template-columns: 3fr 2fr;
 }
 
 /* ============================================
@@ -113,7 +118,6 @@ body::before {
   align-items: center;
   gap: 10px;
   padding: 10px 20px;
-  border-bottom: 1px solid var(--border);
   background: var(--bg);
 }
 
@@ -126,7 +130,7 @@ body::before {
   width: 32px;
   height: 32px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-lg);
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
@@ -141,6 +145,28 @@ body::before {
   border-color: var(--accent);
   color: var(--accent);
   background: var(--accent-subtle);
+}
+
+/* Centered chat when workspace is hidden (chat-only view) */
+.app-layout:not(.app-layout--workspace-visible) .message-list {
+  max-width: 820px;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.app-layout:not(.app-layout--workspace-visible) .input-bar {
+  max-width: 856px;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.app-layout:not(.app-layout--workspace-visible) .chat__header {
+  max-width: 856px;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .chat__error {
@@ -249,6 +275,15 @@ body::before {
   font-family: var(--font-body);
   line-height: 1.65;
   color: var(--text);
+}
+
+.message__image {
+  max-width: 280px;
+  max-height: 280px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  margin: 6px 0;
+  display: block;
 }
 
 /* Thinking indicator — animated dots */
@@ -738,46 +773,59 @@ body::before {
 }
 
 /* ============================================
-   Input Bar
+   Shared Textarea Base
    ============================================ */
 
-.input-bar {
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  padding: 12px 20px 16px;
-  background: linear-gradient(to top, var(--bg) 60%, transparent);
-}
-
-.input-bar__textarea {
-  flex: 1;
+.textarea-base {
   background: var(--bg-surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
   color: var(--text);
   font-family: var(--font-body);
-  font-size: 14px;
-  padding: 10px 18px;
   resize: none;
-  min-height: 42px;
-  max-height: 200px;
   outline: none;
   line-height: 1.55;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.input-bar__textarea:focus {
+.textarea-base:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+.textarea-base::placeholder {
+  color: var(--text-muted);
+}
+
+/* ============================================
+   Input Bar
+   ============================================ */
+
+.input-bar {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 20px 16px;
+  background: linear-gradient(to top, var(--bg) 60%, transparent);
+}
+
+.input-bar__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.input-bar__textarea {
+  flex: 1;
+  border-radius: var(--radius-lg);
+  font-size: 14px;
+  overflow-y: hidden;
+  padding: 10px 18px;
+  min-height: 42px;
+  max-height: 200px;
 }
 
 .input-bar__textarea:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-}
-
-.input-bar__textarea::placeholder {
-  color: var(--text-muted);
 }
 
 .input-bar__btn {
@@ -825,6 +873,67 @@ body::before {
   border-color: var(--error);
 }
 
+/* Image thumbnails */
+.input-bar__images {
+  display: flex;
+  gap: 8px;
+  padding: 0 0 8px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.input-bar__thumb {
+  position: relative;
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  background: var(--bg-elevated);
+  transition: border-color 0.2s;
+}
+
+.input-bar__thumb:hover {
+  border-color: var(--accent);
+}
+
+.input-bar__thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.input-bar__thumb-remove {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(9, 9, 11, 0.85);
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+}
+
+.input-bar__thumb:hover .input-bar__thumb-remove {
+  opacity: 1;
+}
+
+.input-bar__thumb-remove:hover {
+  background: var(--error);
+  color: #fff;
+}
+
 /* ============================================
    Workspace
    ============================================ */
@@ -834,9 +943,18 @@ body::before {
   display: flex;
   flex-direction: column;
   height: 100%;
-  border-right: 1px solid var(--border);
+  border-right: 1px solid transparent;
   min-width: 0;
+  overflow: hidden;
   background: var(--bg);
+  opacity: 0;
+  transition: opacity 0.2s ease, border-right-color 0.3s ease;
+}
+
+.app-layout--workspace-visible .workspace {
+  opacity: 1;
+  border-right-color: var(--border);
+  transition: opacity 0.3s ease 0.12s, border-right-color 0.3s ease;
 }
 
 .workspace__header {
@@ -851,6 +969,7 @@ body::before {
   letter-spacing: 0.1em;
   color: var(--text-muted);
   border-bottom: 1px solid var(--border);
+  white-space: nowrap;
 }
 
 .workspace__mode-badge {
@@ -1038,26 +1157,9 @@ body::before {
 
 .workspace__feedback-input {
   width: 100%;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
   border-radius: var(--radius);
-  color: var(--text);
-  font-family: var(--font-body);
   font-size: 13px;
   padding: 10px 14px;
-  resize: none;
-  outline: none;
-  line-height: 1.55;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.workspace__feedback-input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-subtle);
-}
-
-.workspace__feedback-input::placeholder {
-  color: var(--text-muted);
 }
 
 .workspace__feedback-actions {
@@ -1217,13 +1319,18 @@ body::before {
    ============================================ */
 
 @media (max-width: 900px) {
-  .app-layout {
+  .app-layout--workspace-visible {
     grid-template-columns: 1fr;
-    grid-template-rows: 35% 1fr;
+    grid-template-rows: 55% 1fr;
   }
 
-  .workspace {
-    border-right: none;
+  .app-layout--workspace-visible .workspace {
+    border-right-color: transparent;
     border-bottom: 1px solid var(--border);
+  }
+
+  .app-layout:not(.app-layout--workspace-visible) .message-list,
+  .app-layout:not(.app-layout--workspace-visible) .input-bar {
+    max-width: none;
   }
 }

@@ -3,7 +3,7 @@ is_strict: true
 
 processes:
   build:
-    command: bun run --watch bun-build.ts
+    command: bun run bun-build.ts --watch
     working_dir: .
 
   server:

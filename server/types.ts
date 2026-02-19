@@ -7,6 +7,13 @@ import type {
   ToolCallContent,
 } from "@agentclientprotocol/sdk";
 
+// --- Shared Types ---
+
+export type ImageAttachment = {
+  data: string;      // base64-encoded
+  mimeType: string;  // e.g. "image/png"
+};
+
 // --- Domain Events ---
 
 export type BaseEvent = {
@@ -23,6 +30,7 @@ export type SessionCreated = BaseEvent & {
 export type PromptSubmitted = BaseEvent & {
   type: "PromptSubmitted";
   text: string;
+  images?: ImageAttachment[];
 };
 
 export type AgentText = BaseEvent & {
@@ -126,6 +134,7 @@ export type EventPayload = DistributiveOmit<DomainEvent, "seq" | "timestamp" | "
 export type SubmitPromptCommand = {
   command: "submit_prompt";
   text: string;
+  images?: ImageAttachment[];
 };
 
 export type CancelCommand = {

@@ -5,7 +5,7 @@
   "scripts": {
     "check": "bunx tsc --noEmit",
     "build": "bun run bun-build.ts",
-    "build:watch": "bun run --watch bun-build.ts",
+    "build:watch": "bun run bun-build.ts --watch",
     "dev": "bun run server/index.ts",
     "test": "bun test"
   },

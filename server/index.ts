@@ -153,7 +153,7 @@ const server = Bun.serve({
               });
               return;
             }
-            bridge.submitPrompt(sessionId, cmd.text);
+            bridge.submitPrompt(sessionId, cmd.text, cmd.images);
             break;
           }
 

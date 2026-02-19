@@ -17,7 +17,7 @@ import {
 import { join } from "path";
 import { readFileSync } from "fs";
 import { translateAcpUpdate } from "./acp-translate.ts";
-import type { EventPayload } from "./types.ts";
+import type { EventPayload, ImageAttachment } from "./types.ts";
 
 export type OnEventCallback = (sessionId: string, payload: EventPayload) => void;
 export type OnTitleUpdateCallback = (sessionId: string, title: string) => void;
@@ -240,18 +240,26 @@ export class AcpBridge {
     }
   }
 
-  async submitPrompt(sessionId: string, text: string): Promise<void> {
+  async submitPrompt(sessionId: string, text: string, images?: ImageAttachment[]): Promise<void> {
     if (!this.connection) {
       onEventError(this.onEvent, sessionId, "ACP connection not initialized");
       return;
     }
 
-    this.onEvent(sessionId, { type: "PromptSubmitted", text });
+    this.onEvent(sessionId, { type: "PromptSubmitted", text, images });
 
     try {
+      const prompt: Array<{ type: "text"; text: string } | { type: "image"; data: string; mimeType: string }> = [];
+      if (images?.length) {
+        for (const img of images) {
+          prompt.push({ type: "image", data: img.data, mimeType: img.mimeType });
+        }
+      }
+      prompt.push({ type: "text", text });
+
       const resp = await this.connection.prompt({
         sessionId: sessionId as SessionId,
-        prompt: [{ type: "text", text }],
+        prompt,
       });
 
       this.onEvent(sessionId, {

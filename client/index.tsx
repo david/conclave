@@ -3,11 +3,18 @@ import { createRoot } from "react-dom/client";
 import { reducer, initialState } from "./reducer.ts";
 import { Chat } from "./components/chat.tsx";
 import { Workspace } from "./components/workspace.tsx";
-import type { WsEvent, Command } from "../server/types.ts";
+import type { WsEvent, Command, ImageAttachment } from "../server/types.ts";
 
 function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const wsRef = useRef<WebSocket | null>(null);
+
+  // Workspace is visible whenever there's workspace-relevant content
+  const workspaceVisible =
+    state.currentMode === "plan" ||
+    !!state.planContent ||
+    state.pendingPermission !== null ||
+    state.planEntries.length > 0;
 
   useEffect(() => {
     function connect() {
@@ -50,8 +57,8 @@ function App() {
   }, []);
 
   const handleSubmit = useCallback(
-    (text: string) => {
-      sendCommand({ command: "submit_prompt", text });
+    (text: string, images?: ImageAttachment[]) => {
+      sendCommand({ command: "submit_prompt", text, images });
     },
     [sendCommand],
   );
@@ -79,7 +86,7 @@ function App() {
   );
 
   return (
-    <div className="app-layout">
+    <div className={`app-layout${workspaceVisible ? " app-layout--workspace-visible" : ""}`}>
       <Workspace
         entries={state.planEntries}
         currentMode={state.currentMode}

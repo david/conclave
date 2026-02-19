@@ -129,7 +129,7 @@ export function Workspace({
       {showFeedback && (
         <div className="workspace__feedback">
           <textarea
-            className="workspace__feedback-input"
+            className="textarea-base workspace__feedback-input"
             value={feedback}
             onChange={(e) => setFeedback(e.target.value)}
             onKeyDown={handleFeedbackKeyDown}

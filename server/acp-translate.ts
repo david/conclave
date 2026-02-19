@@ -59,6 +59,9 @@ export function translateAcpUpdate(update: SessionUpdate, isReplay = false): Eve
       if (content.type === "text") {
         return [{ type: "PromptSubmitted", text: content.text }];
       }
+      if (content.type === "image") {
+        return [{ type: "PromptSubmitted", text: "", images: [{ data: content.data, mimeType: content.mimeType }] }];
+      }
       return [];
     }
 
