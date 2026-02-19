@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React from "react";
 import type { ToolCallInfo } from "../reducer.ts";
 import { StatusDot, Chevron } from "./icons.tsx";
+import { useCollapsible } from "../hooks/use-collapsible.ts";
 
 function formatValue(value: unknown): string {
   if (value === undefined || value === null) return "";
@@ -13,24 +14,14 @@ function formatValue(value: unknown): string {
 }
 
 export function ToolCallCard({ toolCall }: { toolCall: ToolCallInfo }) {
-  const [expanded, setExpanded] = useState(false);
-
   const hasDetails =
     toolCall.input !== undefined || toolCall.output !== undefined;
 
+  const { expanded, headerProps } = useCollapsible(hasDetails);
+
   return (
-    <div className={`tool-call tool-call--${toolCall.status}`}>
-      <div
-        className="tool-call__header"
-        onClick={() => hasDetails && setExpanded(!expanded)}
-        role={hasDetails ? "button" : undefined}
-        tabIndex={hasDetails ? 0 : undefined}
-        onKeyDown={(e) => {
-          if (hasDetails && (e.key === "Enter" || e.key === " ")) {
-            setExpanded(!expanded);
-          }
-        }}
-      >
+    <div className="tool-call" data-status={toolCall.status}>
+      <div className="tool-call__header" {...headerProps}>
         <span className="tool-call__icon">
           <StatusDot status={toolCall.status} />
         </span>

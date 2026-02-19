@@ -1,11 +1,9 @@
-import type { AppState, ClientEvent } from "../types.ts";
+import { createSlice } from "./create-slice.ts";
 
 /** ModeChanged → updates current mode, resets plan content on plan entry, clears pending permission. */
-export function modeChangedSlice(state: AppState, event: ClientEvent): AppState {
-  if (event.type !== "ModeChanged") return state;
-
+export const modeChangedSlice = createSlice("ModeChanged", (state, event) => {
   const currentMode = event.modeId;
   const planContent = event.modeId === "plan" ? "" : state.planContent;
 
   return { ...state, currentMode, planContent, pendingPermission: null };
-}
+});

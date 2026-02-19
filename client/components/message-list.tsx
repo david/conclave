@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import type {
   Message,
   ContentBlock,
@@ -11,6 +11,7 @@ import { ToolCallCard } from "./tool-call.tsx";
 import { ToolCallGroup } from "./tool-call-group.tsx";
 import { MarkdownText } from "./markdown-text.tsx";
 import { Chevron } from "./icons.tsx";
+import { useCollapsible } from "../hooks/use-collapsible.ts";
 
 type MessageListProps = {
   messages: Message[];
@@ -46,23 +47,13 @@ function groupContentBlocks(blocks: ContentBlock[]): RenderSegment[] {
 }
 
 function ThoughtBlockView({ text }: { text: string }) {
-  const [expanded, setExpanded] = useState(false);
   const preview = text.split("\n")[0].slice(0, 80);
   const isLong = text.length > 80 || text.includes("\n");
+  const { expanded, headerProps } = useCollapsible(isLong);
 
   return (
     <div className="thought-block">
-      <div
-        className="thought-block__header"
-        onClick={() => isLong && setExpanded(!expanded)}
-        role={isLong ? "button" : undefined}
-        tabIndex={isLong ? 0 : undefined}
-        onKeyDown={(e) => {
-          if (isLong && (e.key === "Enter" || e.key === " ")) {
-            setExpanded(!expanded);
-          }
-        }}
-      >
+      <div className="thought-block__header" {...headerProps}>
         <span className="thought-block__icon">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round">
             <circle cx="7" cy="5.5" r="4" />

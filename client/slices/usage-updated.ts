@@ -1,8 +1,7 @@
-import type { AppState, ClientEvent } from "../types.ts";
+import { createSlice } from "./create-slice.ts";
 
 /** UsageUpdated → updates token/cost usage info. */
-export function usageUpdatedSlice(state: AppState, event: ClientEvent): AppState {
-  if (event.type !== "UsageUpdated") return state;
+export const usageUpdatedSlice = createSlice("UsageUpdated", (state, event) => {
   return {
     ...state,
     usage: {
@@ -12,4 +11,4 @@ export function usageUpdatedSlice(state: AppState, event: ClientEvent): AppState
       costCurrency: event.costCurrency,
     },
   };
-}
+});

@@ -1,12 +1,11 @@
-import type { AppState, ClientEvent } from "../types.ts";
 import { initialState } from "../types.ts";
+import { createSlice } from "./create-slice.ts";
 
 /** SessionSwitched → resets all state except the sessions list. */
-export function sessionSwitchedSlice(state: AppState, event: ClientEvent): AppState {
-  if (event.type !== "SessionSwitched") return state;
+export const sessionSwitchedSlice = createSlice("SessionSwitched", (state, event) => {
   return {
     ...initialState,
     sessions: state.sessions,
     sessionId: event.sessionId,
   };
-}
+});

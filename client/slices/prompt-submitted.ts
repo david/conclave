@@ -1,9 +1,8 @@
-import type { AppState, ClientEvent, ContentBlock } from "../types.ts";
+import type { ContentBlock } from "../types.ts";
+import { createSlice } from "./create-slice.ts";
 
 /** PromptSubmitted → adds user message, sets processing, clears error and pending permission. */
-export function promptSubmittedSlice(state: AppState, event: ClientEvent): AppState {
-  if (event.type !== "PromptSubmitted") return state;
-
+export const promptSubmittedSlice = createSlice("PromptSubmitted", (state, event) => {
   const userContent: ContentBlock[] = [];
   if (event.images?.length) {
     for (const img of event.images) {
@@ -38,4 +37,4 @@ export function promptSubmittedSlice(state: AppState, event: ClientEvent): AppSt
     error: null,
     pendingPermission: null,
   };
-}
+});

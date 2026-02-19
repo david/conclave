@@ -1,7 +1,6 @@
-import type { AppState, ClientEvent } from "../types.ts";
+import { createSlice } from "./create-slice.ts";
 
 /** SessionInitiated → marks session creation in progress. */
-export function sessionInitiatedSlice(state: AppState, event: ClientEvent): AppState {
-  if (event.type !== "SessionInitiated") return state;
+export const sessionInitiatedSlice = createSlice("SessionInitiated", (state) => {
   return { ...state, creatingSession: true };
-}
+});

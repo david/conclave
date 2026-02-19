@@ -1,7 +1,6 @@
-import type { AppState, ClientEvent } from "../types.ts";
+import { createSlice } from "./create-slice.ts";
 
 /** SessionCreated → sets active session ID, clears creating flag. */
-export function sessionCreatedSlice(state: AppState, event: ClientEvent): AppState {
-  if (event.type !== "SessionCreated") return state;
+export const sessionCreatedSlice = createSlice("SessionCreated", (state, event) => {
   return { ...state, sessionId: event.sessionId, creatingSession: false };
-}
+});

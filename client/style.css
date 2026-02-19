@@ -774,25 +774,15 @@ body::before {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   overflow: hidden;
-  border-left: 2px solid var(--border);
+  border-left: 2px solid var(--status-color, var(--border));
   transition: border-left-color 0.2s;
 }
 
-.tool-call--pending {
-  border-left-color: var(--text-muted);
-}
-
-.tool-call--in_progress {
-  border-left-color: var(--accent);
-}
-
-.tool-call--completed {
-  border-left-color: var(--success);
-}
-
-.tool-call--failed {
-  border-left-color: var(--error);
-}
+/* Status-based colors — shared via data-status attribute */
+[data-status="pending"]    { --status-color: var(--text-muted); }
+[data-status="in_progress"] { --status-color: var(--accent); }
+[data-status="completed"]  { --status-color: var(--success); }
+[data-status="failed"]     { --status-color: var(--error); }
 
 .tool-call__header {
   display: flex;
@@ -816,19 +806,7 @@ body::before {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-muted);
-}
-
-.tool-call--in_progress .tool-call__icon {
-  color: var(--accent);
-}
-
-.tool-call--completed .tool-call__icon {
-  color: var(--success);
-}
-
-.tool-call--failed .tool-call__icon {
-  color: var(--error);
+  color: var(--status-color, var(--text-muted));
 }
 
 .tool-call__name {
@@ -899,24 +877,8 @@ body::before {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   overflow: hidden;
-  border-left: 2px solid var(--border);
+  border-left: 2px solid var(--status-color, var(--border));
   transition: border-left-color 0.2s;
-}
-
-.tool-call-group--pending {
-  border-left-color: var(--text-muted);
-}
-
-.tool-call-group--in_progress {
-  border-left-color: var(--accent);
-}
-
-.tool-call-group--completed {
-  border-left-color: var(--success);
-}
-
-.tool-call-group--failed {
-  border-left-color: var(--error);
 }
 
 .tool-call-group__summary {
@@ -941,19 +903,7 @@ body::before {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-muted);
-}
-
-.tool-call-group--in_progress .tool-call-group__icon {
-  color: var(--accent);
-}
-
-.tool-call-group--completed .tool-call-group__icon {
-  color: var(--success);
-}
-
-.tool-call-group--failed .tool-call-group__icon {
-  color: var(--error);
+  color: var(--status-color, var(--text-muted));
 }
 
 .tool-call-group__label {
@@ -1310,19 +1260,7 @@ body::before {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-muted);
-}
-
-.file-change--completed .file-change__icon {
-  color: var(--success);
-}
-
-.file-change--pending .file-change__icon {
-  color: var(--accent);
-}
-
-.file-change--failed .file-change__icon {
-  color: var(--error);
+  color: var(--status-color, var(--text-muted));
 }
 
 .file-change__name {
@@ -1400,16 +1338,8 @@ body::before {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-muted);
+  color: var(--status-color, var(--text-muted));
   transition: color 0.2s;
-}
-
-.plan-entry--in_progress .plan-entry__icon {
-  color: var(--accent);
-}
-
-.plan-entry--completed .plan-entry__icon {
-  color: var(--success);
 }
 
 .plan-entry__content {
@@ -1417,7 +1347,7 @@ body::before {
   min-width: 0;
 }
 
-.plan-entry--completed .plan-entry__content {
+.plan-entry[data-status="completed"] .plan-entry__content {
   color: var(--text-muted);
   text-decoration: line-through;
   text-decoration-color: var(--border);
@@ -1557,36 +1487,13 @@ body::before {
   line-height: 0;
 }
 
-.status-dot--pending {
-  color: var(--text-muted);
-}
-
-.status-dot--in_progress {
-  color: var(--accent);
-}
-
-.status-dot--completed {
-  color: var(--success);
-}
-
-.status-dot--failed {
-  color: var(--error);
+.status-dot,
+.task-icon {
+  color: var(--status-color, var(--text-muted));
 }
 
 .chevron {
   color: var(--text-muted);
-}
-
-.task-icon--pending {
-  color: var(--text-muted);
-}
-
-.task-icon--in_progress {
-  color: var(--accent);
-}
-
-.task-icon--completed {
-  color: var(--success);
 }
 
 /* ============================================

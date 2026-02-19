@@ -18,7 +18,7 @@ export function StatusDot({
   className,
 }: IconProps & { status: string }) {
   return (
-    <span className={`status-dot status-dot--${status} ${className ?? ""}`}>
+    <span className={`status-dot ${className ?? ""}`} data-status={status}>
       <svg width={size} height={size} viewBox="0 0 8 8">
         {status === "pending" ? (
           <circle cx="4" cy="4" r="3" fill="none" stroke="currentColor" strokeWidth="1.5" />
@@ -99,7 +99,7 @@ export function TaskIcon({
   className,
 }: IconProps & { status: string }) {
   return (
-    <span className={`task-icon task-icon--${status} ${className ?? ""}`}>
+    <span className={`task-icon ${className ?? ""}`} data-status={status}>
       <svg
         width={size}
         height={size}

@@ -1,8 +1,7 @@
-import type { AppState, ClientEvent } from "../types.ts";
+import { createSlice } from "./create-slice.ts";
 
 /** PermissionRequested → sets pending permission and optionally updates plan content. */
-export function permissionRequestedSlice(state: AppState, event: ClientEvent): AppState {
-  if (event.type !== "PermissionRequested") return state;
+export const permissionRequestedSlice = createSlice("PermissionRequested", (state, event) => {
   return {
     ...state,
     pendingPermission: {
@@ -11,4 +10,4 @@ export function permissionRequestedSlice(state: AppState, event: ClientEvent): A
     },
     planContent: event.planContent || state.planContent,
   };
-}
+});

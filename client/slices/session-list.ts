@@ -1,7 +1,6 @@
-import type { AppState, ClientEvent } from "../types.ts";
+import { createSlice } from "./create-slice.ts";
 
 /** SessionList → replaces the full sessions list. */
-export function sessionListSlice(state: AppState, event: ClientEvent): AppState {
-  if (event.type !== "SessionList") return state;
+export const sessionListSlice = createSlice("SessionList", (state, event) => {
   return { ...state, sessions: event.sessions };
-}
+});

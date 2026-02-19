@@ -1,31 +1,22 @@
-import React, { useState } from "react";
+import React from "react";
 import type { ToolCallBlock } from "../reducer.ts";
 import { ToolCallCard } from "./tool-call.tsx";
 import { StatusDot, Chevron } from "./icons.tsx";
+import { useCollapsible } from "../hooks/use-collapsible.ts";
 
 type ToolCallGroupProps = {
   blocks: ToolCallBlock[];
 };
 
 export function ToolCallGroup({ blocks }: ToolCallGroupProps) {
-  const [expanded, setExpanded] = useState(false);
+  const { expanded, headerProps } = useCollapsible();
 
   const last = blocks[blocks.length - 1].toolCall;
   const count = blocks.length;
 
   return (
-    <div className={`tool-call-group tool-call-group--${last.status}`}>
-      <div
-        className="tool-call-group__summary"
-        onClick={() => setExpanded(!expanded)}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            setExpanded(!expanded);
-          }
-        }}
-      >
+    <div className="tool-call-group" data-status={last.status}>
+      <div className="tool-call-group__summary" {...headerProps}>
         <span className="tool-call-group__icon">
           <StatusDot status={last.status} />
         </span>

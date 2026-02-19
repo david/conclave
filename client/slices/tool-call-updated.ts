@@ -1,24 +1,11 @@
-import type { AppState, ClientEvent } from "../types.ts";
+import { createSlice } from "./create-slice.ts";
+import { patchToolCallInStream } from "./utils.ts";
 
 /** ToolCallUpdated → updates tool call status and content in streaming content. */
-export function toolCallUpdatedSlice(state: AppState, event: ClientEvent): AppState {
-  if (event.type !== "ToolCallUpdated") return state;
-
-  const streamingContent = state.streamingContent.map((block) => {
-    if (
-      block.type === "tool_call" &&
-      block.toolCall.toolCallId === event.toolCallId
-    ) {
-      return {
-        type: "tool_call" as const,
-        toolCall: {
-          ...block.toolCall,
-          status: event.status,
-          content: event.content ?? block.toolCall.content,
-        },
-      };
-    }
-    return block;
+export const toolCallUpdatedSlice = createSlice("ToolCallUpdated", (state, event) => {
+  const streamingContent = patchToolCallInStream(state.streamingContent, event.toolCallId, {
+    status: event.status,
+    ...(event.content != null && { content: event.content }),
   });
   return { ...state, streamingContent };
-}
+});

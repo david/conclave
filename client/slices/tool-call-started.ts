@@ -1,10 +1,9 @@
-import type { AppState, ClientEvent, ToolCallInfo } from "../types.ts";
+import type { ToolCallInfo } from "../types.ts";
+import { createSlice } from "./create-slice.ts";
 import { extractFilePath, kindToAction } from "./utils.ts";
 
 /** ToolCallStarted → adds tool call to streaming content, tracks file changes. */
-export function toolCallStartedSlice(state: AppState, event: ClientEvent): AppState {
-  if (event.type !== "ToolCallStarted") return state;
-
+export const toolCallStartedSlice = createSlice("ToolCallStarted", (state, event) => {
   let { streamingContent, fileChanges } = state;
 
   // --- streaming content ---
@@ -56,4 +55,4 @@ export function toolCallStartedSlice(state: AppState, event: ClientEvent): AppSt
   }
 
   return { ...state, streamingContent, fileChanges };
-}
+});

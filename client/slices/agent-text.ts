@@ -1,15 +1,7 @@
-import type { AppState, ClientEvent } from "../types.ts";
+import { createSlice } from "./create-slice.ts";
+import { appendStreamingText } from "./utils.ts";
 
 /** AgentText → appends or extends text in streaming content. */
-export function agentTextSlice(state: AppState, event: ClientEvent): AppState {
-  if (event.type !== "AgentText") return state;
-
-  const content = [...state.streamingContent];
-  const last = content[content.length - 1];
-  if (last && last.type === "text") {
-    content[content.length - 1] = { type: "text", text: last.text + event.text };
-  } else {
-    content.push({ type: "text", text: event.text });
-  }
-  return { ...state, streamingContent: content };
-}
+export const agentTextSlice = createSlice("AgentText", (state, event) => {
+  return { ...state, streamingContent: appendStreamingText(state.streamingContent, "text", event.text) };
+});

@@ -17,9 +17,7 @@ import { turnCompletedSlice } from "./turn-completed.ts";
 import { errorSlice } from "./error.ts";
 import { usageUpdatedSlice } from "./usage-updated.ts";
 
-type Slice = (state: AppState, event: ClientEvent) => AppState;
-
-const slices: Slice[] = [
+const slices: Array<(state: AppState, event: ClientEvent) => AppState> = [
   sessionInitiatedSlice,
   sessionCreatedSlice,
   sessionListSlice,

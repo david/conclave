@@ -15,7 +15,7 @@ type WorkspaceProps = {
 
 function PlanEntry({ entry }: { entry: PlanEntryInfo }) {
   return (
-    <div className={`plan-entry plan-entry--${entry.status}`}>
+    <div className="plan-entry" data-status={entry.status}>
       <span className="plan-entry__icon">
         <TaskIcon status={entry.status} />
       </span>
@@ -31,7 +31,7 @@ function FileChangeRow({ fileChange }: { fileChange: FileChangeInfo }) {
   const fileName = fileChange.filePath.split("/").pop() || fileChange.filePath;
 
   return (
-    <div className={`file-change file-change--${fileChange.status}`}>
+    <div className="file-change" data-status={fileChange.status}>
       <span className="file-change__icon">
         <FileActionIcon action={fileChange.action} />
       </span>

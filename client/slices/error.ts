@@ -1,7 +1,6 @@
-import type { AppState, ClientEvent } from "../types.ts";
+import { createSlice } from "./create-slice.ts";
 
 /** Error → sets error message and stops processing. */
-export function errorSlice(state: AppState, event: ClientEvent): AppState {
-  if (event.type !== "Error") return state;
+export const errorSlice = createSlice("Error", (state, event) => {
   return { ...state, error: event.message, isProcessing: false };
-}
+});
