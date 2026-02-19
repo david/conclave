@@ -1,22 +1,21 @@
 import { EventStore } from "./event-store.ts";
 import { AcpBridge, formatError } from "./acp-bridge.ts";
-import type { Command, DomainEvent, SessionListEvent, WsEvent } from "./types.ts";
+import type { Command, DomainEvent, WsEvent } from "./types.ts";
 import { join } from "path";
+import { createSessionRegistry } from "./projections/session-registry.ts";
+import { createLatestSessionProjection } from "./projections/latest-session.ts";
+import { createSessionListProjection, buildSessionList } from "./projections/session-list.ts";
 
 const PORT = Number(process.env.PORT) || 3000;
 const CWD = process.env.CONCLAVE_CWD || process.cwd();
 
 const store = new EventStore();
 
-// Session metadata
-type SessionMeta = { sessionId: string; name: string; title: string | null; firstPrompt: string | null; loaded: boolean; createdAt: number };
-const sessions = new Map<string, SessionMeta>();
-let sessionCounter = 0;
+// Read models (projections)
+const sessionRegistry = createSessionRegistry(store);
+const latestSession = createLatestSessionProjection(store);
 
-// Latest session for new WS connections
-let latestSessionId: string | null = null;
-
-// Per-WS state
+// Per-WS state (connection infrastructure — not domain state)
 type WsState = { currentSessionId: string | null; unsubscribe: (() => void) | null };
 const wsStates = new Map<object, WsState>();
 
@@ -27,40 +26,19 @@ const bridge = new AcpBridge(CWD, (sessionId, payload) => {
     return;
   }
   store.append(sessionId, payload);
-
-  // Track firstPrompt
-  if (payload.type === "PromptSubmitted") {
-    const meta = sessions.get(sessionId);
-    if (meta && !meta.firstPrompt) {
-      meta.firstPrompt = payload.text;
-      broadcastSessionList();
-    }
-  }
 });
 
-bridge.onTitleUpdate = (sessionId: string, title: string) => {
-  const meta = sessions.get(sessionId);
-  if (meta) {
-    meta.title = title;
-    broadcastSessionList();
-  }
-};
-
-function buildSessionList(): SessionListEvent {
-  return {
-    type: "SessionList",
-    sessions: Array.from(sessions.values()).sort((a, b) => b.createdAt - a.createdAt),
-    seq: -1,
-    timestamp: Date.now(),
-  };
-}
-
+// Reactive session list broadcast — triggers whenever a session-affecting event lands
 function broadcastSessionList() {
-  const msg = JSON.stringify(buildSessionList());
+  const msg = JSON.stringify(buildSessionList(sessionRegistry));
   for (const [ws] of wsStates) {
     (ws as { send(data: string): void }).send(msg);
   }
 }
+
+createSessionListProjection(store, sessionRegistry, () => {
+  broadcastSessionList();
+});
 
 function sendWs(ws: object, event: WsEvent) {
   (ws as { send(data: string): void }).send(JSON.stringify(event));
@@ -126,9 +104,10 @@ const server = Bun.serve({
       wsStates.set(ws, { currentSessionId: null, unsubscribe: null });
 
       // Send session list
-      sendWs(ws, buildSessionList());
+      sendWs(ws, buildSessionList(sessionRegistry));
 
       // Replay latest session if one exists
+      const { latestSessionId } = latestSession.getState();
       if (latestSessionId) {
         replaySession(ws, latestSessionId);
         subscribeWsToSession(ws, latestSessionId);
@@ -138,11 +117,11 @@ const server = Bun.serve({
     async message(ws, message) {
       try {
         const cmd = JSON.parse(String(message)) as Command;
-        const state = wsStates.get(ws);
+        const wsState = wsStates.get(ws);
 
         switch (cmd.command) {
           case "submit_prompt": {
-            const sessionId = state?.currentSessionId;
+            const sessionId = wsState?.currentSessionId;
             if (!sessionId) {
               sendWs(ws, {
                 type: "Error",
@@ -158,7 +137,7 @@ const server = Bun.serve({
           }
 
           case "cancel": {
-            const sessionId = state?.currentSessionId;
+            const sessionId = wsState?.currentSessionId;
             if (sessionId) {
               bridge.cancel(sessionId);
             }
@@ -168,10 +147,7 @@ const server = Bun.serve({
           case "create_session": {
             try {
               const sessionId = await bridge.createSession();
-              const name = `Session ${++sessionCounter}`;
-              sessions.set(sessionId, { sessionId, name, title: null, firstPrompt: null, loaded: true, createdAt: Date.now() });
               store.append(sessionId, { type: "SessionCreated" });
-              latestSessionId = sessionId;
 
               // Switch this client to the new session
               sendWs(ws, {
@@ -184,8 +160,6 @@ const server = Bun.serve({
 
               // Replay the new session (has SessionCreated)
               replaySession(ws, sessionId);
-
-              broadcastSessionList();
             } catch (err) {
               sendWs(ws, {
                 type: "Error",
@@ -199,7 +173,7 @@ const server = Bun.serve({
           }
 
           case "permission_response": {
-            const sessionId = state?.currentSessionId;
+            const sessionId = wsState?.currentSessionId;
             if (!sessionId) {
               sendWs(ws, {
                 type: "Error",
@@ -232,7 +206,7 @@ const server = Bun.serve({
 
           case "switch_session": {
             const targetId = cmd.sessionId;
-            const targetMeta = sessions.get(targetId);
+            const targetMeta = sessionRegistry.getState().sessions.get(targetId);
             if (!targetMeta) {
               sendWs(ws, {
                 type: "Error",
@@ -250,7 +224,7 @@ const server = Bun.serve({
                 await bridge.loadSession(targetId);
                 // Append a synthetic TurnCompleted so the client's isProcessing settles to false
                 store.append(targetId, { type: "TurnCompleted", stopReason: "end_turn" });
-                targetMeta.loaded = true;
+                store.append(targetId, { type: "SessionLoaded" });
               } catch (err) {
                 sendWs(ws, {
                   type: "Error",
@@ -296,9 +270,9 @@ const server = Bun.serve({
     },
 
     close(ws) {
-      const state = wsStates.get(ws);
-      if (state?.unsubscribe) {
-        state.unsubscribe();
+      const wsState = wsStates.get(ws);
+      if (wsState?.unsubscribe) {
+        wsState.unsubscribe();
       }
       wsStates.delete(ws);
     },
@@ -314,30 +288,23 @@ bridge.start().then(async () => {
   const now = Date.now();
   for (let i = 0; i < existing.length; i++) {
     const s = existing[i];
-    const name = s.title || `Session ${++sessionCounter}`;
-    sessions.set(s.sessionId, {
-      sessionId: s.sessionId,
+    const name = s.title || `Session ${sessionRegistry.getState().sessionCounter + 1}`;
+    store.append(s.sessionId, {
+      type: "SessionDiscovered",
       name,
       title: s.title ?? null,
-      firstPrompt: null,
-      loaded: false,
       createdAt: now - i,
     });
   }
 
   if (existing.length > 0) {
-    // Default to most recent existing session (don't load it yet — will load on switch or first use)
-    latestSessionId = existing[0].sessionId;
-    console.log(`Found ${existing.length} existing session(s), latest: ${latestSessionId}`);
+    console.log(`Found ${existing.length} existing session(s), latest: ${latestSession.getState().latestSessionId}`);
   }
 
   // Always create a fresh session to start with
   try {
     const sessionId = await bridge.createSession();
-    const name = `Session ${++sessionCounter}`;
-    sessions.set(sessionId, { sessionId, name, title: null, firstPrompt: null, loaded: true, createdAt: Date.now() });
     store.append(sessionId, { type: "SessionCreated" });
-    latestSessionId = sessionId;
   } catch (err) {
     console.error("Failed to create initial session:", err);
   }

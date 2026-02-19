@@ -20,8 +20,6 @@ import { translateAcpUpdate } from "./acp-translate.ts";
 import type { EventPayload, ImageAttachment } from "./types.ts";
 
 export type OnEventCallback = (sessionId: string, payload: EventPayload) => void;
-export type OnTitleUpdateCallback = (sessionId: string, title: string) => void;
-
 type PendingPermission = {
   resolve: (response: RequestPermissionResponse) => void;
   options: RequestPermissionRequest["options"];
@@ -35,7 +33,6 @@ export class AcpBridge {
   private loadingSessions = new Set<string>();
   private pendingPermissions = new Map<string, PendingPermission>();
   private sessionPlanFilePaths = new Map<string, string>();
-  onTitleUpdate?: OnTitleUpdateCallback;
 
   constructor(cwd: string, onEvent: OnEventCallback) {
     this.cwd = cwd;
@@ -75,13 +72,6 @@ export class AcpBridge {
     this.connection = new ClientSideConnection(
       (_agent: Agent): Client => ({
         async sessionUpdate(params: SessionNotification): Promise<void> {
-          if (params.update.sessionUpdate === "session_info_update") {
-            const title = params.update.title;
-            if (title && bridge.onTitleUpdate) {
-              bridge.onTitleUpdate(params.sessionId, title);
-            }
-            // Fall through to translateAcpUpdate so a SessionInfoUpdated event is emitted
-          }
 
           // Track plan file paths from tool_call events (per session)
           if (params.update.sessionUpdate === "tool_call") {

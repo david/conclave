@@ -25,6 +25,7 @@ export type BaseEvent = {
 export type SessionCreated = BaseEvent & {
   type: "SessionCreated";
   sessionId: string;
+  name?: string;
 };
 
 export type PromptSubmitted = BaseEvent & {
@@ -97,6 +98,17 @@ export type SessionSwitched = BaseEvent & {
   type: "SessionSwitched";
 };
 
+export type SessionDiscovered = BaseEvent & {
+  type: "SessionDiscovered";
+  name: string;
+  title: string | null;
+  createdAt: number;
+};
+
+export type SessionLoaded = BaseEvent & {
+  type: "SessionLoaded";
+};
+
 export type AgentThought = BaseEvent & {
   type: "AgentThought";
   text: string;
@@ -137,6 +149,8 @@ export type DomainEvent =
   | PermissionRequested
   | ErrorEvent
   | SessionSwitched
+  | SessionDiscovered
+  | SessionLoaded
   | UsageUpdated
   | SessionInfoUpdated;
 
