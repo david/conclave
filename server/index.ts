@@ -5,7 +5,6 @@ import { join } from "path";
 import { createSessionRegistry } from "./projections/session-registry.ts";
 import { createLatestSessionProjection } from "./projections/latest-session.ts";
 import { createSessionListProjection, buildSessionList } from "./projections/session-list.ts";
-import { nextNewSessionName } from "./slices/utils.ts";
 
 const PORT = Number(process.env.PORT) || 3000;
 const CWD = process.env.CONCLAVE_CWD || process.cwd();
@@ -353,7 +352,7 @@ bridge.start().then(async () => {
   const now = Date.now();
   for (let i = 0; i < existing.length; i++) {
     const s = existing[i];
-    const name = s.title || nextNewSessionName(sessionRegistry.getState());
+    const name = s.title || `Session ${i + 1}`;
     store.append(s.sessionId, {
       type: "SessionDiscovered",
       name,
