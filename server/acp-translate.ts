@@ -3,12 +3,11 @@ import type { EventPayload } from "./types.ts";
 
 /**
  * Strip the mode preamble that gets prepended to prompts before sending to ACP.
- * Format: `[Mode: <label>]\n\n<instruction>\n\n---\n\n<user text>`
- * Returns the original user text if the preamble is detected, otherwise returns as-is.
+ * Format: `[Mode: <label>]\n\n<instruction>\n\n[conclave:user]\n\n<user text>`
+ * Returns the original user text if the marker is found, otherwise returns as-is.
  */
 export function stripModePreamble(text: string): string {
-  if (!text.startsWith("[Mode: ")) return text;
-  const sep = "\n\n---\n\n";
+  const sep = "\n\n[conclave:user]\n\n";
   const idx = text.indexOf(sep);
   if (idx === -1) return text;
   return text.slice(idx + sep.length);

@@ -222,7 +222,7 @@ describe("translateAcpUpdate", () => {
   });
 
   test("user_message_chunk replay strips mode preamble", () => {
-    const decorated = "[Mode: Requirements]\n\nYou are in Requirements mode.\n\n---\n\nAnalyze login flow";
+    const decorated = "[Mode: Requirements]\n\nYou are in Requirements mode.\n\n[conclave:user]\n\nAnalyze login flow";
     const update: SessionUpdate = {
       sessionUpdate: "user_message_chunk",
       content: { type: "text", text: decorated },
@@ -236,7 +236,7 @@ describe("translateAcpUpdate", () => {
 
 describe("stripModePreamble", () => {
   test("strips mode preamble from decorated prompt", () => {
-    const text = "[Mode: Requirements]\n\nSome long instruction\n\n---\n\nUser text here";
+    const text = "[Mode: Requirements]\n\nSome long instruction\n\n[conclave:user]\n\nUser text here";
     expect(stripModePreamble(text)).toBe("User text here");
   });
 
@@ -244,13 +244,13 @@ describe("stripModePreamble", () => {
     expect(stripModePreamble("Hello world")).toBe("Hello world");
   });
 
-  test("returns text unchanged if no separator found", () => {
-    const text = "[Mode: Chat] no separator";
-    expect(stripModePreamble(text)).toBe("[Mode: Chat] no separator");
+  test("returns text with --- unchanged (not a conclave marker)", () => {
+    const text = "Some text\n\n---\n\nMore text";
+    expect(stripModePreamble(text)).toBe("Some text\n\n---\n\nMore text");
   });
 
   test("handles empty user text after separator", () => {
-    const text = "[Mode: Requirements]\n\nInstruction\n\n---\n\n";
+    const text = "[Mode: Requirements]\n\nInstruction\n\n[conclave:user]\n\n";
     expect(stripModePreamble(text)).toBe("");
   });
 });

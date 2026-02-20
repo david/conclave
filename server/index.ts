@@ -285,7 +285,7 @@ const server = Bun.serve<{ requestedSessionId: string | null }>({
               for (const skill of currentMode.resolvedSkills) {
                 parts.push(skill);
               }
-              parts.push("---", cmd.text);
+              parts.push("[conclave:user]", cmd.text);
               promptText = parts.join("\n\n");
             }
 
