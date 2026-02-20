@@ -2,7 +2,9 @@ import React, { useEffect, useRef, useCallback, useMemo } from "react";
 import { createRoot } from "react-dom/client";
 import { useEventStore } from "./reducer.ts";
 import { Chat } from "./components/chat.tsx";
+import type { InputBarHandle } from "./components/input-bar.tsx";
 import { Workspace } from "./components/workspace.tsx";
+import { UseCasePanel } from "./components/use-case-panel.tsx";
 import type { WsEvent, Command, ImageAttachment } from "../server/types.ts";
 import { getSessionIdFromUrl, pushSessionUrl, replaceSessionUrl, onPopState } from "./router.ts";
 import { parseRequirements } from "./parse-requirements.ts";
@@ -11,6 +13,7 @@ import type { Message } from "./types.ts";
 function App() {
   const { state, append } = useEventStore();
   const wsRef = useRef<WebSocket | null>(null);
+  const inputBarRef = useRef<InputBarHandle>(null);
 
   useEffect(() => {
     function connect() {
@@ -99,6 +102,55 @@ function App() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleCreateSession]);
 
+  // Prevent browser from navigating to pasted/dropped images; route to input bar
+  useEffect(() => {
+    function extractImageFiles(dt: DataTransfer): File[] {
+      const files: File[] = [];
+      for (const item of dt.items) {
+        if (item.type.startsWith("image/")) {
+          const file = item.getAsFile();
+          if (file) files.push(file);
+        }
+      }
+      return files;
+    }
+
+    function handlePaste(e: ClipboardEvent) {
+      if (!e.clipboardData) return;
+      // Let the textarea's own handler deal with it when focused
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "TEXTAREA" || tag === "INPUT") return;
+
+      const images = extractImageFiles(e.clipboardData);
+      if (images.length > 0) {
+        e.preventDefault();
+        inputBarRef.current?.addImageFiles(images);
+      }
+    }
+
+    function handleDragOver(e: DragEvent) {
+      e.preventDefault();
+    }
+
+    function handleDrop(e: DragEvent) {
+      e.preventDefault();
+      if (!e.dataTransfer) return;
+      const images = extractImageFiles(e.dataTransfer);
+      if (images.length > 0) {
+        inputBarRef.current?.addImageFiles(images);
+      }
+    }
+
+    document.addEventListener("paste", handlePaste);
+    document.addEventListener("dragover", handleDragOver);
+    document.addEventListener("drop", handleDrop);
+    return () => {
+      document.removeEventListener("paste", handlePaste);
+      document.removeEventListener("dragover", handleDragOver);
+      document.removeEventListener("drop", handleDrop);
+    };
+  }, []);
+
   // Sync URL to current session
   const isFirstSession = useRef(true);
   useEffect(() => {
@@ -142,21 +194,30 @@ function App() {
     return parseRequirements(messageText + "\n" + streamingText);
   }, [state.messages, state.streamingContent]);
 
-  // Show workspace only when there's content to display
+  // Show workspace sidebar when there are plan entries or file changes
   const workspaceVisible = !!state.sessionId && (
     state.planEntries.length > 0 ||
-    state.fileChanges.length > 0 ||
-    useCases.length > 0
+    state.fileChanges.length > 0
   );
 
+  // Show use case center panel in requirements mode when use cases exist
+  const useCasePanelVisible = useCases.length > 0;
+
+  const layoutClasses = [
+    "app-layout",
+    workspaceVisible ? "app-layout--workspace-visible" : "",
+    useCasePanelVisible ? "app-layout--use-cases-visible" : "",
+  ].filter(Boolean).join(" ");
+
   return (
-    <div className={`app-layout${workspaceVisible ? " app-layout--workspace-visible" : ""}`}>
+    <div className={layoutClasses}>
       <Workspace
         entries={state.planEntries}
         fileChanges={state.fileChanges}
-        useCases={useCases}
       />
+      {useCasePanelVisible && <UseCasePanel useCases={useCases} />}
       <Chat
+        ref={inputBarRef}
         state={state}
         onSubmit={handleSubmit}
         onCancel={handleCancel}

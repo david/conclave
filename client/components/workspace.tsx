@@ -1,11 +1,10 @@
 import React from "react";
 import { TaskIcon, FileActionIcon } from "./icons.tsx";
-import type { PlanEntryInfo, FileChangeInfo, UseCase } from "../reducer.ts";
+import type { PlanEntryInfo, FileChangeInfo } from "../reducer.ts";
 
 type WorkspaceProps = {
   entries: PlanEntryInfo[];
   fileChanges: FileChangeInfo[];
-  useCases: UseCase[];
 };
 
 function PlanEntry({ entry }: { entry: PlanEntryInfo }) {
@@ -40,67 +39,18 @@ function FileChangeRow({ fileChange }: { fileChange: FileChangeInfo }) {
   );
 }
 
-function UseCaseCard({ useCase }: { useCase: UseCase }) {
-  return (
-    <div className="use-case" data-priority={useCase.priority}>
-      <div className="use-case__header">
-        <span className="use-case__id">{useCase.id}</span>
-        <span className={`use-case__priority use-case__priority--${useCase.priority}`}>
-          {useCase.priority}
-        </span>
-      </div>
-      <div className="use-case__name">{useCase.name}</div>
-      <div className="use-case__actor">{useCase.actor}</div>
-      <div className="use-case__summary">{useCase.summary}</div>
-      <div className="use-case__steps">
-        <div className="use-case__step-group">
-          <span className="use-case__step-label">Given</span>
-          <ul className="use-case__step-list">
-            {useCase.given.map((item, i) => <li key={i}>{item}</li>)}
-          </ul>
-        </div>
-        <div className="use-case__step-group">
-          <span className="use-case__step-label">When</span>
-          <ul className="use-case__step-list">
-            {useCase.when.map((item, i) => <li key={i}>{item}</li>)}
-          </ul>
-        </div>
-        <div className="use-case__step-group">
-          <span className="use-case__step-label">Then</span>
-          <ul className="use-case__step-list">
-            {useCase.then.map((item, i) => <li key={i}>{item}</li>)}
-          </ul>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function Workspace({
   entries,
   fileChanges,
-  useCases,
 }: WorkspaceProps) {
   const hasEntries = entries.length > 0;
   const hasFiles = fileChanges.length > 0;
-  const hasUseCases = useCases.length > 0;
-  const hasContent = hasEntries || hasFiles || hasUseCases;
+  const hasContent = hasEntries || hasFiles;
 
   return (
     <div className="workspace">
 
       <div className="workspace__content">
-        {hasUseCases && (
-          <div className="workspace__use-cases-section">
-            <div className="workspace__use-cases-label">Use Cases</div>
-            <div className="workspace__use-cases">
-              {useCases.map((uc) => (
-                <UseCaseCard key={uc.id} useCase={uc} />
-              ))}
-            </div>
-          </div>
-        )}
-
         {hasEntries && (
           <div className="workspace__tasks-section">
             <div className="workspace__tasks-label">Tasks</div>

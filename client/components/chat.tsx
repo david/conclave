@@ -1,6 +1,6 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, forwardRef } from "react";
 import { MessageList } from "./message-list.tsx";
-import { InputBar } from "./input-bar.tsx";
+import { InputBar, type InputBarHandle } from "./input-bar.tsx";
 import { SessionPicker } from "./session-picker.tsx";
 import { ModePicker } from "./mode-picker.tsx";
 import type { AppState } from "../reducer.ts";
@@ -67,7 +67,7 @@ function ContextBar({ usage }: { usage: NonNullable<AppState["usage"]> }) {
   );
 }
 
-export function Chat({ state, onSubmit, onCancel, onSwitchSession, onCreateSession, onSetMode }: ChatProps) {
+export const Chat = forwardRef<InputBarHandle, ChatProps>(function Chat({ state, onSubmit, onCancel, onSwitchSession, onCreateSession, onSetMode }, ref) {
   const [copied, setCopied] = useState(false);
 
   const handleCopySessionId = useCallback(() => {
@@ -136,6 +136,7 @@ export function Chat({ state, onSubmit, onCancel, onSwitchSession, onCreateSessi
         isProcessing={state.isProcessing}
       />
       <InputBar
+        ref={ref}
         onSubmit={onSubmit}
         onCancel={onCancel}
         isProcessing={state.isProcessing}
@@ -143,4 +144,4 @@ export function Chat({ state, onSubmit, onCancel, onSwitchSession, onCreateSessi
       />
     </div>
   );
-}
+});

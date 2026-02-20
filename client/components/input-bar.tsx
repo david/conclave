@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from "react";
+import React, { useState, useRef, useCallback, useEffect, useImperativeHandle, forwardRef } from "react";
 import type { ImageAttachment } from "../../server/types.ts";
 
 type PendingImage = {
@@ -6,6 +6,10 @@ type PendingImage = {
   data: string;
   mimeType: string;
   objectUrl: string;
+};
+
+export type InputBarHandle = {
+  addImageFiles: (files: File[]) => void;
 };
 
 type InputBarProps = {
@@ -51,7 +55,7 @@ function resizeImage(file: File): Promise<{ data: string; mimeType: string }> {
 
 let imageIdCounter = 0;
 
-export function InputBar({ onSubmit, onCancel, isProcessing, placeholder: placeholderProp }: InputBarProps) {
+export const InputBar = forwardRef<InputBarHandle, InputBarProps>(function InputBar({ onSubmit, onCancel, isProcessing, placeholder: placeholderProp }, ref) {
   const [text, setText] = useState("");
   const [images, setImages] = useState<PendingImage[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -94,6 +98,8 @@ export function InputBar({ onSubmit, onCancel, isProcessing, placeholder: placeh
       setImages((prev) => [...prev, ...newImages]);
     }
   }, []);
+
+  useImperativeHandle(ref, () => ({ addImageFiles: addImages }), [addImages]);
 
   const removeImage = useCallback((id: string) => {
     setImages((prev) => {
@@ -199,4 +205,4 @@ export function InputBar({ onSubmit, onCancel, isProcessing, placeholder: placeh
       </div>
     </div>
   );
-}
+});
