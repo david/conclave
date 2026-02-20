@@ -78,6 +78,31 @@ describe("parseRequirements", () => {
     expect(result[1].dependencies).toEqual(["UC-1"]);
   });
 
+  // Deduplication tests
+  test("keeps only the latest version when a use case id appears multiple times", () => {
+    const uc1v2: UseCase = {
+      ...uc1,
+      summary: "Updated summary for v2",
+      given: ["Revised precondition"],
+      when: ["Revised action"],
+      then: ["Revised outcome"],
+    };
+    const markdown = makeBlock(uc1) + "\n\nRevised:\n\n" + makeBlock(uc1v2);
+    const result = parseRequirements(markdown);
+    expect(result).toHaveLength(1);
+    expect(result[0].summary).toBe("Updated summary for v2");
+  });
+
+  test("preserves order of first appearance when deduplicating", () => {
+    const uc1v2: UseCase = { ...uc1, summary: "Updated UC-1" };
+    const markdown = makeBlock(uc1) + "\n\n" + makeBlock(uc2) + "\n\n" + makeBlock(uc1v2);
+    const result = parseRequirements(markdown);
+    expect(result).toHaveLength(2);
+    expect(result[0].id).toBe("UC-1");
+    expect(result[0].summary).toBe("Updated UC-1");
+    expect(result[1].id).toBe("UC-2");
+  });
+
   // Streaming-specific tests
   test("open block (no closing fence) with complete JSON extracts it", () => {
     const markdown = "```conclave:requirements\n" + JSON.stringify(uc1, null, 2);

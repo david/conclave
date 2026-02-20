@@ -22,5 +22,10 @@ export function parseRequirements(markdown: string): UseCase[] {
     }
   }
 
-  return results;
+  // Deduplicate by id, keeping the last (most recent) version
+  const byId = new Map<string, UseCase>();
+  for (const uc of results) {
+    byId.set(uc.id, uc);
+  }
+  return Array.from(byId.values());
 }
