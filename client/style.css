@@ -1789,11 +1789,12 @@ body::before {
   content: '';
   position: absolute;
   left: 0;
-  top: 9px;
-  width: 4px;
-  height: 4px;
+  top: 8px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: var(--border);
+  background: var(--accent-dim);
+  box-shadow: 0 0 4px rgba(179, 122, 56, 0.3);
 }
 
 .uc-card__clause-items li + li {
