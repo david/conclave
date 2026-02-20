@@ -83,7 +83,15 @@ const components: Components = {
   },
 };
 
+/** Strip conclave:requirements fenced blocks — they render in the workspace, not in chat. */
+const CONCLAVE_BLOCK_RE = /```conclave:\w+\n[\s\S]*?```\n?/g;
+
+function stripConclaveBlocks(text: string): string {
+  return text.replace(CONCLAVE_BLOCK_RE, "");
+}
+
 export function MarkdownText({ text }: { text: string }) {
+  const cleaned = stripConclaveBlocks(text);
   return (
     <div className="message__text message__text--markdown">
       <ReactMarkdown
@@ -91,7 +99,7 @@ export function MarkdownText({ text }: { text: string }) {
         rehypePlugins={rehypePlugins}
         components={components}
       >
-        {text}
+        {cleaned}
       </ReactMarkdown>
     </div>
   );

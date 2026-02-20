@@ -168,5 +168,14 @@ export function buildModeSystemPrompt(modes: ModeDefinition[]): string {
     "",
     "Available modes:",
     modeDescriptions,
+    "",
+    "## Switching modes",
+    "",
+    "You may switch modes proactively when appropriate. To switch, emit the marker:",
+    "  [conclave:mode <mode_id>]",
+    "where <mode_id> is one of: " + modes.map((m) => `\`${m.id}\``).join(", ") + ".",
+    "The marker must appear on its own line. It will be intercepted by the system and will not be shown to the user.",
+    "After emitting the marker, continue your response following the new mode's instructions.",
+    "Switch modes when the user's request clearly fits a different mode than the current one.",
   ].join("\n");
 }

@@ -212,13 +212,15 @@ export class AcpBridge {
     }
   }
 
-  async submitPrompt(sessionId: string, text: string, images?: ImageAttachment[]): Promise<void> {
+  async submitPrompt(sessionId: string, text: string, images?: ImageAttachment[], skipPromptEvent = false): Promise<void> {
     if (!this.connection) {
       onEventError(this.onEvent, sessionId, "ACP connection not initialized");
       return;
     }
 
-    this.onEvent(sessionId, { type: "PromptSubmitted", text, images });
+    if (!skipPromptEvent) {
+      this.onEvent(sessionId, { type: "PromptSubmitted", text, images });
+    }
 
     try {
       const prompt = buildPromptBlocks(text, images);

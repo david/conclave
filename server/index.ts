@@ -6,6 +6,7 @@ import { createSessionRegistry } from "./projections/session-registry.ts";
 import { createLatestSessionProjection } from "./projections/latest-session.ts";
 import { createSessionListProjection, buildSessionList } from "./projections/session-list.ts";
 import { loadModes, buildModeSystemPrompt, type ModeDefinition } from "./mode-loader.ts";
+import { ModeMarkerDetector } from "./mode-marker.ts";
 
 const PORT = Number(process.env.PORT) || 3000;
 const CWD = process.env.CONCLAVE_CWD || process.cwd();
@@ -40,12 +41,67 @@ const latestSession = createLatestSessionProjection(store);
 type WsState = { currentSessionId: string | null; currentModeId: string; unsubscribe: (() => void) | null };
 const wsStates = new Map<object, WsState>();
 
+// Per-session mode marker detectors for intercepting agent-initiated mode switches
+const markerDetectors = new Map<string, ModeMarkerDetector>();
+
+function getDetector(sessionId: string): ModeMarkerDetector {
+  let d = markerDetectors.get(sessionId);
+  if (!d) {
+    d = new ModeMarkerDetector();
+    markerDetectors.set(sessionId, d);
+  }
+  return d;
+}
+
+/** Emit ModeChanged events and update WS state for any connected clients on this session. */
+function applyModeSwitch(sessionId: string, modeId: string) {
+  if (!modeMap.has(modeId)) return;
+  store.append(sessionId, { type: "ModeChanged", modeId });
+  // Update WS state for all clients viewing this session
+  for (const [, wsState] of wsStates) {
+    if (wsState.currentSessionId === sessionId) {
+      wsState.currentModeId = modeId;
+    }
+  }
+}
+
 const bridge = new AcpBridge(CWD, (sessionId, payload) => {
   // Skip system-level errors without a real session
   if (sessionId === "__system__") {
     console.error("System error:", (payload as { message?: string }).message);
     return;
   }
+
+  // Intercept AgentText to detect mode-switch markers
+  if (payload.type === "AgentText") {
+    const detector = getDetector(sessionId);
+    const result = detector.push(payload.text);
+    // Emit ModeChanged for each detected marker
+    for (const modeId of result.modeIds) {
+      applyModeSwitch(sessionId, modeId);
+    }
+    // Forward remaining text (if any)
+    if (result.text) {
+      store.append(sessionId, { type: "AgentText", text: result.text });
+    }
+    return;
+  }
+
+  // Flush detector buffer on turn completion
+  if (payload.type === "TurnCompleted") {
+    const detector = markerDetectors.get(sessionId);
+    if (detector) {
+      const result = detector.flush();
+      for (const modeId of result.modeIds) {
+        applyModeSwitch(sessionId, modeId);
+      }
+      if (result.text) {
+        store.append(sessionId, { type: "AgentText", text: result.text });
+      }
+      markerDetectors.delete(sessionId);
+    }
+  }
+
   store.append(sessionId, payload);
 });
 
@@ -233,7 +289,9 @@ const server = Bun.serve<{ requestedSessionId: string | null }>({
               promptText = parts.join("\n\n");
             }
 
-            bridge.submitPrompt(sessionId, promptText, cmd.images);
+            // Emit PromptSubmitted with the original user text (not the decorated version)
+            store.append(sessionId, { type: "PromptSubmitted", text: cmd.text, images: cmd.images });
+            bridge.submitPrompt(sessionId, promptText, cmd.images, true);
             break;
           }
 
