@@ -124,15 +124,6 @@ describe("toolCallStartedSlice", () => {
     expect(state.streamingContent).toHaveLength(1);
   });
 
-  test("suppresses switch_mode tool call in plan mode", () => {
-    const planState: AppState = { ...initialState, currentMode: "plan" };
-    const state = toolCallStartedSlice(planState, makeToolCallStarted({
-      kind: "switch_mode",
-      input: {},
-    }));
-    expect(state.streamingContent).toHaveLength(0);
-  });
-
   test("ignores unrelated events", () => {
     const event = { type: "AgentText", text: "hi", seq: 1, timestamp: Date.now(), sessionId: "s1" } as ClientEvent;
     const state = toolCallStartedSlice(initialState, event);

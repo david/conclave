@@ -180,34 +180,6 @@ describe("applyEvent", () => {
     expect(state.sessions).toHaveLength(1);
   });
 
-  test("SessionSwitched preserves availableModes", () => {
-    const modes = [
-      { id: "chat", label: "Chat", color: "neutral", icon: "chat", placeholder: "Type a message..." },
-      { id: "requirements", label: "Requirements", color: "purple", icon: "requirements", placeholder: "Describe..." },
-    ];
-
-    // Simulate: ModeList arrives, then SessionSwitched
-    let state = applyEvent(initialState, {
-      type: "ModeList",
-      modes,
-      seq: -1,
-      timestamp: Date.now(),
-    } as WsEvent);
-    expect(state.availableModes).toHaveLength(2);
-
-    state = applyEvent(state, {
-      type: "SessionSwitched",
-      sessionId: "s2",
-      seq: -1,
-      timestamp: Date.now(),
-    } as WsEvent);
-
-    expect(state.sessionId).toBe("s2");
-    expect(state.availableModes).toHaveLength(2);
-    expect(state.availableModes[0].id).toBe("chat");
-    expect(state.availableModes[1].id).toBe("requirements");
-  });
-
   test("SessionList updates sessions array", () => {
     const event: WsEvent = {
       type: "SessionList",
@@ -221,66 +193,6 @@ describe("applyEvent", () => {
     const state = applyEvent(initialState, event);
     expect(state.sessions).toHaveLength(2);
     expect(state.sessions[0].title).toBe("My Session");
-  });
-
-  test("ModeChanged sets currentMode", () => {
-    const state = applyEvent(
-      initialState,
-      makeEvent("ModeChanged", { modeId: "research" }),
-    );
-    expect(state.currentMode).toBe("research");
-  });
-
-  test("ModeChanged clears fileChanges when leaving non-implement mode", () => {
-    const state = applyEvent(
-      { ...initialState, currentMode: "implement", fileChanges: [{ filePath: "/a", action: "modified" as const, toolCallId: "tc1", status: "completed" }] },
-      makeEvent("ModeChanged", { modeId: "research" }),
-    );
-    expect(state.fileChanges).toEqual([]);
-  });
-
-  test("ModeChanged preserves fileChanges when entering implement mode", () => {
-    const files = [{ filePath: "/a", action: "modified" as const, toolCallId: "tc1", status: "completed" }];
-    const state = applyEvent(
-      { ...initialState, fileChanges: files },
-      makeEvent("ModeChanged", { modeId: "implement" }),
-    );
-    expect(state.fileChanges).toEqual(files);
-  });
-
-  test("ToolCallStarted with switch_mode in plan mode is ignored (not added to streamingContent)", () => {
-    let state = applyEvent(
-      initialState,
-      makeEvent("ModeChanged", { modeId: "plan" }),
-    );
-    state = applyEvent(
-      state,
-      makeEvent("ToolCallStarted", {
-        toolCallId: "tc-exit",
-        toolName: "Ready to code?",
-        kind: "switch_mode",
-        input: {},
-      }, 2),
-    );
-
-    // ExitPlanMode tool call should NOT appear in streamingContent
-    expect(state.streamingContent).toEqual([]);
-  });
-
-  test("ModeList event sets availableModes", () => {
-    const event: WsEvent = {
-      type: "ModeList",
-      modes: [
-        { id: "chat", label: "Chat", color: "neutral", icon: "chat", placeholder: "Type a message..." },
-        { id: "research", label: "Research", color: "blue", icon: "search", placeholder: "Ask a question..." },
-      ],
-      seq: -1,
-      timestamp: Date.now(),
-    };
-    const state = applyEvent(initialState, event);
-    expect(state.availableModes).toHaveLength(2);
-    expect(state.availableModes[0].id).toBe("chat");
-    expect(state.availableModes[1].id).toBe("research");
   });
 
   test("AgentThought chunks accumulate as thought blocks in streamingContent", () => {

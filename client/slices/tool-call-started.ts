@@ -8,28 +8,22 @@ export const toolCallStartedSlice = createSlice("ToolCallStarted", (state, event
 
   // --- streaming content ---
 
-  // ExitPlanMode tool call (kind: "switch_mode") in plan mode —
-  // don't add to streamingContent (it's not a visible tool call).
-  const suppressToolCall = state.currentMode === "plan" && event.kind === "switch_mode";
+  // Deduplicate: ACP agent sends tool_call twice (stream + message completion)
+  const alreadyExists = streamingContent.some(
+    (block) =>
+      block.type === "tool_call" &&
+      block.toolCall.toolCallId === event.toolCallId,
+  );
 
-  if (!suppressToolCall) {
-    // Deduplicate: ACP agent sends tool_call twice (stream + message completion)
-    const alreadyExists = streamingContent.some(
-      (block) =>
-        block.type === "tool_call" &&
-        block.toolCall.toolCallId === event.toolCallId,
-    );
-
-    if (!alreadyExists) {
-      const toolCall: ToolCallInfo = {
-        toolCallId: event.toolCallId,
-        toolName: event.toolName,
-        kind: event.kind,
-        input: event.input,
-        status: "pending",
-      };
-      streamingContent = [...streamingContent, { type: "tool_call" as const, toolCall }];
-    }
+  if (!alreadyExists) {
+    const toolCall: ToolCallInfo = {
+      toolCallId: event.toolCallId,
+      toolName: event.toolName,
+      kind: event.kind,
+      input: event.input,
+      status: "pending",
+    };
+    streamingContent = [...streamingContent, { type: "tool_call" as const, toolCall }];
   }
 
   // --- file changes ---

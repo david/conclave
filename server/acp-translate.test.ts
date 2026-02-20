@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { translateAcpUpdate, stripModePreamble } from "./acp-translate.ts";
+import { translateAcpUpdate } from "./acp-translate.ts";
 import type { SessionUpdate } from "@agentclientprotocol/sdk";
 
 describe("translateAcpUpdate", () => {
@@ -107,26 +107,14 @@ describe("translateAcpUpdate", () => {
     expect(translateAcpUpdate(update)).toHaveLength(0);
   });
 
-  test("current_mode_update → ModeChanged", () => {
+  test("current_mode_update → empty (ignored)", () => {
     const update: SessionUpdate = {
       sessionUpdate: "current_mode_update",
       currentModeId: "plan",
     };
 
     const events = translateAcpUpdate(update);
-    expect(events).toHaveLength(1);
-    expect(events[0]).toEqual({ type: "ModeChanged", modeId: "plan" });
-  });
-
-  test("current_mode_update code → ModeChanged", () => {
-    const update: SessionUpdate = {
-      sessionUpdate: "current_mode_update",
-      currentModeId: "code",
-    };
-
-    const events = translateAcpUpdate(update);
-    expect(events).toHaveLength(1);
-    expect(events[0]).toEqual({ type: "ModeChanged", modeId: "code" });
+    expect(events).toHaveLength(0);
   });
 
   test("plan → PlanUpdated", () => {
@@ -221,36 +209,14 @@ describe("translateAcpUpdate", () => {
     });
   });
 
-  test("user_message_chunk replay strips mode preamble", () => {
-    const decorated = "[Mode: Requirements]\n\nYou are in Requirements mode.\n\n[conclave:user]\n\nAnalyze login flow";
+  test("user_message_chunk replay passes text through as-is", () => {
     const update: SessionUpdate = {
       sessionUpdate: "user_message_chunk",
-      content: { type: "text", text: decorated },
+      content: { type: "text", text: "Analyze login flow" },
     };
 
     const events = translateAcpUpdate(update, true);
     expect(events).toHaveLength(1);
     expect(events[0]).toEqual({ type: "PromptSubmitted", text: "Analyze login flow" });
-  });
-});
-
-describe("stripModePreamble", () => {
-  test("strips mode preamble from decorated prompt", () => {
-    const text = "[Mode: Requirements]\n\nSome long instruction\n\n[conclave:user]\n\nUser text here";
-    expect(stripModePreamble(text)).toBe("User text here");
-  });
-
-  test("returns plain text unchanged", () => {
-    expect(stripModePreamble("Hello world")).toBe("Hello world");
-  });
-
-  test("returns text with --- unchanged (not a conclave marker)", () => {
-    const text = "Some text\n\n---\n\nMore text";
-    expect(stripModePreamble(text)).toBe("Some text\n\n---\n\nMore text");
-  });
-
-  test("handles empty user text after separator", () => {
-    const text = "[Mode: Requirements]\n\nInstruction\n\n[conclave:user]\n\n";
-    expect(stripModePreamble(text)).toBe("");
   });
 });

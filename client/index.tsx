@@ -172,13 +172,6 @@ function App() {
     });
   }, [handleSwitchSession, state.sessionId]);
 
-  const handleSetMode = useCallback(
-    (modeId: string) => {
-      sendCommand({ command: "set_mode", modeId });
-    },
-    [sendCommand],
-  );
-
   // Derive use cases from assistant messages + streaming content
   const useCases = useMemo(() => {
     const messageText = state.messages
@@ -223,7 +216,6 @@ function App() {
         onCancel={handleCancel}
         onSwitchSession={handleSwitchSession}
         onCreateSession={handleCreateSession}
-        onSetMode={handleSetMode}
       />
     </div>
   );

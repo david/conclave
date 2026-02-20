@@ -1,35 +1,13 @@
 import { EventStore } from "./event-store.ts";
 import { AcpBridge, formatError } from "./acp-bridge.ts";
-import type { Command, DomainEvent, WsEvent, ModeListEvent, ModeClientInfo } from "./types.ts";
+import type { Command, DomainEvent, WsEvent } from "./types.ts";
 import { join } from "path";
 import { createSessionRegistry } from "./projections/session-registry.ts";
 import { createLatestSessionProjection } from "./projections/latest-session.ts";
 import { createSessionListProjection, buildSessionList } from "./projections/session-list.ts";
-import { loadModes, buildModeSystemPrompt, type ModeDefinition } from "./mode-loader.ts";
-import { ModeMarkerDetector } from "./mode-marker.ts";
 
 const PORT = Number(process.env.PORT) || 3000;
 const CWD = process.env.CONCLAVE_CWD || process.cwd();
-
-// Load modes from disk (global + project)
-const modes = loadModes(CWD);
-const modeSystemPrompt = buildModeSystemPrompt(modes);
-const modeMap = new Map<string, ModeDefinition>(modes.map((m) => [m.id, m]));
-
-function buildModeList(): ModeListEvent {
-  return {
-    type: "ModeList",
-    modes: modes.map((m): ModeClientInfo => ({
-      id: m.id,
-      label: m.label,
-      color: m.color,
-      icon: m.icon,
-      placeholder: m.placeholder,
-    })),
-    seq: -1,
-    timestamp: Date.now(),
-  };
-}
 
 const store = new EventStore();
 
@@ -38,68 +16,14 @@ const sessionRegistry = createSessionRegistry(store);
 const latestSession = createLatestSessionProjection(store);
 
 // Per-WS state (connection infrastructure — not domain state)
-type WsState = { currentSessionId: string | null; currentModeId: string; unsubscribe: (() => void) | null };
+type WsState = { currentSessionId: string | null; unsubscribe: (() => void) | null };
 const wsStates = new Map<object, WsState>();
-
-// Per-session mode marker detectors for intercepting agent-initiated mode switches
-const markerDetectors = new Map<string, ModeMarkerDetector>();
-
-function getDetector(sessionId: string): ModeMarkerDetector {
-  let d = markerDetectors.get(sessionId);
-  if (!d) {
-    d = new ModeMarkerDetector();
-    markerDetectors.set(sessionId, d);
-  }
-  return d;
-}
-
-/** Emit ModeChanged events and update WS state for any connected clients on this session. */
-function applyModeSwitch(sessionId: string, modeId: string) {
-  if (!modeMap.has(modeId)) return;
-  store.append(sessionId, { type: "ModeChanged", modeId });
-  // Update WS state for all clients viewing this session
-  for (const [, wsState] of wsStates) {
-    if (wsState.currentSessionId === sessionId) {
-      wsState.currentModeId = modeId;
-    }
-  }
-}
 
 const bridge = new AcpBridge(CWD, (sessionId, payload) => {
   // Skip system-level errors without a real session
   if (sessionId === "__system__") {
     console.error("System error:", (payload as { message?: string }).message);
     return;
-  }
-
-  // Intercept AgentText to detect mode-switch markers
-  if (payload.type === "AgentText") {
-    const detector = getDetector(sessionId);
-    const result = detector.push(payload.text);
-    // Emit ModeChanged for each detected marker
-    for (const modeId of result.modeIds) {
-      applyModeSwitch(sessionId, modeId);
-    }
-    // Forward remaining text (if any)
-    if (result.text) {
-      store.append(sessionId, { type: "AgentText", text: result.text });
-    }
-    return;
-  }
-
-  // Flush detector buffer on turn completion
-  if (payload.type === "TurnCompleted") {
-    const detector = markerDetectors.get(sessionId);
-    if (detector) {
-      const result = detector.flush();
-      for (const modeId of result.modeIds) {
-        applyModeSwitch(sessionId, modeId);
-      }
-      if (result.text) {
-        store.append(sessionId, { type: "AgentText", text: result.text });
-      }
-      markerDetectors.delete(sessionId);
-    }
   }
 
   store.append(sessionId, payload);
@@ -193,11 +117,10 @@ const server = Bun.serve<{ requestedSessionId: string | null }>({
 
   websocket: {
     open(ws) {
-      wsStates.set(ws, { currentSessionId: null, currentModeId: "chat", unsubscribe: null });
+      wsStates.set(ws, { currentSessionId: null, unsubscribe: null });
 
-      // Send session list and mode list
+      // Send session list
       sendWs(ws, buildSessionList(sessionRegistry));
-      sendWs(ws, buildModeList());
 
       // Determine which session to replay: prefer URL-requested, fall back to latest
       const requested = ws.data.requestedSessionId;
@@ -274,24 +197,9 @@ const server = Bun.serve<{ requestedSessionId: string | null }>({
               }
             }
 
-            // Prepend mode directive and skill content if the current mode has them
-            const currentMode = modeMap.get(wsState.currentModeId);
-            let promptText = cmd.text;
-            if (currentMode?.instruction || currentMode?.resolvedSkills.length) {
-              const parts: string[] = [`[Mode: ${currentMode.label}]`];
-              if (currentMode.instruction) {
-                parts.push(currentMode.instruction);
-              }
-              for (const skill of currentMode.resolvedSkills) {
-                parts.push(skill);
-              }
-              parts.push("[conclave:user]", cmd.text);
-              promptText = parts.join("\n\n");
-            }
-
-            // Emit PromptSubmitted with the original user text (not the decorated version)
+            // Emit PromptSubmitted with the user text
             store.append(sessionId, { type: "PromptSubmitted", text: cmd.text, images: cmd.images });
-            bridge.submitPrompt(sessionId, promptText, cmd.images, true);
+            bridge.submitPrompt(sessionId, cmd.text, cmd.images, true);
             break;
           }
 
@@ -305,7 +213,7 @@ const server = Bun.serve<{ requestedSessionId: string | null }>({
 
           case "create_session": {
             try {
-              const sessionId = await bridge.createSession(modeSystemPrompt);
+              const sessionId = await bridge.createSession();
               store.append(sessionId, { type: "SessionCreated" });
 
               // Switch this client to the new session
@@ -327,28 +235,6 @@ const server = Bun.serve<{ requestedSessionId: string | null }>({
                 timestamp: Date.now(),
                 sessionId: "",
               });
-            }
-            break;
-          }
-
-          case "set_mode": {
-            if (!wsState) return;
-            const modeId = cmd.modeId;
-            if (!modeMap.has(modeId)) {
-              sendWs(ws, {
-                type: "Error",
-                message: `Unknown mode: ${modeId}`,
-                seq: -1,
-                timestamp: Date.now(),
-                sessionId: "",
-              });
-              return;
-            }
-            wsState.currentModeId = modeId;
-            // Emit ModeChanged into the store so it replays on reconnect
-            const sessionId = wsState.currentSessionId;
-            if (sessionId) {
-              store.append(sessionId, { type: "ModeChanged", modeId });
             }
             break;
           }
@@ -452,7 +338,7 @@ bridge.start().then(async () => {
 
   // Always create a fresh session to start with
   try {
-    const sessionId = await bridge.createSession(modeSystemPrompt);
+    const sessionId = await bridge.createSession();
     store.append(sessionId, { type: "SessionCreated" });
   } catch (err) {
     console.error("Failed to create initial session:", err);

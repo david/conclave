@@ -71,11 +71,6 @@ export type PlanUpdated = BaseEvent & {
   entries: Array<{ content: string; status: string; priority: string }>;
 };
 
-export type ModeChanged = BaseEvent & {
-  type: "ModeChanged";
-  modeId: string;
-};
-
 export type PermissionOption = {
   optionId: string;
   name: string;
@@ -135,21 +130,6 @@ export type SessionListEvent = {
   timestamp: number;
 };
 
-export type ModeClientInfo = {
-  id: string;
-  label: string;
-  color: string;
-  icon: string;
-  placeholder: string;
-};
-
-export type ModeListEvent = {
-  type: "ModeList";
-  modes: ModeClientInfo[];
-  seq: -1;
-  timestamp: number;
-};
-
 export type DomainEvent =
   | SessionCreated
   | PromptSubmitted
@@ -160,7 +140,6 @@ export type DomainEvent =
   | ToolCallCompleted
   | TurnCompleted
   | PlanUpdated
-  | ModeChanged
   | PermissionRequested
   | ErrorEvent
   | SessionSwitched
@@ -170,7 +149,7 @@ export type DomainEvent =
   | SessionInfoUpdated;
 
 // Events sent over WebSocket (includes meta-events not stored in EventStore)
-export type WsEvent = DomainEvent | SessionListEvent | ModeListEvent;
+export type WsEvent = DomainEvent | SessionListEvent;
 
 export type DomainEventType = DomainEvent["type"];
 
@@ -207,9 +186,4 @@ export type PermissionResponseCommand = {
   feedback?: string;
 };
 
-export type SetModeCommand = {
-  command: "set_mode";
-  modeId: string;
-};
-
-export type Command = SubmitPromptCommand | CancelCommand | CreateSessionCommand | SwitchSessionCommand | PermissionResponseCommand | SetModeCommand;
+export type Command = SubmitPromptCommand | CancelCommand | CreateSessionCommand | SwitchSessionCommand | PermissionResponseCommand;

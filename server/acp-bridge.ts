@@ -151,7 +151,7 @@ export class AcpBridge {
     });
   }
 
-  async createSession(systemPromptAppend?: string): Promise<string> {
+  async createSession(): Promise<string> {
     if (!this.connection) {
       throw new Error("ACP connection not initialized");
     }
@@ -163,14 +163,6 @@ export class AcpBridge {
         },
       },
     };
-
-    if (systemPromptAppend) {
-      _meta.systemPrompt = {
-        type: "preset",
-        preset: "claude_code",
-        append: systemPromptAppend,
-      };
-    }
 
     const sessionResp = await this.connection.newSession({
       cwd: this.cwd,

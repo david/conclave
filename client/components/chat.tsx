@@ -2,11 +2,8 @@ import React, { useCallback, useState, forwardRef } from "react";
 import { MessageList } from "./message-list.tsx";
 import { InputBar, type InputBarHandle } from "./input-bar.tsx";
 import { SessionPicker } from "./session-picker.tsx";
-import { ModePicker } from "./mode-picker.tsx";
 import type { AppState } from "../reducer.ts";
 import type { ImageAttachment } from "../../server/types.ts";
-import type { ModeClientInfo } from "../../server/types.ts";
-import { getModeInfo } from "../mode-config.ts";
 
 type ChatProps = {
   state: AppState;
@@ -14,7 +11,6 @@ type ChatProps = {
   onCancel: () => void;
   onSwitchSession: (sessionId: string) => void;
   onCreateSession: () => void;
-  onSetMode: (modeId: string) => void;
 };
 
 function formatTokenCount(n: number): string {
@@ -67,7 +63,7 @@ function ContextBar({ usage }: { usage: NonNullable<AppState["usage"]> }) {
   );
 }
 
-export const Chat = forwardRef<InputBarHandle, ChatProps>(function Chat({ state, onSubmit, onCancel, onSwitchSession, onCreateSession, onSetMode }, ref) {
+export const Chat = forwardRef<InputBarHandle, ChatProps>(function Chat({ state, onSubmit, onCancel, onSwitchSession, onCreateSession }, ref) {
   const [copied, setCopied] = useState(false);
 
   const handleCopySessionId = useCallback(() => {
@@ -82,13 +78,6 @@ export const Chat = forwardRef<InputBarHandle, ChatProps>(function Chat({ state,
     <div className="chat">
       <header className="chat__header">
         <div className="chat__header-row">
-          <ModePicker
-            modes={state.availableModes}
-            currentMode={state.currentMode}
-            onSetMode={onSetMode}
-            disabled={state.isProcessing}
-          />
-          <div className="chat__header-divider" />
           <SessionPicker
             sessions={state.sessions}
             currentSessionId={state.sessionId}
@@ -140,7 +129,7 @@ export const Chat = forwardRef<InputBarHandle, ChatProps>(function Chat({ state,
         onSubmit={onSubmit}
         onCancel={onCancel}
         isProcessing={state.isProcessing}
-        placeholder={getModeInfo(state.availableModes, state.currentMode).placeholder}
+        placeholder="Type a message..."
       />
     </div>
   );

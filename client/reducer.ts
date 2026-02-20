@@ -40,7 +40,7 @@ export function useEventStore() {
     setEvents((prev) => {
       // On session switch, clear the log (keep SessionList meta-events)
       if (event.type === "SessionSwitched") {
-        return [...prev.filter((e) => e.type === "SessionList" || e.type === "ModeList"), event];
+        return [...prev.filter((e) => e.type === "SessionList"), event];
       }
       return [...prev, event];
     });

@@ -22,18 +22,6 @@ describe("sessionSwitchedSlice", () => {
     expect(state.isProcessing).toBe(false);
   });
 
-  test("preserves availableModes across session switch", () => {
-    const modes = [
-      { id: "chat", label: "Chat", color: "neutral", icon: "chat", placeholder: "Type a message..." },
-      { id: "requirements", label: "Requirements", color: "purple", icon: "requirements", placeholder: "Describe..." },
-    ];
-    const state = sessionSwitchedSlice(
-      { ...initialState, availableModes: modes },
-      switchEvent,
-    );
-    expect(state.availableModes).toEqual(modes);
-  });
-
   test("ignores non-SessionSwitched events", () => {
     const state = sessionSwitchedSlice(initialState, { type: "SessionInitiated" });
     expect(state).toBe(initialState);
