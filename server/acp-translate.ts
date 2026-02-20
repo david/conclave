@@ -2,6 +2,19 @@ import type { SessionUpdate } from "@agentclientprotocol/sdk";
 import type { EventPayload } from "./types.ts";
 
 /**
+ * Strip the mode preamble that gets prepended to prompts before sending to ACP.
+ * Format: `[Mode: <label>]\n\n<instruction>\n\n---\n\n<user text>`
+ * Returns the original user text if the preamble is detected, otherwise returns as-is.
+ */
+export function stripModePreamble(text: string): string {
+  if (!text.startsWith("[Mode: ")) return text;
+  const sep = "\n\n---\n\n";
+  const idx = text.indexOf(sep);
+  if (idx === -1) return text;
+  return text.slice(idx + sep.length);
+}
+
+/**
  * Translates an ACP SessionUpdate into zero or more domain event payloads.
  * Pure function — no side effects.
  *
@@ -57,7 +70,7 @@ export function translateAcpUpdate(update: SessionUpdate, isReplay = false): Eve
       if (!isReplay) return [];
       const content = update.content;
       if (content.type === "text") {
-        return [{ type: "PromptSubmitted", text: content.text }];
+        return [{ type: "PromptSubmitted", text: stripModePreamble(content.text) }];
       }
       if (content.type === "image") {
         return [{ type: "PromptSubmitted", text: "", images: [{ data: content.data, mimeType: content.mimeType }] }];

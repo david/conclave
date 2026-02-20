@@ -1,7 +1,9 @@
 import type { ContentBlock } from "../types.ts";
 import { createSlice } from "./create-slice.ts";
 
-/** PromptSubmitted → adds user message, sets processing, clears error. */
+/** PromptSubmitted → adds user message, sets processing, clears error.
+ *  Flushes any pending streaming content into a finalized assistant message first,
+ *  so that replay (which lacks TurnCompleted between turns) preserves message order. */
 export const promptSubmittedSlice = createSlice("PromptSubmitted", (state, event) => {
   const userContent: ContentBlock[] = [];
   if (event.images?.length) {
@@ -13,14 +15,24 @@ export const promptSubmittedSlice = createSlice("PromptSubmitted", (state, event
     userContent.push({ type: "text", text: event.text });
   }
 
-  // Merge with preceding user message if it exists and has no text yet (replay image+text chunks)
-  const prevMessages = [...state.messages];
-  const lastMsg = prevMessages[prevMessages.length - 1];
+  // Flush pending streaming content into a finalized assistant message (turn boundary).
+  // This handles replay where TurnCompleted is not sent between turns.
+  let messages = state.messages;
+  let streamingContent = state.streamingContent;
+  if (streamingContent.length > 0) {
+    messages = [...messages, { role: "assistant" as const, content: streamingContent }];
+    streamingContent = [];
+  }
+
+  // Merge with preceding user message if no assistant response intervened (replay image+text chunks)
+  const lastMsg = messages[messages.length - 1];
   if (lastMsg && lastMsg.role === "user" && state.isProcessing) {
-    lastMsg.content = [...lastMsg.content, ...userContent];
+    const merged = [...messages];
+    merged[merged.length - 1] = { ...lastMsg, content: [...lastMsg.content, ...userContent] };
     return {
       ...state,
-      messages: prevMessages,
+      messages: merged,
+      streamingContent,
       isProcessing: true,
       error: null,
     };
@@ -29,9 +41,10 @@ export const promptSubmittedSlice = createSlice("PromptSubmitted", (state, event
   return {
     ...state,
     messages: [
-      ...state.messages,
+      ...messages,
       { role: "user", content: userContent },
     ],
+    streamingContent,
     isProcessing: true,
     error: null,
   };

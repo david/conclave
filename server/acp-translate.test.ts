@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { translateAcpUpdate } from "./acp-translate.ts";
+import { translateAcpUpdate, stripModePreamble } from "./acp-translate.ts";
 import type { SessionUpdate } from "@agentclientprotocol/sdk";
 
 describe("translateAcpUpdate", () => {
@@ -219,5 +219,38 @@ describe("translateAcpUpdate", () => {
       title: "My Chat",
       updatedAt: "2026-02-19T12:00:00Z",
     });
+  });
+
+  test("user_message_chunk replay strips mode preamble", () => {
+    const decorated = "[Mode: Requirements]\n\nYou are in Requirements mode.\n\n---\n\nAnalyze login flow";
+    const update: SessionUpdate = {
+      sessionUpdate: "user_message_chunk",
+      content: { type: "text", text: decorated },
+    };
+
+    const events = translateAcpUpdate(update, true);
+    expect(events).toHaveLength(1);
+    expect(events[0]).toEqual({ type: "PromptSubmitted", text: "Analyze login flow" });
+  });
+});
+
+describe("stripModePreamble", () => {
+  test("strips mode preamble from decorated prompt", () => {
+    const text = "[Mode: Requirements]\n\nSome long instruction\n\n---\n\nUser text here";
+    expect(stripModePreamble(text)).toBe("User text here");
+  });
+
+  test("returns plain text unchanged", () => {
+    expect(stripModePreamble("Hello world")).toBe("Hello world");
+  });
+
+  test("returns text unchanged if no separator found", () => {
+    const text = "[Mode: Chat] no separator";
+    expect(stripModePreamble(text)).toBe("[Mode: Chat] no separator");
+  });
+
+  test("handles empty user text after separator", () => {
+    const text = "[Mode: Requirements]\n\nInstruction\n\n---\n\n";
+    expect(stripModePreamble(text)).toBe("");
   });
 });
