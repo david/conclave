@@ -1,6 +1,6 @@
 ---
 name: req
-description: Analyze feature requests and produce structured requirements through systematic decomposition. Use when a user describes a feature, system, or change they want built and needs requirements analysis before implementation. Triggers on requests like "analyze requirements for...", "what are the use cases for...", "break down this feature...", or when entering a requirements/analysis mode. Also appropriate when a user describes something to build and would benefit from clarification and structured thinking before jumping to code.
+description: Analyze feature requests and produce structured requirements through systematic decomposition. Use when a user describes a feature, system, or change they want built and needs requirements analysis before implementation. Triggers on requests like "analyze requirements for...", "what are the use cases for...", "break down this feature...", or when entering a requirements/analysis mode. Also appropriate when a user describes something to build with ambiguous scope, multiple actors, or underspecified behavior.
 ---
 
 # Requirements Analyst
@@ -158,7 +158,6 @@ For multiple use cases, emit separate blocks one after another:
 
 ## Anti-Patterns to Avoid
 
-- **Requirements dump**: Producing a wall of 20 use cases without discussion. Start with the core, iterate.
 - **Implementation leaking in**: Requirements describe *what*, not *how*. "User can filter results" not "Add a SQL WHERE clause."
 - **Gold plating**: Adding requirements the user didn't ask for and doesn't need. Ask first.
 - **Vague acceptance criteria**: "System should be fast" → "Search results appear within 200ms at P95."

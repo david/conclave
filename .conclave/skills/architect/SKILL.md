@@ -21,7 +21,7 @@ Resolve the spec name from the user's request. The spec directory is `.conclave/
 
 Read `CLAUDE.md` at the project root. This describes the architecture, file layout, conventions, and data flow. The implementation plan must respect whatever architecture the project uses.
 
-Scan the existing codebase to understand current patterns — file naming, module structure, test conventions, type definitions. Reference specific existing files as anchors for where new code fits.
+Read key files referenced in CLAUDE.md (types, entry points, existing slices) to understand current patterns. Reference specific existing files as anchors for where new code fits.
 
 ### 3. Parse Use Cases
 

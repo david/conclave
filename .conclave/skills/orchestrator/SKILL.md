@@ -57,7 +57,7 @@ Task tool parameters:
 
 Each agent prompt must be self-contained. Include:
 
-1. **Dev skill workflow**: Include the full content of `.conclave/skills/developer/SKILL.md` (the Workflow and Rules sections). This is the agent's primary operating procedure — do not summarize or paraphrase it, include it verbatim so agents follow the exact same TDD discipline.
+1. **Dev skill workflow**: Include the Workflow and Rules sections from `.conclave/skills/developer/SKILL.md` verbatim. Do not summarize or paraphrase — agents must follow the exact same TDD discipline.
 
 2. **Project context**: Key sections from CLAUDE.md — commands (`bun test`, `bun run check`), architecture overview, key conventions. Keep it concise — only what the agent needs.
 
@@ -101,9 +101,9 @@ After each wave's integration check passes:
 2. Propose a commit grouping to the user. Default: one commit per wave with a summary message listing the UCs completed.
 3. Wait for user approval before committing.
 4. Use specific `git add <file>` (not `git add .`).
-5. Commit message format:
+5. Commit message format (use `spec.json`'s `type` field for the prefix if available, otherwise infer from context — e.g., `feat`, `fix`, `refactor`):
    ```
-   feat(<spec-name>): <wave summary>
+   <type>(<spec-name>): <wave summary>
 
    Implements: <UC-list>
 
@@ -134,7 +134,5 @@ After all waves complete, report:
 
 ## Anti-Patterns
 
-- **Don't skip TDD in agent prompts**: Even under parallel execution pressure, agents must test first.
-- **Don't let agents commit**: Only the orchestrator (with user approval) commits.
 - **Don't ignore integration checks**: Individual agent tests passing doesn't guarantee they work together.
 - **Don't run dependent tasks early**: Wait for the full wave to complete and integration to pass before starting the next wave.
