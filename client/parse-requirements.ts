@@ -1,18 +1,24 @@
+import { unified } from "unified";
+import remarkParse from "remark-parse";
 import type { UseCase } from "./types.ts";
 
-const BLOCK_PATTERN = /```conclave:requirements\n([\s\S]*?)```/g;
+const parser = unified().use(remarkParse);
 
 export function parseRequirements(markdown: string): UseCase[] {
+  const tree = parser.parse(markdown);
   const results: UseCase[] = [];
 
-  for (const match of markdown.matchAll(BLOCK_PATTERN)) {
+  for (const node of tree.children) {
+    if (node.type !== "code" || node.lang !== "conclave:requirements") continue;
     try {
-      const parsed = JSON.parse(match[1]);
+      const parsed = JSON.parse(node.value);
       if (Array.isArray(parsed)) {
         results.push(...parsed);
+      } else if (parsed && typeof parsed === "object") {
+        results.push(parsed);
       }
     } catch {
-      // malformed JSON — skip this block
+      // incomplete or malformed JSON — skip
     }
   }
 
