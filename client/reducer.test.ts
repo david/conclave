@@ -180,6 +180,34 @@ describe("applyEvent", () => {
     expect(state.sessions).toHaveLength(1);
   });
 
+  test("SessionSwitched preserves availableModes", () => {
+    const modes = [
+      { id: "chat", label: "Chat", color: "neutral", icon: "chat", placeholder: "Type a message..." },
+      { id: "requirements", label: "Requirements", color: "purple", icon: "requirements", placeholder: "Describe..." },
+    ];
+
+    // Simulate: ModeList arrives, then SessionSwitched
+    let state = applyEvent(initialState, {
+      type: "ModeList",
+      modes,
+      seq: -1,
+      timestamp: Date.now(),
+    } as WsEvent);
+    expect(state.availableModes).toHaveLength(2);
+
+    state = applyEvent(state, {
+      type: "SessionSwitched",
+      sessionId: "s2",
+      seq: -1,
+      timestamp: Date.now(),
+    } as WsEvent);
+
+    expect(state.sessionId).toBe("s2");
+    expect(state.availableModes).toHaveLength(2);
+    expect(state.availableModes[0].id).toBe("chat");
+    expect(state.availableModes[1].id).toBe("requirements");
+  });
+
   test("SessionList updates sessions array", () => {
     const event: WsEvent = {
       type: "SessionList",
