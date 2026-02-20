@@ -43,6 +43,17 @@ function UseCaseCard({ useCase, index }: { useCase: UseCase; index: number }) {
           </ul>
         </div>
       </div>
+
+      {useCase.dependencies && useCase.dependencies.length > 0 && (
+        <div className="uc-card__deps">
+          <span className="uc-card__deps-label">Depends on</span>
+          <span className="uc-card__deps-list">
+            {useCase.dependencies.map((dep, i) => (
+              <span key={dep} className="uc-card__dep-id">{dep}</span>
+            ))}
+          </span>
+        </div>
+      )}
     </div>
   );
 }

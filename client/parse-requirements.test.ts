@@ -22,6 +22,7 @@ const uc2: UseCase = {
   when: ["User clicks forgot password", "User enters email", "User submits"],
   then: ["Reset email is sent"],
   priority: "medium",
+  dependencies: ["UC-1"],
 };
 
 /** One fenced block per use case (new format) */
@@ -68,6 +69,13 @@ describe("parseRequirements", () => {
   test("does not match similar but wrong tags", () => {
     const markdown = "```requirements\n" + JSON.stringify(uc1) + "\n```";
     expect(parseRequirements(markdown)).toEqual([]);
+  });
+
+  test("handles use cases with and without dependencies", () => {
+    const markdown = makeBlock(uc1) + "\n\n" + makeBlock(uc2);
+    const result = parseRequirements(markdown);
+    expect(result[0].dependencies).toBeUndefined();
+    expect(result[1].dependencies).toEqual(["UC-1"]);
   });
 
   // Streaming-specific tests

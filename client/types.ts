@@ -34,6 +34,7 @@ export type UseCase = {
   when: string[];
   then: string[];
   priority: UseCasePriority;
+  dependencies?: string[];
 };
 
 export type FileChangeAction = "modified" | "deleted";

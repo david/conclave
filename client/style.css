@@ -1849,6 +1849,44 @@ body::before {
   margin-top: 3px;
 }
 
+/* --- Dependencies --- */
+
+.uc-card__deps {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.uc-card__deps-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.uc-card__deps-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.uc-card__dep-id {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--mode-blue);
+  background: var(--mode-blue-dim);
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  letter-spacing: 0.02em;
+}
+
 /* ============================================
    Mode Select (Dropdown)
    ============================================ */
