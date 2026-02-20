@@ -5,6 +5,8 @@ import { join } from "path";
 import { createSessionRegistry } from "./projections/session-registry.ts";
 import { createLatestSessionProjection } from "./projections/latest-session.ts";
 import { createSessionListProjection, buildSessionList } from "./projections/session-list.ts";
+import { scanSpecs } from "./spec-scanner.ts";
+import { watchSpecs } from "./spec-watcher.ts";
 
 const PORT = Number(process.env.PORT) || 3000;
 const CWD = process.env.CONCLAVE_CWD || process.cwd();
@@ -18,6 +20,18 @@ const latestSession = createLatestSessionProjection(store);
 // Per-WS state (connection infrastructure — not domain state)
 type WsState = { currentSessionId: string | null; unsubscribe: (() => void) | null };
 const wsStates = new Map<object, WsState>();
+
+// Track latest SpecListUpdated for replay on WS connect, and broadcast to all clients
+let latestSpecListEvent: DomainEvent | null = null;
+store.subscribe((event) => {
+  if (event.type === "SpecListUpdated") {
+    latestSpecListEvent = event;
+    // Broadcast to all connected clients
+    for (const [ws] of wsStates) {
+      sendWs(ws, event);
+    }
+  }
+});
 
 const bridge = new AcpBridge(CWD, (sessionId, payload) => {
   // Skip system-level errors without a real session
@@ -65,7 +79,7 @@ function subscribeWsToSession(ws: object, sessionId: string) {
 
   // Subscribe with session filter
   state.unsubscribe = store.subscribe((event: DomainEvent) => {
-    if (event.sessionId === sessionId) {
+    if ("sessionId" in event && event.sessionId === sessionId) {
       sendWs(ws, event);
     }
   });
@@ -121,6 +135,11 @@ const server = Bun.serve<{ requestedSessionId: string | null }>({
 
       // Send session list
       sendWs(ws, buildSessionList(sessionRegistry));
+
+      // Send latest spec list if available
+      if (latestSpecListEvent) {
+        sendWs(ws, latestSpecListEvent);
+      }
 
       // Determine which session to replay: prefer URL-requested, fall back to latest
       const requested = ws.data.requestedSessionId;
@@ -334,6 +353,21 @@ bridge.start().then(async () => {
 
   if (existing.length > 0) {
     console.log(`Found ${existing.length} existing session(s), latest: ${latestSession.getState().latestSessionId}`);
+  }
+
+  // Scan specs directory and emit initial spec list, then watch for changes
+  const specsDir = join(CWD, ".conclave", "specs");
+  try {
+    const specs = await scanSpecs(specsDir);
+    store.appendGlobal({ type: "SpecListUpdated", specs });
+    if (specs.length > 0) {
+      console.log(`Found ${specs.length} spec(s)`);
+    }
+    watchSpecs(specsDir, (updatedSpecs) => {
+      store.appendGlobal({ type: "SpecListUpdated", specs: updatedSpecs });
+    });
+  } catch (err) {
+    console.error("Failed to scan specs:", err);
   }
 
   // Always create a fresh session to start with

@@ -16,11 +16,19 @@ export type ImageAttachment = {
 
 // --- Domain Events ---
 
-export type BaseEvent = {
+// Shared fields stamped by EventStore.append() / appendGlobal()
+export type BaseFields = {
   seq: number;
   timestamp: number;
+};
+
+// Session events — carry sessionId
+export type BaseEvent = BaseFields & {
   sessionId: string;
 };
+
+// Global events — no sessionId
+export type BaseGlobalEvent = BaseFields;
 
 export type SessionCreated = BaseEvent & {
   type: "SessionCreated";
@@ -123,6 +131,23 @@ export type SessionInfoUpdated = BaseEvent & {
   updatedAt?: string | null;
 };
 
+// --- Spec System ---
+
+export type SpecPhase = "analysis" | "implementation";
+
+export type SpecInfo = {
+  name: string;
+  description: string | null;
+  phase: SpecPhase | null;
+  type: "epic" | "spec";
+  epic: string | null;
+};
+
+export type SpecListUpdated = BaseGlobalEvent & {
+  type: "SpecListUpdated";
+  specs: SpecInfo[];
+};
+
 export type SessionListEvent = {
   type: "SessionList";
   sessions: Array<{ sessionId: string; name: string; title: string | null; firstPrompt: string | null }>;
@@ -130,7 +155,7 @@ export type SessionListEvent = {
   timestamp: number;
 };
 
-export type DomainEvent =
+export type SessionEvent =
   | SessionCreated
   | PromptSubmitted
   | AgentText
@@ -148,6 +173,10 @@ export type DomainEvent =
   | UsageUpdated
   | SessionInfoUpdated;
 
+export type GlobalEvent = SpecListUpdated;
+
+export type DomainEvent = SessionEvent | GlobalEvent;
+
 // Events sent over WebSocket (includes meta-events not stored in EventStore)
 export type WsEvent = DomainEvent | SessionListEvent;
 
@@ -157,7 +186,10 @@ export type DomainEventType = DomainEvent["type"];
 type DistributiveOmit<T, K extends keyof T> = T extends unknown ? Omit<T, K> : never;
 
 // Payload without seq/timestamp/sessionId (used when appending — sessionId passed separately)
-export type EventPayload = DistributiveOmit<DomainEvent, "seq" | "timestamp" | "sessionId">;
+export type EventPayload = DistributiveOmit<SessionEvent, "seq" | "timestamp" | "sessionId">;
+
+// Payload for global events (no sessionId to strip)
+export type GlobalEventPayload = DistributiveOmit<GlobalEvent, "seq" | "timestamp">;
 
 // --- Commands (browser → server) ---
 

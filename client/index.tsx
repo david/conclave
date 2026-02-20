@@ -169,10 +169,11 @@ function App() {
     });
   }, [handleSwitchSession, state.sessionId]);
 
-  // Show workspace sidebar when there are plan entries or file changes
+  // Show workspace sidebar when there are plan entries, file changes, or specs
   const workspaceVisible = !!state.sessionId && (
     state.planEntries.length > 0 ||
-    state.fileChanges.length > 0
+    state.fileChanges.length > 0 ||
+    state.specs.length > 0
   );
 
   const layoutClasses = [
@@ -185,6 +186,7 @@ function App() {
       <Workspace
         entries={state.planEntries}
         fileChanges={state.fileChanges}
+        specs={state.specs}
       />
       <Chat
         ref={inputBarRef}

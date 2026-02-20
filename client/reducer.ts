@@ -10,6 +10,7 @@ export type {
   PlanEntryInfo,
   FileChangeAction,
   FileChangeInfo,
+  SpecInfo,
   TextBlock,
   ImageBlock,
   ToolCallBlock,

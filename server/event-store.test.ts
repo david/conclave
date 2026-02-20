@@ -25,7 +25,7 @@ describe("EventStore", () => {
   test("append assigns sessionId", () => {
     const store = new EventStore();
     const e = store.append("s1", { type: "AgentText", text: "test" });
-    expect(e.sessionId).toBe("s1");
+    expect("sessionId" in e && e.sessionId).toBe("s1");
   });
 
   test("getAll returns full log in order", () => {
@@ -96,11 +96,52 @@ describe("EventStore", () => {
 
     const s1Events = store.getBySessionId("s1");
     expect(s1Events).toHaveLength(2);
-    expect(s1Events[0].sessionId).toBe("s1");
-    expect(s1Events[1].sessionId).toBe("s1");
+    expect("sessionId" in s1Events[0] && s1Events[0].sessionId).toBe("s1");
+    expect("sessionId" in s1Events[1] && s1Events[1].sessionId).toBe("s1");
 
     const s2Events = store.getBySessionId("s2");
     expect(s2Events).toHaveLength(1);
-    expect(s2Events[0].sessionId).toBe("s2");
+    expect("sessionId" in s2Events[0] && s2Events[0].sessionId).toBe("s2");
+  });
+
+  test("appendGlobal assigns seq and timestamp but no sessionId", () => {
+    const store = new EventStore();
+    const e = store.appendGlobal({ type: "SpecListUpdated", specs: [] });
+
+    expect(e.seq).toBe(1);
+    expect(e.timestamp).toBeGreaterThan(0);
+    expect("sessionId" in e).toBe(false);
+  });
+
+  test("appendGlobal events appear in getAll but not getBySessionId", () => {
+    const store = new EventStore();
+    store.append("s1", { type: "AgentText", text: "a" });
+    store.appendGlobal({ type: "SpecListUpdated", specs: [] });
+    store.append("s1", { type: "AgentText", text: "b" });
+
+    expect(store.getAll()).toHaveLength(3);
+    expect(store.getBySessionId("s1")).toHaveLength(2);
+  });
+
+  test("appendGlobal notifies subscribers", () => {
+    const store = new EventStore();
+    const received: any[] = [];
+    store.subscribe((e) => received.push(e));
+
+    store.appendGlobal({ type: "SpecListUpdated", specs: [] });
+
+    expect(received).toHaveLength(1);
+    expect(received[0].type).toBe("SpecListUpdated");
+  });
+
+  test("appendGlobal shares seq space with append", () => {
+    const store = new EventStore();
+    const e1 = store.append("s1", { type: "AgentText", text: "a" });
+    const e2 = store.appendGlobal({ type: "SpecListUpdated", specs: [] });
+    const e3 = store.append("s1", { type: "AgentText", text: "b" });
+
+    expect(e1.seq).toBe(1);
+    expect(e2.seq).toBe(2);
+    expect(e3.seq).toBe(3);
   });
 });

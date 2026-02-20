@@ -162,6 +162,9 @@ export class AcpBridge {
           disallowedTools: ["EnterPlanMode", "ExitPlanMode"],
         },
       },
+      systemPrompt: {
+        append: "Specs live in .conclave/specs/<name>/. Each spec directory contains phase files (analysis.md, implementation.md) and an optional spec.json with description, type, and epic fields.",
+      },
     };
 
     const sessionResp = await this.connection.newSession({

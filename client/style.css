@@ -1455,6 +1455,133 @@ body::before {
    Workspace — Files Section
    ============================================ */
 
+/* ============================================
+   Workspace — Specs Section
+   ============================================ */
+
+.workspace__specs-section {
+  border-top: 1px solid var(--border);
+  padding-top: 4px;
+  margin-top: 4px;
+}
+
+.workspace__specs-section:first-child {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
+
+.workspace__specs {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  animation: accordion-reveal 0.2s ease-out;
+}
+
+/* ============================================
+   Spec Entries
+   ============================================ */
+
+.spec-entry {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  line-height: 1.55;
+  transition: background 0.15s;
+}
+
+.spec-entry:hover {
+  background: var(--bg-hover);
+}
+
+.spec-entry__icon {
+  flex-shrink: 0;
+  width: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+.spec-entry__icon--epic {
+  color: var(--accent-dim);
+}
+
+.spec-entry__name {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spec-entry__phase {
+  flex-shrink: 0;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  line-height: 1.7;
+}
+
+.spec-entry__phase--analysis {
+  color: var(--accent);
+  background: rgba(212, 148, 76, 0.1);
+}
+
+.spec-entry__phase--implementation {
+  color: var(--success);
+  background: var(--success-dim);
+}
+
+/* ============================================
+   Spec Epic Groups
+   ============================================ */
+
+.spec-epic-group {
+  margin-top: 6px;
+  border-left: 2px solid var(--border);
+  padding-left: 2px;
+  border-radius: 0 0 0 2px;
+}
+
+.spec-epic-group__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 6px;
+}
+
+.spec-epic-group__name {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.spec-epic-group__summary {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  opacity: 0.55;
+  white-space: nowrap;
+}
+
+.spec-epic-group__child {
+  padding-left: 12px;
+}
+
 .workspace__files-section {
   border-top: 1px solid var(--border);
   padding-top: 4px;

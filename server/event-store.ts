@@ -1,4 +1,4 @@
-import type { DomainEvent, EventPayload } from "./types.ts";
+import type { DomainEvent, EventPayload, GlobalEventPayload } from "./types.ts";
 
 export type EventListener = (event: DomainEvent) => void;
 
@@ -24,12 +24,28 @@ export class EventStore {
     return event;
   }
 
+  appendGlobal(payload: GlobalEventPayload): DomainEvent {
+    const event = {
+      ...payload,
+      seq: this.nextSeq++,
+      timestamp: Date.now(),
+    } as DomainEvent;
+
+    this.events.push(event);
+
+    for (const listener of this.listeners) {
+      listener(event);
+    }
+
+    return event;
+  }
+
   getAll(): DomainEvent[] {
     return this.events.slice();
   }
 
   getBySessionId(sessionId: string): DomainEvent[] {
-    return this.events.filter((e) => e.sessionId === sessionId);
+    return this.events.filter((e) => "sessionId" in e && e.sessionId === sessionId);
   }
 
   getFrom(seq: number): DomainEvent[] {

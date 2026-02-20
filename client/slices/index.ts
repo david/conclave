@@ -14,6 +14,7 @@ import { toolCallCompletedSlice } from "./tool-call-completed.ts";
 import { turnCompletedSlice } from "./turn-completed.ts";
 import { errorSlice } from "./error.ts";
 import { usageUpdatedSlice } from "./usage-updated.ts";
+import { specListUpdatedSlice } from "./spec-list-updated.ts";
 
 const slices: Array<(state: AppState, event: ClientEvent) => AppState> = [
   sessionInitiatedSlice,
@@ -31,6 +32,7 @@ const slices: Array<(state: AppState, event: ClientEvent) => AppState> = [
   turnCompletedSlice,
   errorSlice,
   usageUpdatedSlice,
+  specListUpdatedSlice,
 ];
 
 /** Runs all client slices sequentially. */

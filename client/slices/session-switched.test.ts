@@ -1,6 +1,7 @@
 import { describe, test, expect } from "bun:test";
 import { sessionSwitchedSlice } from "./session-switched.ts";
 import { initialState } from "../types.ts";
+import type { SpecInfo } from "../types.ts";
 import type { WsEvent } from "../../server/types.ts";
 
 const switchEvent: WsEvent = {
@@ -20,6 +21,15 @@ describe("sessionSwitchedSlice", () => {
     expect(state.sessions).toHaveLength(1);
     expect(state.messages).toEqual([]);
     expect(state.isProcessing).toBe(false);
+  });
+
+  test("preserves specs across session switch", () => {
+    const specs: SpecInfo[] = [{ name: "feat-a", description: null, phase: null, type: "spec", epic: null }];
+    const state = sessionSwitchedSlice(
+      { ...initialState, sessionId: "s1", specs },
+      switchEvent,
+    );
+    expect(state.specs).toEqual(specs);
   });
 
   test("ignores non-SessionSwitched events", () => {

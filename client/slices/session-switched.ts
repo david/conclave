@@ -6,6 +6,7 @@ export const sessionSwitchedSlice = createSlice("SessionSwitched", (state, event
   return {
     ...initialState,
     sessions: state.sessions,
+    specs: state.specs,
     sessionId: event.sessionId,
   };
 });

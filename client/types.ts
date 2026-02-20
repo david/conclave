@@ -57,6 +57,14 @@ export type Message = {
   content: ContentBlock[];
 };
 
+export type SpecInfo = {
+  name: string;
+  description: string | null;
+  phase: "analysis" | "implementation" | null;
+  type: "epic" | "spec";
+  epic: string | null;
+};
+
 export type UsageInfo = {
   size: number;
   used: number;
@@ -71,6 +79,7 @@ export type AppState = {
   streamingContent: ContentBlock[];
   planEntries: PlanEntryInfo[];
   fileChanges: FileChangeInfo[];
+  specs: SpecInfo[];
   isProcessing: boolean;
   creatingSession: boolean;
   error: string | null;
@@ -84,6 +93,7 @@ export const initialState: AppState = {
   streamingContent: [],
   planEntries: [],
   fileChanges: [],
+  specs: [],
   isProcessing: false,
   creatingSession: false,
   error: null,
