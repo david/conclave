@@ -70,7 +70,6 @@ export type AppState = {
   messages: Message[];
   streamingContent: ContentBlock[];
   planEntries: PlanEntryInfo[];
-  useCases: UseCase[];
   fileChanges: FileChangeInfo[];
   isProcessing: boolean;
   creatingSession: boolean;
@@ -84,7 +83,6 @@ export const initialState: AppState = {
   messages: [],
   streamingContent: [],
   planEntries: [],
-  useCases: [],
   fileChanges: [],
   isProcessing: false,
   creatingSession: false,

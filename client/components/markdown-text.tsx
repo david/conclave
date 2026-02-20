@@ -3,6 +3,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import type { Components } from "react-markdown";
+import type { UseCase } from "../types.ts";
 
 const remarkPlugins = [remarkGfm];
 const rehypePlugins = [rehypeHighlight];
@@ -52,6 +53,78 @@ function extractText(node: React.ReactNode): string {
   return "";
 }
 
+function UseCaseCard({ useCase }: { useCase: UseCase }) {
+  return (
+    <div
+      className="uc-card"
+      data-priority={useCase.priority}
+    >
+      <div className="uc-card__topline">
+        <span className="uc-card__id">{useCase.id}</span>
+        <span className={`uc-card__badge uc-card__badge--${useCase.priority}`}>
+          {useCase.priority}
+        </span>
+      </div>
+
+      <h3 className="uc-card__name">{useCase.name}</h3>
+
+      <div className="uc-card__meta">
+        <span className="uc-card__actor">{useCase.actor}</span>
+      </div>
+
+      <p className="uc-card__summary">{useCase.summary}</p>
+
+      <div className="uc-card__scenario">
+        <div className="uc-card__clause">
+          <span className="uc-card__clause-keyword">Given</span>
+          <ul className="uc-card__clause-items">
+            {useCase.given.map((item, i) => <li key={i}>{item}</li>)}
+          </ul>
+        </div>
+        <div className="uc-card__clause">
+          <span className="uc-card__clause-keyword">When</span>
+          <ul className="uc-card__clause-items">
+            {useCase.when.map((item, i) => <li key={i}>{item}</li>)}
+          </ul>
+        </div>
+        <div className="uc-card__clause">
+          <span className="uc-card__clause-keyword">Then</span>
+          <ul className="uc-card__clause-items">
+            {useCase.then.map((item, i) => <li key={i}>{item}</li>)}
+          </ul>
+        </div>
+      </div>
+
+      {useCase.dependencies && useCase.dependencies.length > 0 && (
+        <div className="uc-card__deps">
+          <span className="uc-card__deps-label">Depends on</span>
+          <span className="uc-card__deps-list">
+            {useCase.dependencies.map((dep) => (
+              <span key={dep} className="uc-card__dep-id">{dep}</span>
+            ))}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function InlineUseCases({ json }: { json: string }) {
+  try {
+    const parsed = JSON.parse(json);
+    const useCases: UseCase[] = Array.isArray(parsed) ? parsed : [parsed];
+    return (
+      <>
+        {useCases.map((uc) => (
+          <UseCaseCard key={uc.id} useCase={uc} />
+        ))}
+      </>
+    );
+  } catch {
+    return null;
+  }
+}
+
 const components: Components = {
   a: ({ children, href, ...props }) => (
     <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
@@ -69,6 +142,12 @@ const components: Components = {
       if (match) language = match[1];
     }
 
+    // Render conclave:requirements blocks as inline use case cards
+    if (language === "conclave:requirements") {
+      const codeText = codeChild ? extractText(codeChild.props.children).replace(/\n$/, "") : "";
+      return <InlineUseCases json={codeText} />;
+    }
+
     const codeText = codeChild ? extractText(codeChild.props.children).replace(/\n$/, "") : "";
 
     return (
@@ -83,19 +162,7 @@ const components: Components = {
   },
 };
 
-/** Strip conclave:requirements fenced blocks — they render in the workspace, not in chat. */
-const CONCLAVE_BLOCK_RE = /```conclave:\w+\n[\s\S]*?```\n?/g;
-/** Also strip an unclosed conclave block at the end of text (mid-stream). */
-const CONCLAVE_BLOCK_PARTIAL_RE = /```conclave:\w+[\s\S]*$/;
-
-function stripConclaveBlocks(text: string): string {
-  // First strip all complete blocks, then strip a trailing incomplete one
-  const withoutComplete = text.replace(CONCLAVE_BLOCK_RE, "");
-  return withoutComplete.replace(CONCLAVE_BLOCK_PARTIAL_RE, "");
-}
-
 export function MarkdownText({ text }: { text: string }) {
-  const cleaned = stripConclaveBlocks(text);
   return (
     <div className="message__text message__text--markdown">
       <ReactMarkdown
@@ -103,7 +170,7 @@ export function MarkdownText({ text }: { text: string }) {
         rehypePlugins={rehypePlugins}
         components={components}
       >
-        {cleaned}
+        {text}
       </ReactMarkdown>
     </div>
   );

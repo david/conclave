@@ -1,14 +1,11 @@
-import React, { useEffect, useRef, useCallback, useMemo } from "react";
+import React, { useEffect, useRef, useCallback } from "react";
 import { createRoot } from "react-dom/client";
 import { useEventStore } from "./reducer.ts";
 import { Chat } from "./components/chat.tsx";
 import type { InputBarHandle } from "./components/input-bar.tsx";
 import { Workspace } from "./components/workspace.tsx";
-import { UseCasePanel } from "./components/use-case-panel.tsx";
 import type { WsEvent, Command, ImageAttachment } from "../server/types.ts";
 import { getSessionIdFromUrl, pushSessionUrl, replaceSessionUrl, onPopState } from "./router.ts";
-import { parseRequirements } from "./parse-requirements.ts";
-import type { Message } from "./types.ts";
 
 function App() {
   const { state, append } = useEventStore();
@@ -172,34 +169,15 @@ function App() {
     });
   }, [handleSwitchSession, state.sessionId]);
 
-  // Derive use cases from assistant messages + streaming content
-  const useCases = useMemo(() => {
-    const messageText = state.messages
-      .filter((m: Message) => m.role === "assistant")
-      .flatMap((m: Message) => m.content)
-      .filter((b) => b.type === "text")
-      .map((b) => (b as { type: "text"; text: string }).text)
-      .join("\n");
-    const streamingText = state.streamingContent
-      .filter((b) => b.type === "text")
-      .map((b) => (b as { type: "text"; text: string }).text)
-      .join("\n");
-    return parseRequirements(messageText + "\n" + streamingText);
-  }, [state.messages, state.streamingContent]);
-
   // Show workspace sidebar when there are plan entries or file changes
   const workspaceVisible = !!state.sessionId && (
     state.planEntries.length > 0 ||
     state.fileChanges.length > 0
   );
 
-  // Show use case center panel in requirements mode when use cases exist
-  const useCasePanelVisible = useCases.length > 0;
-
   const layoutClasses = [
     "app-layout",
     workspaceVisible ? "app-layout--workspace-visible" : "",
-    useCasePanelVisible ? "app-layout--use-cases-visible" : "",
   ].filter(Boolean).join(" ");
 
   return (
@@ -208,7 +186,6 @@ function App() {
         entries={state.planEntries}
         fileChanges={state.fileChanges}
       />
-      {useCasePanelVisible && <UseCasePanel useCases={useCases} />}
       <Chat
         ref={inputBarRef}
         state={state}

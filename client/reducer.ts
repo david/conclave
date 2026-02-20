@@ -8,7 +8,6 @@ export type {
   ToolCallInfo,
   SessionInfo,
   PlanEntryInfo,
-  UseCase,
   FileChangeAction,
   FileChangeInfo,
   TextBlock,
