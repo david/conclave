@@ -21,6 +21,27 @@ import type { EventPayload, ImageAttachment } from "./types.ts";
 
 export type OnEventCallback = (sessionId: string, payload: EventPayload) => void;
 
+export type PromptBlock =
+  | { type: "text"; text: string }
+  | { type: "image"; data: string; mimeType: string };
+
+/** Build the prompt content array. Never produces empty text blocks. */
+export function buildPromptBlocks(text: string, images?: ImageAttachment[]): PromptBlock[] {
+  const prompt: PromptBlock[] = [];
+  if (images?.length) {
+    for (const img of images) {
+      prompt.push({ type: "image", data: img.data, mimeType: img.mimeType });
+    }
+  }
+  // The API requires a non-empty text block in every message.
+  // When images are attached without text, use a minimal placeholder.
+  const effectiveText = text || (prompt.length > 0 ? "See image." : "");
+  if (effectiveText) {
+    prompt.push({ type: "text", text: effectiveText });
+  }
+  return prompt;
+}
+
 export class AcpBridge {
   private connection: ClientSideConnection | null = null;
   private proc: ReturnType<typeof Bun.spawn> | null = null;
@@ -200,13 +221,12 @@ export class AcpBridge {
     this.onEvent(sessionId, { type: "PromptSubmitted", text, images });
 
     try {
-      const prompt: Array<{ type: "text"; text: string } | { type: "image"; data: string; mimeType: string }> = [];
-      if (images?.length) {
-        for (const img of images) {
-          prompt.push({ type: "image", data: img.data, mimeType: img.mimeType });
-        }
+      const prompt = buildPromptBlocks(text, images);
+
+      if (prompt.length === 0) {
+        onEventError(this.onEvent, sessionId, "Cannot submit an empty prompt");
+        return;
       }
-      prompt.push({ type: "text", text });
 
       const resp = await this.connection.prompt({
         sessionId: sessionId as SessionId,
