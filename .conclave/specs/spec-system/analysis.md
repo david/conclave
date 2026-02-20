@@ -204,3 +204,25 @@ Structured spec directory system for Conclave. One directory per spec, one file 
   "dependencies": ["UC-1"]
 }
 ```
+
+```conclave:requirements
+{
+  "id": "UC-9",
+  "name": "Inject specs convention into ACP system prompt",
+  "actor": "System",
+  "summary": "Server appends the specs directory convention to the ACP system prompt so the agent knows where specs live without per-project CLAUDE.md changes.",
+  "given": [
+    "Conclave server is creating a new ACP session via AcpBridge"
+  ],
+  "when": [
+    "AcpBridge.createSession() builds the `_meta` object for the ACP session"
+  ],
+  "then": [
+    "The `_meta.systemPrompt` field is set to `{ append: \"...\" }` containing the specs directory convention",
+    "The appended text describes the `.conclave/specs/` directory structure, phase files, and `spec.json` metadata",
+    "The standard Claude Code system prompt preset is preserved (append, not replace)",
+    "The agent in every Conclave session knows about the specs convention without any project-specific configuration"
+  ],
+  "priority": "high"
+}
+```
