@@ -1,6 +1,5 @@
 import React from "react";
 import { TaskIcon, FileActionIcon } from "./icons.tsx";
-import { ModePicker } from "./mode-picker.tsx";
 import type { PlanEntryInfo, FileChangeInfo, UseCase } from "../reducer.ts";
 import type { ModeClientInfo } from "../../server/types.ts";
 
@@ -11,7 +10,6 @@ type WorkspaceProps = {
   currentMode: string;
   availableModes: ModeClientInfo[];
   isProcessing: boolean;
-  onSetMode: (modeId: string) => void;
 };
 
 function PlanEntry({ entry }: { entry: PlanEntryInfo }) {
@@ -89,7 +87,6 @@ export function Workspace({
   currentMode,
   availableModes,
   isProcessing,
-  onSetMode,
 }: WorkspaceProps) {
   const hasEntries = entries.length > 0;
   const hasFiles = fileChanges.length > 0;
@@ -98,19 +95,13 @@ export function Workspace({
 
   return (
     <div className="workspace">
-      <header className="workspace__header">
-        <ModePicker
-          modes={availableModes}
-          currentMode={currentMode}
-          onSetMode={onSetMode}
-          disabled={isProcessing}
-        />
-        {isProcessing && (
+      {isProcessing && (
+        <header className="workspace__header">
           <span className="workspace__status-badge" data-color={availableModes.find((m) => m.id === currentMode)?.color ?? "neutral"}>
             Working<span className="workspace__status-dots" />
           </span>
-        )}
-      </header>
+        </header>
+      )}
       <div className="workspace__content">
         {hasUseCases && (
           <div className="workspace__use-cases-section">

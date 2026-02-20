@@ -2,8 +2,10 @@ import React, { useCallback, useState } from "react";
 import { MessageList } from "./message-list.tsx";
 import { InputBar } from "./input-bar.tsx";
 import { SessionPicker } from "./session-picker.tsx";
+import { ModePicker } from "./mode-picker.tsx";
 import type { AppState } from "../reducer.ts";
 import type { ImageAttachment } from "../../server/types.ts";
+import type { ModeClientInfo } from "../../server/types.ts";
 import { getModeInfo } from "../mode-config.ts";
 
 type ChatProps = {
@@ -12,6 +14,7 @@ type ChatProps = {
   onCancel: () => void;
   onSwitchSession: (sessionId: string) => void;
   onCreateSession: () => void;
+  onSetMode: (modeId: string) => void;
 };
 
 function formatTokenCount(n: number): string {
@@ -64,7 +67,7 @@ function ContextBar({ usage }: { usage: NonNullable<AppState["usage"]> }) {
   );
 }
 
-export function Chat({ state, onSubmit, onCancel, onSwitchSession, onCreateSession }: ChatProps) {
+export function Chat({ state, onSubmit, onCancel, onSwitchSession, onCreateSession, onSetMode }: ChatProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopySessionId = useCallback(() => {
@@ -79,6 +82,13 @@ export function Chat({ state, onSubmit, onCancel, onSwitchSession, onCreateSessi
     <div className="chat">
       <header className="chat__header">
         <div className="chat__header-row">
+          <ModePicker
+            modes={state.availableModes}
+            currentMode={state.currentMode}
+            onSetMode={onSetMode}
+            disabled={state.isProcessing}
+          />
+          <div className="chat__header-divider" />
           <SessionPicker
             sessions={state.sessions}
             currentSessionId={state.sessionId}

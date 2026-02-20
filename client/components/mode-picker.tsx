@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import type { ModeClientInfo } from "../../server/types.ts";
 
 type ModePickerProps = {
@@ -9,35 +9,87 @@ type ModePickerProps = {
 };
 
 export function ModePicker({ modes, currentMode, onSetMode, disabled }: ModePickerProps) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const current = modes.find((m) => m.id === currentMode) ?? modes[0];
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [open]);
+
+  // Close on Escape
+  useEffect(() => {
+    if (!open) return;
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [open]);
+
+  if (!current) return null;
+
   if (modes.length <= 1) {
-    // Single mode — just show the label, no picker needed
-    const mode = modes[0];
-    if (!mode) return null;
     return (
-      <div className="mode-picker">
-        <span className="mode-picker__single" data-color={mode.color}>{mode.label}</span>
+      <div className="mode-select" data-color={current.color}>
+        <div className="mode-select__trigger mode-select__trigger--solo">
+          <ModeIcon icon={current.icon} />
+          <span className="mode-select__label">{current.label}</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="mode-picker">
-      {modes.map((mode) => {
-        const isActive = currentMode === mode.id;
-        return (
-          <button
-            key={mode.id}
-            className={`mode-picker__btn${isActive ? " mode-picker__btn--active" : ""}`}
-            data-color={mode.color}
-            onClick={() => onSetMode(mode.id)}
-            disabled={disabled || isActive}
-            title={mode.label}
-          >
-            <ModeIcon icon={mode.icon} />
-            <span className="mode-picker__label">{mode.label}</span>
-          </button>
-        );
-      })}
+    <div className="mode-select" ref={containerRef} data-color={current.color}>
+      <button
+        className={`mode-select__trigger${open ? " mode-select__trigger--open" : ""}`}
+        onClick={() => setOpen(!open)}
+        disabled={disabled}
+        type="button"
+      >
+        <ModeIcon icon={current.icon} />
+        <span className="mode-select__label">{current.label}</span>
+        <svg className="mode-select__chevron" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="2.5,3.5 5,6.5 7.5,3.5" />
+        </svg>
+      </button>
+      {open && (
+        <div className="mode-select__dropdown">
+          {modes.map((mode) => {
+            const isActive = currentMode === mode.id;
+            return (
+              <button
+                key={mode.id}
+                className={`mode-select__option${isActive ? " mode-select__option--active" : ""}`}
+                data-color={mode.color}
+                onClick={() => {
+                  if (!isActive) onSetMode(mode.id);
+                  setOpen(false);
+                }}
+                type="button"
+              >
+                <ModeIcon icon={mode.icon} />
+                <span className="mode-select__option-label">{mode.label}</span>
+                {isActive && (
+                  <svg className="mode-select__check" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="2.5 6.5 5 9 9.5 3.5" />
+                  </svg>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -74,7 +126,6 @@ function ModeIcon({ icon }: { icon: string }) {
         </svg>
       );
     default:
-      // Generic mode icon
       return (
         <svg width={size} height={size} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
           <circle cx="6" cy="6" r="4.5" />
