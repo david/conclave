@@ -1,24 +1,6 @@
-version: "0.5"
-is_strict: true
-
 processes:
   build:
-    command: bun run bun-build.ts --watch
-    working_dir: .
+    command: bun run build
 
   server:
-    command: bun --watch run server/index.ts
-    working_dir: .
-    readiness_probe:
-      http_get:
-        host: 127.0.0.1
-        port: 3000
-        path: /
-        scheme: http
-      initial_delay_seconds: 1
-      period_seconds: 2
-      timeout_seconds: 2
-      success_threshold: 1
-    availability:
-      restart: on_failure
-      backoff_seconds: 2
+    command: bun run dev

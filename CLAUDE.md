@@ -14,7 +14,6 @@ bun test server/            # Run server tests only
 bun test client/            # Run client tests only
 bun run check               # TypeScript type checking (tsc --noEmit)
 bun run build               # Bundle client to dist/
-bun run build:watch         # Bundle client in watch mode
 bun run dev                 # Start the server (port 3000)
 ```
 
