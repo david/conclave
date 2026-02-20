@@ -85,9 +85,13 @@ const components: Components = {
 
 /** Strip conclave:requirements fenced blocks — they render in the workspace, not in chat. */
 const CONCLAVE_BLOCK_RE = /```conclave:\w+\n[\s\S]*?```\n?/g;
+/** Also strip an unclosed conclave block at the end of text (mid-stream). */
+const CONCLAVE_BLOCK_PARTIAL_RE = /```conclave:\w+[\s\S]*$/;
 
 function stripConclaveBlocks(text: string): string {
-  return text.replace(CONCLAVE_BLOCK_RE, "");
+  // First strip all complete blocks, then strip a trailing incomplete one
+  const withoutComplete = text.replace(CONCLAVE_BLOCK_RE, "");
+  return withoutComplete.replace(CONCLAVE_BLOCK_PARTIAL_RE, "");
 }
 
 export function MarkdownText({ text }: { text: string }) {
