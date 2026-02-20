@@ -1757,7 +1757,7 @@ body::before {
 .uc-card__clause {
   display: flex;
   gap: 12px;
-  align-items: baseline;
+  align-items: first baseline;
 }
 
 .uc-card__clause-keyword {
@@ -1769,7 +1769,9 @@ body::before {
   letter-spacing: 0.06em;
   color: var(--text-muted);
   width: 48px;
-  padding-top: 1px;
+  line-height: 1.6;
+  position: relative;
+  top: -1px;
 }
 
 .uc-card__clause-items {
