@@ -198,7 +198,7 @@ This is primarily a deletion task. The one piece that needs a new home is the `c
 
 ## Notes
 
-- **Dependencies are mostly linear** (UC-1 → UC-2 → UC-3 → UC-4 → UC-5 → UC-6 → UC-7) because each step removes something the next references. In practice, a developer could do most of this in a single pass.
+- **Dependencies are mostly linear** (UC-1 -> UC-2 -> UC-3 -> UC-4 -> UC-5 -> UC-6 -> UC-7) because each step removes something the next references. In practice, a developer could do most of this in a single pass.
 - **`disallowedTools` for plan mode stays** — it's in `acp-bridge.ts` and prevents Claude Code from using its built-in plan mode, independent of Conclave's mode system.
 - **`buildModeSystemPrompt` injection at session creation goes away** — the agent no longer gets told about modes in its system prompt.
 - **The `[conclave:mode X]` marker system goes away** — the agent can no longer proactively switch modes since modes don't exist.
