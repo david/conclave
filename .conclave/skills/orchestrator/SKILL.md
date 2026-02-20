@@ -27,7 +27,10 @@ If tasks.md is missing, tell the user to run the organizer first (`/org <spec-na
 
 ### 2. Load Context
 
-Read the project's `CLAUDE.md` and `.conclave/specs/<spec-name>/implementation.md`. These provide architectural context that agents need.
+Read:
+- `CLAUDE.md` — project architecture and conventions
+- `.conclave/specs/<spec-name>/implementation.md` — full implementation plan for reference
+- `.conclave/skills/developer/SKILL.md` — the dev skill's TDD workflow and rules (embed into agent prompts)
 
 ### 3. Execute Waves
 
@@ -54,7 +57,7 @@ Task tool parameters:
 
 Each agent prompt must be self-contained. Include:
 
-1. **Role**: "You are implementing a task as part of a larger spec. Follow strict TDD: write a failing test first, make it pass with minimum code, then refactor. Keep cycles small."
+1. **Dev skill workflow**: Include the full content of `.conclave/skills/developer/SKILL.md` (the Workflow and Rules sections). This is the agent's primary operating procedure — do not summarize or paraphrase it, include it verbatim so agents follow the exact same TDD discipline.
 
 2. **Project context**: Key sections from CLAUDE.md — commands (`bun test`, `bun run check`), architecture overview, key conventions. Keep it concise — only what the agent needs.
 
@@ -63,21 +66,9 @@ Each agent prompt must be self-contained. Include:
    - Implementation steps
    - Test scenarios
 
-4. **TDD workflow** (from dev skill):
-   ```
-   For each test scenario:
-   a. Read relevant existing code
-   b. Write a failing test (Arrange-Act-Assert)
-   c. Run `bun test <test-file>` — confirm it FAILS
-   d. Write minimum code to pass
-   e. Run `bun test <test-file>` — confirm it PASSES
-   f. Run `bun test` — confirm nothing else broke
-   g. Refactor if needed, keeping tests green
-   ```
+4. **Boundaries**: "Only touch the files listed in your task scope. Do not modify files outside your scope — other agents may be working on them concurrently. Do NOT commit — the orchestrator handles commits."
 
-5. **Boundaries**: "Only touch the files listed in your task scope. Do not modify files outside your scope — other agents may be working on them concurrently. Do NOT commit — the orchestrator handles commits."
-
-6. **Completion signal**: "When done, report: which files you created/modified, which tests pass, and any issues encountered."
+5. **Completion signal**: "When done, report: which files you created/modified, which tests pass, and any issues encountered."
 
 ### 4. Monitor and Collect Results
 

@@ -4,10 +4,9 @@ description: >
   Disciplined software development with strict TDD (red-green-refactor), KISS, DRY, and YAGNI.
   Use when the user asks to implement a feature, fix a bug, build something, add functionality,
   or any task that produces behavioral code changes. Triggers on: "implement X", "build X",
-  "add feature X", "fix bug X", "/dev", "/dev <spec-name>", or when entering a development/coding
-  mode. Works standalone or driven by an implementation.md spec from the req/arq pipeline
-  (.conclave/specs/<name>/implementation.md). Does NOT trigger for purely structural changes
-  (renames, formatting, moves) that have no behavioral impact.
+  "add feature X", "fix bug X", "/dev", or when entering a development/coding mode.
+  Does NOT trigger for purely structural changes (renames, formatting, moves) that have no
+  behavioral impact. For spec-driven work, use the org/orc pipeline instead.
 ---
 
 # Dev
@@ -22,19 +21,6 @@ Disciplined development workflow enforcing TDD red-green-refactor, KISS, DRY, an
 - **YAGNI**: Only build what is needed now. No speculative features, config options, or "just in case" code.
 - **Small atomic commits**: Each commit should be a single logical change that passes all tests.
 
-## Spec-Driven Mode
-
-When a spec name is provided (e.g., `/dev spec-system` or "implement the spec-system spec"):
-
-1. Read `.conclave/specs/<spec-name>/implementation.md`.
-2. Parse the use case sections (`## UC-X: ...`). Each section contains **Files**, **Steps**, and **Tests**.
-3. If a `## New Types` section exists, implement it first — these are shared dependencies.
-4. Process use case sections in order (respecting dependency order from the architect).
-5. For each section, apply the TDD workflow below to each test scenario listed under **Tests:**.
-6. Offer to commit after completing each use case section.
-
-When no spec is provided, follow the standalone workflow below.
-
 ## Workflow
 
 Every behavioral change follows this strict sequence:
@@ -42,13 +28,11 @@ Every behavioral change follows this strict sequence:
 ### 1. Understand
 
 - Read the relevant existing code and tests before changing anything.
-- If spec-driven, read the current UC section's **Files** and **Steps** for context.
 - Identify the minimal scope of the change. Push back on scope creep.
 
 ### 2. Red — Write a failing test
 
 - Write one or more tests that describe the desired behavior.
-- In spec-driven mode, derive tests from the **Tests:** list in the current UC section.
 - Run the tests. **Confirm they fail.** If they pass, the test is not testing new behavior — rewrite it.
 - Use Arrange-Act-Assert structure:
 
@@ -61,7 +45,6 @@ Every behavioral change follows this strict sequence:
 ### 3. Green — Make it pass
 
 - Write the **minimum code** to make the failing test(s) pass. No more.
-- In spec-driven mode, follow the **Steps:** from the UC section as guidance, not gospel — adapt if the codebase has evolved since the plan was written.
 - Do not refactor yet. Do not add error handling for cases not covered by tests.
 - Run the tests. **Confirm they pass.**
 
@@ -80,7 +63,6 @@ Every behavioral change follows this strict sequence:
 ### 6. Repeat
 
 - Return to step 1 for the next behavioral change.
-- In spec-driven mode, continue to the next UC section when the current one is complete.
 - Each cycle should be small — a single behavior, not an entire feature at once.
 
 ## Rules
