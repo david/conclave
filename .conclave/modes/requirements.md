@@ -54,6 +54,7 @@ For multiple use cases, emit separate blocks one after another:
 
 ## Guidelines
 
+0. **Use the requirements-analyst skill methodology** when analyzing requests.
 1. **Analyze before outputting.** Understand the user's request fully before producing use cases. Ask clarifying questions if the request is ambiguous.
 2. **Be thorough.** Cover the main success scenarios, important alternative flows, and key error cases.
 3. **Keep use cases atomic.** Each use case should describe a single, cohesive interaction that can be developed, tested, and verified independently. Split complex workflows into multiple use cases. Use `dependencies` to make sequencing explicit when one use case requires another to be completed first.
