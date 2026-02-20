@@ -1,15 +1,11 @@
 import React from "react";
 import { TaskIcon, FileActionIcon } from "./icons.tsx";
 import type { PlanEntryInfo, FileChangeInfo, UseCase } from "../reducer.ts";
-import type { ModeClientInfo } from "../../server/types.ts";
 
 type WorkspaceProps = {
   entries: PlanEntryInfo[];
   fileChanges: FileChangeInfo[];
   useCases: UseCase[];
-  currentMode: string;
-  availableModes: ModeClientInfo[];
-  isProcessing: boolean;
 };
 
 function PlanEntry({ entry }: { entry: PlanEntryInfo }) {
@@ -84,9 +80,6 @@ export function Workspace({
   entries,
   fileChanges,
   useCases,
-  currentMode,
-  availableModes,
-  isProcessing,
 }: WorkspaceProps) {
   const hasEntries = entries.length > 0;
   const hasFiles = fileChanges.length > 0;
@@ -95,13 +88,7 @@ export function Workspace({
 
   return (
     <div className="workspace">
-      {isProcessing && (
-        <header className="workspace__header">
-          <span className="workspace__status-badge" data-color={availableModes.find((m) => m.id === currentMode)?.color ?? "neutral"}>
-            Working<span className="workspace__status-dots" />
-          </span>
-        </header>
-      )}
+
       <div className="workspace__content">
         {hasUseCases && (
           <div className="workspace__use-cases-section">
@@ -136,7 +123,7 @@ export function Workspace({
           </div>
         )}
 
-        {!hasContent && !isProcessing && (
+        {!hasContent && (
           <div className="workspace__empty">
             Tasks and file changes will appear here.
           </div>

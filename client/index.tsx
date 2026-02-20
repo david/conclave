@@ -146,8 +146,7 @@ function App() {
   const workspaceVisible = !!state.sessionId && (
     state.planEntries.length > 0 ||
     state.fileChanges.length > 0 ||
-    useCases.length > 0 ||
-    state.isProcessing
+    useCases.length > 0
   );
 
   return (
@@ -156,9 +155,6 @@ function App() {
         entries={state.planEntries}
         fileChanges={state.fileChanges}
         useCases={useCases}
-        currentMode={state.currentMode}
-        availableModes={state.availableModes}
-        isProcessing={state.isProcessing}
       />
       <Chat
         state={state}
