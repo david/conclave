@@ -456,31 +456,71 @@ body::before {
 }
 
 /* ============================================
-   Markdown Rendering
+   Markdown Rendering — Refined Readability
    ============================================ */
 
 .message__text--markdown {
   white-space: normal;
+  font-size: 14.5px;
+  line-height: 1.75;
+  letter-spacing: 0.005em;
+  color: var(--text);
 }
 
+/* --- Paragraphs --- */
+
 .message__text--markdown p {
-  margin-bottom: 0.7em;
+  margin-bottom: 0.85em;
 }
 
 .message__text--markdown p:last-child {
   margin-bottom: 0;
 }
 
+/* --- Headings --- */
+
 .message__text--markdown h1,
 .message__text--markdown h2,
 .message__text--markdown h3,
 .message__text--markdown h4 {
   font-family: var(--font-display);
-  margin-top: 1.3em;
-  margin-bottom: 0.5em;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.3;
   color: var(--text);
+  letter-spacing: -0.015em;
+}
+
+.message__text--markdown h1 {
+  font-size: 1.55em;
+  margin-top: 1.6em;
+  margin-bottom: 0.6em;
+  padding-bottom: 0.35em;
+  border-bottom: 1px solid var(--border);
+}
+
+.message__text--markdown h2 {
+  font-size: 1.3em;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  padding-bottom: 0.28em;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.message__text--markdown h3 {
+  font-size: 1.12em;
+  margin-top: 1.35em;
+  margin-bottom: 0.45em;
+  color: var(--text);
+}
+
+.message__text--markdown h4 {
+  font-size: 0.98em;
+  margin-top: 1.2em;
+  margin-bottom: 0.4em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
 }
 
 .message__text--markdown h1:first-child,
@@ -490,159 +530,307 @@ body::before {
   margin-top: 0;
 }
 
-.message__text--markdown h1 {
-  font-size: 1.45em;
-  padding-bottom: 0.3em;
-  border-bottom: 1px solid var(--border);
+/* Heading followed immediately by another heading — tighten */
+.message__text--markdown h1 + h2,
+.message__text--markdown h2 + h3,
+.message__text--markdown h3 + h4 {
+  margin-top: 0.4em;
 }
 
-.message__text--markdown h2 {
-  font-size: 1.25em;
-  padding-bottom: 0.25em;
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.message__text--markdown h3 {
-  font-size: 1.1em;
-}
-
-.message__text--markdown h4 {
-  font-size: 1em;
-  color: var(--text-secondary);
-}
+/* --- Inline code --- */
 
 .message__text--markdown code {
   font-family: var(--font-mono);
-  font-size: 0.88em;
-  background: var(--bg-elevated);
-  padding: 0.15em 0.45em;
-  border-radius: 4px;
-  border: 1px solid var(--border);
+  font-size: 0.86em;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 0.18em 0.5em;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
   color: var(--accent);
+  word-break: break-word;
+}
+
+/* --- Code Blocks (wrapped by .code-block container) --- */
+
+.code-block {
+  margin: 1em 0;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: #07070a;
+}
+
+.code-block__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.025);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.code-block__lang {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+  user-select: none;
+}
+
+.code-block__copy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+
+.code-block__copy:hover {
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.code-block__copy--copied {
+  color: var(--success);
+}
+
+.code-block__copy--copied:hover {
+  color: var(--success);
+  background: transparent;
+}
+
+.message__text--markdown .code-block pre {
+  margin: 0;
+  border: none;
+  border-radius: 0;
 }
 
 .message__text--markdown pre {
-  margin: 0.8em 0;
-  border-radius: var(--radius-sm);
+  margin: 1em 0;
+  border-radius: var(--radius);
   overflow: hidden;
   border: 1px solid var(--border);
 }
 
 .message__text--markdown pre code {
   display: block;
-  padding: 14px 18px;
+  padding: 16px 20px;
   overflow-x: auto;
   font-size: 13px;
-  line-height: 1.55;
+  line-height: 1.6;
   border: none;
-  background: var(--bg);
-  color: var(--text-secondary);
+  border-radius: 0;
+  background: #07070a;
+  color: #c0bab0;
+  tab-size: 2;
 }
+
+/* Code block scrollbar */
+.message__text--markdown pre code::-webkit-scrollbar {
+  height: 4px;
+}
+
+.message__text--markdown pre code::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.message__text--markdown pre code::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+
+/* --- Lists --- */
 
 .message__text--markdown ul,
 .message__text--markdown ol {
-  margin: 0.5em 0;
-  padding-left: 1.75em;
+  margin: 0.65em 0;
+  padding-left: 1.6em;
 }
 
 .message__text--markdown li {
-  margin-bottom: 0.3em;
+  margin-bottom: 0.35em;
+  line-height: 1.7;
 }
 
 .message__text--markdown li > p {
-  margin-bottom: 0.3em;
+  margin-bottom: 0.35em;
 }
 
+.message__text--markdown li > p:only-child {
+  margin-bottom: 0;
+}
+
+/* Nested lists */
+.message__text--markdown li > ul,
+.message__text--markdown li > ol {
+  margin-top: 0.25em;
+  margin-bottom: 0.15em;
+}
+
+/* Task list items */
+.message__text--markdown li:has(> input[type="checkbox"]) {
+  list-style-type: none;
+  margin-left: -1.2em;
+}
+
+.message__text--markdown input[type="checkbox"] {
+  margin-right: 0.55em;
+  accent-color: var(--accent);
+  position: relative;
+  top: 1px;
+}
+
+/* --- Blockquotes --- */
+
 .message__text--markdown blockquote {
-  margin: 0.75em 0;
-  padding: 0.25em 1em;
+  margin: 0.9em 0;
+  padding: 0.6em 1.15em;
   border-left: 3px solid var(--accent-dim);
+  background: rgba(212, 148, 76, 0.03);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   color: var(--text-secondary);
+  font-style: italic;
 }
 
 .message__text--markdown blockquote p:last-child {
   margin-bottom: 0;
 }
 
-.message__text--markdown hr {
-  margin: 1em 0;
-  border: none;
-  border-top: 1px solid var(--border);
+.message__text--markdown blockquote blockquote {
+  margin: 0.5em 0;
+  border-left-color: var(--border);
+  background: rgba(255, 255, 255, 0.015);
 }
+
+/* --- Horizontal Rules --- */
+
+.message__text--markdown hr {
+  margin: 1.5em 0;
+  border: none;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--border) 15%,
+    var(--border) 85%,
+    transparent
+  );
+}
+
+/* --- Links --- */
 
 .message__text--markdown a {
   color: var(--accent);
   text-decoration: none;
-  transition: color 0.15s;
+  text-underline-offset: 3px;
+  transition: color 0.15s, text-decoration-color 0.15s;
 }
 
 .message__text--markdown a:hover {
   color: var(--accent-hover);
   text-decoration: underline;
+  text-decoration-color: rgba(224, 164, 92, 0.4);
 }
+
+/* --- Tables --- */
 
 .message__text--markdown table {
   border-collapse: collapse;
-  margin: 0.75em 0;
+  margin: 1em 0;
   width: 100%;
   overflow-x: auto;
   display: block;
+  font-size: 13.5px;
+  line-height: 1.55;
 }
 
 .message__text--markdown th,
 .message__text--markdown td {
-  padding: 6px 12px;
+  padding: 8px 14px;
   border: 1px solid var(--border);
   text-align: left;
 }
 
 .message__text--markdown th {
+  font-family: var(--font-display);
   font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
   background: var(--bg-elevated);
 }
 
 .message__text--markdown tr:nth-child(even) {
-  background: var(--bg-surface);
+  background: rgba(255, 255, 255, 0.015);
 }
 
+.message__text--markdown tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* --- Inline formatting --- */
+
 .message__text--markdown strong {
-  font-weight: 600;
+  font-weight: 650;
+  color: var(--text);
+}
+
+.message__text--markdown em {
+  font-style: italic;
+  color: var(--text-secondary);
 }
 
 .message__text--markdown img {
   max-width: 100%;
   border-radius: var(--radius-sm);
+  margin: 0.5em 0;
 }
 
-.message__text--markdown input[type="checkbox"] {
-  margin-right: 0.5em;
-  accent-color: var(--accent);
+/* --- Definition-style formatting --- */
+
+.message__text--markdown p > strong:first-child:has(+ br),
+.message__text--markdown p > strong:only-child {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
 }
 
 /* ============================================
-   Syntax Highlighting — Obsidian Warm
+   Syntax Highlighting — Obsidian Warm (refined)
    ============================================ */
 
 .message__text--markdown .hljs {
-  color: #b8b2a6;
+  color: #c0bab0;
 }
 
 .message__text--markdown .hljs-comment,
 .message__text--markdown .hljs-quote {
-  color: #6b665c;
+  color: #5e5a52;
   font-style: italic;
 }
 
 .message__text--markdown .hljs-keyword,
-.message__text--markdown .hljs-selector-tag,
-.message__text--markdown .hljs-built_in {
+.message__text--markdown .hljs-selector-tag {
   color: #d4944c;
+  font-weight: 500;
+}
+
+.message__text--markdown .hljs-built_in {
+  color: #cc8844;
 }
 
 .message__text--markdown .hljs-string,
-.message__text--markdown .hljs-attr,
-.message__text--markdown .hljs-addition {
-  color: #8bb89e;
+.message__text--markdown .hljs-attr {
+  color: #8dbc9f;
 }
 
 .message__text--markdown .hljs-number,
@@ -654,30 +842,36 @@ body::before {
 .message__text--markdown .hljs-title,
 .message__text--markdown .hljs-title\.class_,
 .message__text--markdown .hljs-title\.function_ {
-  color: #c9a8d4;
+  color: #cbaed8;
 }
 
 .message__text--markdown .hljs-variable,
-.message__text--markdown .hljs-template-variable,
-.message__text--markdown .hljs-property {
+.message__text--markdown .hljs-template-variable {
   color: #d4a87c;
 }
 
+.message__text--markdown .hljs-property {
+  color: #bdb5a8;
+}
+
 .message__text--markdown .hljs-deletion {
-  color: #d44a3a;
-  background: rgba(212, 74, 58, 0.08);
+  color: #e05545;
+  background: rgba(212, 74, 58, 0.1);
+  border-radius: 2px;
 }
 
 .message__text--markdown .hljs-addition {
-  background: rgba(95, 168, 93, 0.08);
+  color: #7dbd8a;
+  background: rgba(95, 168, 93, 0.1);
+  border-radius: 2px;
 }
 
 .message__text--markdown .hljs-meta {
-  color: #6b665c;
+  color: #7a756a;
 }
 
 .message__text--markdown .hljs-regexp {
-  color: #8bb89e;
+  color: #8dbc9f;
 }
 
 .message__text--markdown .hljs-symbol {
@@ -686,6 +880,30 @@ body::before {
 
 .message__text--markdown .hljs-params {
   color: #b8b2a6;
+}
+
+.message__text--markdown .hljs-operator {
+  color: #9a958c;
+}
+
+.message__text--markdown .hljs-punctuation {
+  color: #6e6a62;
+}
+
+.message__text--markdown .hljs-tag {
+  color: #d4944c;
+}
+
+.message__text--markdown .hljs-name {
+  color: #d4944c;
+}
+
+.message__text--markdown .hljs-selector-class {
+  color: #cbaed8;
+}
+
+.message__text--markdown .hljs-selector-id {
+  color: #c9ad6c;
 }
 
 /* ============================================
