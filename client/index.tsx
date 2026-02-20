@@ -12,9 +12,6 @@ function App() {
   const { state, append } = useEventStore();
   const wsRef = useRef<WebSocket | null>(null);
 
-  // Workspace is always visible when a session is active (it hosts the mode picker)
-  const workspaceVisible = !!state.sessionId;
-
   useEffect(() => {
     function connect() {
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -130,16 +127,28 @@ function App() {
     [sendCommand],
   );
 
-  // Derive use cases from finalized assistant messages at render time
+  // Derive use cases from assistant messages + streaming content
   const useCases = useMemo(() => {
-    const allText = state.messages
+    const messageText = state.messages
       .filter((m: Message) => m.role === "assistant")
       .flatMap((m: Message) => m.content)
       .filter((b) => b.type === "text")
       .map((b) => (b as { type: "text"; text: string }).text)
       .join("\n");
-    return parseRequirements(allText);
-  }, [state.messages]);
+    const streamingText = state.streamingContent
+      .filter((b) => b.type === "text")
+      .map((b) => (b as { type: "text"; text: string }).text)
+      .join("\n");
+    return parseRequirements(messageText + "\n" + streamingText);
+  }, [state.messages, state.streamingContent]);
+
+  // Show workspace only when there's content to display
+  const workspaceVisible = !!state.sessionId && (
+    state.planEntries.length > 0 ||
+    state.fileChanges.length > 0 ||
+    useCases.length > 0 ||
+    state.isProcessing
+  );
 
   return (
     <div className={`app-layout${workspaceVisible ? " app-layout--workspace-visible" : ""}`}>
@@ -150,7 +159,6 @@ function App() {
         currentMode={state.currentMode}
         availableModes={state.availableModes}
         isProcessing={state.isProcessing}
-        onSetMode={handleSetMode}
       />
       <Chat
         state={state}
@@ -158,6 +166,7 @@ function App() {
         onCancel={handleCancel}
         onSwitchSession={handleSwitchSession}
         onCreateSession={handleCreateSession}
+        onSetMode={handleSetMode}
       />
     </div>
   );
