@@ -1,44 +1,94 @@
 # Unified Skills Directory
 
-Conclave skills should live in `.conclave/skills/` as the canonical location, with symlinks into `.claude/skills/` so both the inner ACP agent and the outer Claude Code agent can consume them.
+Conclave skills live in `.conclave/skills/` as the canonical location. On startup, Conclave auto-manages symlinks in `.claude/skills/` so Claude Code can discover and invoke them natively. Conclave does not inject skill content into prompts — Claude Code handles that.
 
 ## Use Cases
 
-### UC-1: Resolve Conclave mode skills from .conclave/skills/ (High)
-- **Actor:** System
-- **Summary:** The mode loader resolves skill paths relative to `.conclave/skills/` so modes can reference project-local skills.
-- **Given:** A mode's frontmatter declares `skills: requirements-analyst`
-- **When:** The mode loader resolves skill files
-- **Then:**
-  - The loader reads `.conclave/skills/requirements-analyst/SKILL.md`
-  - The skill content is appended to prompts sent to the ACP subprocess
+```conclave:requirements
+{
+  "id": "UC-1",
+  "name": "Auto-create symlinks for Conclave skills",
+  "actor": "System",
+  "summary": "On startup, Conclave scans .conclave/skills/ and creates corresponding symlinks in .claude/skills/ so Claude Code can discover them.",
+  "given": [
+    "One or more skill directories exist under `.conclave/skills/` (each containing a `SKILL.md`)"
+  ],
+  "when": [
+    "Conclave starts up"
+  ],
+  "then": [
+    "If `.claude/skills/` does not exist, it is created",
+    "For each directory in `.conclave/skills/<name>`, a symlink `.claude/skills/<name>` is created pointing to the corresponding `.conclave/skills/<name>`",
+    "Existing correct symlinks are left unchanged",
+    "Claude Code can discover and load skills via `.claude/skills/<name>/SKILL.md`"
+  ],
+  "priority": "high"
+}
+```
 
-### UC-2: Symlink skills into .claude/skills/ (High)
-- **Actor:** Developer
-- **Summary:** Each skill in `.conclave/skills/` has a corresponding symlink in `.claude/skills/` so Claude Code can also discover and invoke it.
-- **Given:** A skill exists at `.conclave/skills/<name>/SKILL.md`
-- **When:** The developer sets up the project (or a setup script runs)
-- **Then:**
-  - `.claude/skills/<name>` is a symlink pointing to `../../.conclave/skills/<name>`
-  - Claude Code's skill loader follows the symlink and loads the skill
-  - Both agents read from a single source of truth
+```conclave:requirements
+{
+  "id": "UC-2",
+  "name": "Remove stale skill symlinks",
+  "actor": "System",
+  "summary": "On startup, Conclave removes symlinks in .claude/skills/ that point to .conclave/skills/ directories that no longer exist.",
+  "given": [
+    "A symlink exists at `.claude/skills/<name>` pointing into `.conclave/skills/`",
+    "The target `.conclave/skills/<name>` no longer exists"
+  ],
+  "when": [
+    "Conclave starts up"
+  ],
+  "then": [
+    "The stale symlink is removed from `.claude/skills/`",
+    "Symlinks that point to targets outside `.conclave/skills/` are left untouched"
+  ],
+  "priority": "high"
+}
+```
 
-### UC-3: Migrate existing skills to .conclave/skills/ (Medium, depends on UC-1)
-- **Actor:** Developer
-- **Summary:** Move the requirements-analyst skill from its current home into the project-local `.conclave/skills/` directory.
-- **Given:** The requirements-analyst skill exists at `~/.claude/skills/requirements-analyst/SKILL.md`
-- **When:** The developer migrates the skill
-- **Then:**
-  - The skill file moves to `.conclave/skills/requirements-analyst/SKILL.md`
-  - The requirements mode's `skills:` frontmatter is updated to reference the new path
-  - A symlink is created at `.claude/skills/requirements-analyst` pointing to the conclave location
+```conclave:requirements
+{
+  "id": "UC-3",
+  "name": "Skip conflicting entries",
+  "actor": "System",
+  "summary": "When a non-symlink or a symlink pointing outside .conclave/skills/ already exists at .claude/skills/<name>, Conclave skips it and logs a warning.",
+  "given": [
+    "A skill directory exists at `.conclave/skills/<name>`",
+    "An entry already exists at `.claude/skills/<name>` that is either a real file/directory or a symlink pointing outside `.conclave/skills/`"
+  ],
+  "when": [
+    "Conclave starts up and attempts to create the symlink"
+  ],
+  "then": [
+    "The existing entry is left untouched",
+    "A warning is logged identifying the conflict and its type",
+    "Other non-conflicting symlinks are still created normally"
+  ],
+  "priority": "medium",
+  "dependencies": ["UC-1"]
+}
+```
 
-### UC-4: Update mode skill path resolution (Medium, depends on UC-1)
-- **Actor:** System
-- **Summary:** The mode loader's skill resolution supports looking up skills by name from `.conclave/skills/<name>/SKILL.md` in addition to arbitrary file paths.
-- **Given:** A mode declares `skills: requirements-analyst` (a bare name, not a file path)
-- **When:** The mode loader resolves skills
-- **Then:**
-  - The loader checks `.conclave/skills/<name>/SKILL.md` relative to cwd
-  - If found, the skill content is loaded
-  - Existing file-path-based resolution continues to work as a fallback
+```conclave:requirements
+{
+  "id": "UC-4",
+  "name": "Migrate existing skills to .conclave/skills/",
+  "actor": "Developer",
+  "summary": "Move the requirements-analyst skill from its current location into .conclave/skills/ so it is managed by the auto-symlink system.",
+  "given": [
+    "The requirements-analyst skill exists at `~/.claude/skills/requirements-analyst/SKILL.md`"
+  ],
+  "when": [
+    "The developer moves the skill directory to `.conclave/skills/requirements-analyst/`",
+    "The developer removes the old directory from `~/.claude/skills/`"
+  ],
+  "then": [
+    "The skill lives at `.conclave/skills/requirements-analyst/SKILL.md`",
+    "On next startup, Conclave auto-creates the symlink at `.claude/skills/requirements-analyst`",
+    "Claude Code continues to discover and invoke the skill"
+  ],
+  "priority": "medium",
+  "dependencies": ["UC-1"]
+}
+```
