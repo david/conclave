@@ -186,9 +186,9 @@ Structured spec directory system for Conclave. One directory per spec, one file 
   "id": "UC-8",
   "name": "Requirements-analyst creates spec directory during analysis",
   "actor": "System",
-  "summary": "When the requirements-analyst skill analyzes a feature, it creates the spec directory with analysis.md and optionally spec.json.",
+  "summary": "When the req skill analyzes a feature, it creates the spec directory with analysis.md and optionally spec.json.",
   "given": [
-    "User has described a feature and invoked the requirements-analyst skill"
+    "User has described a feature and invoked the req skill"
   ],
   "when": [
     "The skill completes its analysis and produces use cases"

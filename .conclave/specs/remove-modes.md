@@ -1,6 +1,6 @@
 # Remove Mode Infrastructure
 
-Replace the configurable multi-mode system with a modeless architecture. The requirements output format moves into the requirements-analyst skill, and all mode infrastructure (loading, switching, UI, events) is deleted.
+Replace the configurable multi-mode system with a modeless architecture. The requirements output format moves into the req skill, and all mode infrastructure (loading, switching, UI, events) is deleted.
 
 ## Context
 
@@ -8,19 +8,19 @@ The mode system bundles four concerns — output format, behavioral instructions
 
 ## Approach
 
-This is primarily a deletion task. The one piece that needs a new home is the `conclave:requirements` output format, which folds into the requirements-analyst skill. Everything else is removed. The `disallowedTools` setting for plan mode (in `acp-bridge.ts`) is unrelated to mode infrastructure and stays.
+This is primarily a deletion task. The one piece that needs a new home is the `conclave:requirements` output format, which folds into the req skill. Everything else is removed. The `disallowedTools` setting for plan mode (in `acp-bridge.ts`) is unrelated to mode infrastructure and stays.
 
 ## Use Cases
 
 ```conclave:requirements
 {
   "id": "UC-1",
-  "name": "Merge output format into requirements-analyst skill",
+  "name": "Merge output format into req skill",
   "actor": "Developer",
-  "summary": "Move the conclave:requirements output format specification from the mode instruction into the requirements-analyst SKILL.md.",
+  "summary": "Move the conclave:requirements output format specification from the mode instruction into the req SKILL.md.",
   "given": [
     "The output format (JSON schema, fenced block convention, field definitions, guidelines) currently lives in .conclave/modes/requirements.md",
-    "The requirements-analyst skill at ~/.claude/skills/requirements-analyst/SKILL.md currently defers to 'the active mode instruction' for output format"
+    "The req skill at ~/.claude/skills/req/SKILL.md currently defers to 'the active mode instruction' for output format"
   ],
   "when": [
     "Developer appends the output format section, field definitions, and guidelines from requirements.md into SKILL.md",
@@ -189,7 +189,7 @@ This is primarily a deletion task. The one piece that needs a new home is the `c
   "then": [
     "No .conclave/modes/ directory exists",
     "CLAUDE.md accurately describes the modeless architecture",
-    "The requirements-analyst skill in .claude/skills/ is the sole source of requirements analysis behavior"
+    "The req skill in .claude/skills/ is the sole source of requirements analysis behavior"
   ],
   "priority": "medium",
   "dependencies": ["UC-2", "UC-3", "UC-4", "UC-5", "UC-6"]

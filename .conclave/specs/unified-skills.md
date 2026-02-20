@@ -75,17 +75,17 @@ Conclave skills live in `.conclave/skills/` as the canonical location. On startu
   "id": "UC-4",
   "name": "Migrate existing skills to .conclave/skills/",
   "actor": "Developer",
-  "summary": "Move the requirements-analyst skill from its current location into .conclave/skills/ so it is managed by the auto-symlink system.",
+  "summary": "Move the req skill from its current location into .conclave/skills/ so it is managed by the auto-symlink system.",
   "given": [
-    "The requirements-analyst skill exists at `~/.claude/skills/requirements-analyst/SKILL.md`"
+    "The req skill exists at `~/.claude/skills/req/SKILL.md`"
   ],
   "when": [
-    "The developer moves the skill directory to `.conclave/skills/requirements-analyst/`",
+    "The developer moves the skill directory to `.conclave/skills/req/`",
     "The developer removes the old directory from `~/.claude/skills/`"
   ],
   "then": [
-    "The skill lives at `.conclave/skills/requirements-analyst/SKILL.md`",
-    "On next startup, Conclave auto-creates the symlink at `.claude/skills/requirements-analyst`",
+    "The skill lives at `.conclave/skills/req/SKILL.md`",
+    "On next startup, Conclave auto-creates the symlink at `.claude/skills/req`",
     "Claude Code continues to discover and invoke the skill"
   ],
   "priority": "medium",
