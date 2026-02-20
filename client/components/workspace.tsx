@@ -1,16 +1,17 @@
-import React, { useState, useCallback } from "react";
-import { MarkdownText } from "./markdown-text.tsx";
+import React from "react";
 import { TaskIcon, FileActionIcon } from "./icons.tsx";
-import type { PlanEntryInfo, PendingPermission, FileChangeInfo } from "../reducer.ts";
+import { ModePicker } from "./mode-picker.tsx";
+import type { PlanEntryInfo, FileChangeInfo, UseCase } from "../reducer.ts";
+import type { ModeClientInfo } from "../../server/types.ts";
 
 type WorkspaceProps = {
   entries: PlanEntryInfo[];
   fileChanges: FileChangeInfo[];
+  useCases: UseCase[];
   currentMode: string;
-  planContent: string;
+  availableModes: ModeClientInfo[];
   isProcessing: boolean;
-  pendingPermission: PendingPermission | null;
-  onPermissionResponse: (optionId: string, feedback?: string) => void;
+  onSetMode: (modeId: string) => void;
 };
 
 function PlanEntry({ entry }: { entry: PlanEntryInfo }) {
@@ -45,173 +46,111 @@ function FileChangeRow({ fileChange }: { fileChange: FileChangeInfo }) {
   );
 }
 
+function UseCaseCard({ useCase }: { useCase: UseCase }) {
+  return (
+    <div className="use-case" data-priority={useCase.priority}>
+      <div className="use-case__header">
+        <span className="use-case__id">{useCase.id}</span>
+        <span className={`use-case__priority use-case__priority--${useCase.priority}`}>
+          {useCase.priority}
+        </span>
+      </div>
+      <div className="use-case__name">{useCase.name}</div>
+      <div className="use-case__actor">{useCase.actor}</div>
+      <div className="use-case__summary">{useCase.summary}</div>
+      <div className="use-case__steps">
+        <div className="use-case__step-group">
+          <span className="use-case__step-label">Given</span>
+          <ul className="use-case__step-list">
+            {useCase.given.map((item, i) => <li key={i}>{item}</li>)}
+          </ul>
+        </div>
+        <div className="use-case__step-group">
+          <span className="use-case__step-label">When</span>
+          <ul className="use-case__step-list">
+            {useCase.when.map((item, i) => <li key={i}>{item}</li>)}
+          </ul>
+        </div>
+        <div className="use-case__step-group">
+          <span className="use-case__step-label">Then</span>
+          <ul className="use-case__step-list">
+            {useCase.then.map((item, i) => <li key={i}>{item}</li>)}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function Workspace({
   entries,
   fileChanges,
+  useCases,
   currentMode,
-  planContent,
+  availableModes,
   isProcessing,
-  pendingPermission,
-  onPermissionResponse,
+  onSetMode,
 }: WorkspaceProps) {
-  const [showFeedback, setShowFeedback] = useState(false);
-  const [feedback, setFeedback] = useState("");
-  const [feedbackOptionId, setFeedbackOptionId] = useState<string | null>(null);
-
-  const isPlanReview = currentMode === "plan" || pendingPermission !== null;
-  const isWip = !isPlanReview && isProcessing && (fileChanges.length > 0 || entries.length > 0);
-  const isPlanning = currentMode === "plan" && !pendingPermission && !planContent;
-
-  const handleOptionClick = useCallback(
-    (optionId: string, kind: string) => {
-      if (kind === "reject_once") {
-        setFeedbackOptionId(optionId);
-        setShowFeedback(true);
-      } else {
-        onPermissionResponse(optionId);
-      }
-    },
-    [onPermissionResponse],
-  );
-
-  const handleSendFeedback = useCallback(() => {
-    const trimmed = feedback.trim();
-    if (!trimmed || !feedbackOptionId) return;
-    onPermissionResponse(feedbackOptionId, trimmed);
-    setFeedback("");
-    setShowFeedback(false);
-    setFeedbackOptionId(null);
-  }, [feedback, feedbackOptionId, onPermissionResponse]);
-
-  const handleCancelFeedback = useCallback(() => {
-    setShowFeedback(false);
-    setFeedback("");
-    setFeedbackOptionId(null);
-  }, []);
-
-  const handleFeedbackKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        handleSendFeedback();
-      }
-      if (e.key === "Escape") {
-        handleCancelFeedback();
-      }
-    },
-    [handleSendFeedback, handleCancelFeedback],
-  );
+  const hasEntries = entries.length > 0;
+  const hasFiles = fileChanges.length > 0;
+  const hasUseCases = useCases.length > 0;
+  const hasContent = hasEntries || hasFiles || hasUseCases;
 
   return (
     <div className="workspace">
       <header className="workspace__header">
-        Workspace
-        {isPlanReview && (
-          <span className="workspace__mode-badge">Planning</span>
-        )}
-        {isWip && (
-          <span className="workspace__mode-badge workspace__mode-badge--wip">Working</span>
+        <ModePicker
+          modes={availableModes}
+          currentMode={currentMode}
+          onSetMode={onSetMode}
+          disabled={isProcessing}
+        />
+        {isProcessing && (
+          <span className="workspace__status-badge" data-color={availableModes.find((m) => m.id === currentMode)?.color ?? "neutral"}>
+            Working<span className="workspace__status-dots" />
+          </span>
         )}
       </header>
       <div className="workspace__content">
-        {/* Plan review view */}
-        {isPlanReview && (
-          <>
-            {!planContent && isPlanning && (
-              <div className="workspace__streaming-indicator">Planning...</div>
-            )}
-            {planContent && (
-              <div className="workspace__markdown">
-                <MarkdownText text={planContent} />
-              </div>
-            )}
-            {entries.length > 0 && (
-              <div className="workspace__tasks-section">
-                <div className="workspace__tasks-label">Tasks</div>
-                <div className="workspace__entries">
-                  {entries.map((entry, i) => (
-                    <PlanEntry key={i} entry={entry} />
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
+        {hasUseCases && (
+          <div className="workspace__use-cases-section">
+            <div className="workspace__use-cases-label">Use Cases</div>
+            <div className="workspace__use-cases">
+              {useCases.map((uc) => (
+                <UseCaseCard key={uc.id} useCase={uc} />
+              ))}
+            </div>
+          </div>
         )}
 
-        {/* WIP view */}
-        {isWip && (
-          <>
-            {entries.length > 0 && (
-              <div className="workspace__tasks-section workspace__tasks-section--primary">
-                <div className="workspace__tasks-label">Tasks</div>
-                <div className="workspace__entries">
-                  {entries.map((entry, i) => (
-                    <PlanEntry key={i} entry={entry} />
-                  ))}
-                </div>
-              </div>
-            )}
-            {fileChanges.length > 0 && (
-              <div className="workspace__files-section">
-                <div className="workspace__files-label">Files</div>
-                <div className="workspace__files">
-                  {fileChanges.map((fc) => (
-                    <FileChangeRow key={fc.filePath} fileChange={fc} />
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
+        {hasEntries && (
+          <div className="workspace__tasks-section">
+            <div className="workspace__tasks-label">Tasks</div>
+            <div className="workspace__entries">
+              {entries.map((entry, i) => (
+                <PlanEntry key={i} entry={entry} />
+              ))}
+            </div>
+          </div>
         )}
 
-        {/* Empty state */}
-        {!isPlanReview && !isWip && (
+        {hasFiles && (
+          <div className="workspace__files-section">
+            <div className="workspace__files-label">Files</div>
+            <div className="workspace__files">
+              {fileChanges.map((fc) => (
+                <FileChangeRow key={fc.filePath} fileChange={fc} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {!hasContent && !isProcessing && (
           <div className="workspace__empty">
-            No plan yet. Start a conversation and Claude will build a plan here.
+            Tasks and file changes will appear here.
           </div>
         )}
       </div>
-      {pendingPermission && !showFeedback && (
-        <div className="workspace__approval">
-          {pendingPermission.options.map((option) => (
-            <button
-              key={option.optionId}
-              className={`workspace__approval-btn workspace__approval-btn--${option.kind}`}
-              onClick={() => handleOptionClick(option.optionId, option.kind)}
-            >
-              {option.name}
-            </button>
-          ))}
-        </div>
-      )}
-      {showFeedback && (
-        <div className="workspace__feedback">
-          <textarea
-            className="textarea-base workspace__feedback-input"
-            value={feedback}
-            onChange={(e) => setFeedback(e.target.value)}
-            onKeyDown={handleFeedbackKeyDown}
-            placeholder="What should be changed?"
-            rows={3}
-            autoFocus
-          />
-          <div className="workspace__feedback-actions">
-            <button
-              className="workspace__feedback-btn workspace__feedback-btn--send"
-              onClick={handleSendFeedback}
-              disabled={!feedback.trim()}
-            >
-              Send Feedback
-            </button>
-            <button
-              className="workspace__feedback-btn workspace__feedback-btn--cancel"
-              onClick={handleCancelFeedback}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

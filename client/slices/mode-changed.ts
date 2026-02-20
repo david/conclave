@@ -1,9 +1,10 @@
 import { createSlice } from "./create-slice.ts";
 
-/** ModeChanged → updates current mode, resets plan content on plan entry, clears pending permission. */
+/** ModeChanged → updates current mode, clears file changes when leaving implement mode. */
 export const modeChangedSlice = createSlice("ModeChanged", (state, event) => {
   const currentMode = event.modeId;
-  const planContent = event.modeId === "plan" ? "" : state.planContent;
+  // Clear file changes when switching away from implement mode
+  const fileChanges = event.modeId === "implement" ? state.fileChanges : [];
 
-  return { ...state, currentMode, planContent, pendingPermission: null };
+  return { ...state, currentMode, fileChanges };
 });

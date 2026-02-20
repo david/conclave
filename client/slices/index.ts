@@ -5,8 +5,8 @@ import { sessionListSlice } from "./session-list.ts";
 import { sessionInfoUpdatedSlice } from "./session-info-updated.ts";
 import { sessionSwitchedSlice } from "./session-switched.ts";
 import { modeChangedSlice } from "./mode-changed.ts";
+import { modeListSlice } from "./mode-list.ts";
 import { planUpdatedSlice } from "./plan-updated.ts";
-import { permissionRequestedSlice } from "./permission-requested.ts";
 import { promptSubmittedSlice } from "./prompt-submitted.ts";
 import { agentTextSlice } from "./agent-text.ts";
 import { agentThoughtSlice } from "./agent-thought.ts";
@@ -24,8 +24,8 @@ const slices: Array<(state: AppState, event: ClientEvent) => AppState> = [
   sessionInfoUpdatedSlice,
   sessionSwitchedSlice,
   modeChangedSlice,          // must run before toolCallStartedSlice
+  modeListSlice,
   planUpdatedSlice,
-  permissionRequestedSlice,
   promptSubmittedSlice,
   agentTextSlice,
   agentThoughtSlice,

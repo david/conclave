@@ -12,6 +12,7 @@ type InputBarProps = {
   onSubmit: (text: string, images?: ImageAttachment[]) => void;
   onCancel: () => void;
   isProcessing: boolean;
+  placeholder?: string;
 };
 
 const MAX_DIMENSION = 1568;
@@ -50,7 +51,7 @@ function resizeImage(file: File): Promise<{ data: string; mimeType: string }> {
 
 let imageIdCounter = 0;
 
-export function InputBar({ onSubmit, onCancel, isProcessing }: InputBarProps) {
+export function InputBar({ onSubmit, onCancel, isProcessing, placeholder: placeholderProp }: InputBarProps) {
   const [text, setText] = useState("");
   const [images, setImages] = useState<PendingImage[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -178,7 +179,7 @@ export function InputBar({ onSubmit, onCancel, isProcessing }: InputBarProps) {
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
-          placeholder={isProcessing ? "Waiting for response..." : "Type a message..."}
+          placeholder={isProcessing ? "Waiting for response..." : (placeholderProp || "Type a message...")}
           disabled={isProcessing}
           rows={1}
         />

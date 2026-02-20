@@ -1,4 +1,4 @@
-import type { WsEvent, PermissionOption } from "../server/types.ts";
+import type { WsEvent, ModeClientInfo } from "../server/types.ts";
 
 export type ToolCallInfo = {
   toolCallId: string;
@@ -23,6 +23,19 @@ export type PlanEntryInfo = {
   priority: string;
 };
 
+export type UseCasePriority = "high" | "medium" | "low";
+
+export type UseCase = {
+  id: string;
+  name: string;
+  actor: string;
+  summary: string;
+  given: string[];
+  when: string[];
+  then: string[];
+  priority: UseCasePriority;
+};
+
 export type FileChangeAction = "modified" | "deleted";
 
 export type FileChangeInfo = {
@@ -43,11 +56,6 @@ export type Message = {
   content: ContentBlock[];
 };
 
-export type PendingPermission = {
-  options: PermissionOption[];
-  toolName?: string;
-};
-
 export type UsageInfo = {
   size: number;
   used: number;
@@ -58,13 +66,13 @@ export type UsageInfo = {
 export type AppState = {
   sessionId: string | null;
   sessions: SessionInfo[];
+  availableModes: ModeClientInfo[];
   messages: Message[];
   streamingContent: ContentBlock[];
   planEntries: PlanEntryInfo[];
+  useCases: UseCase[];
   fileChanges: FileChangeInfo[];
   currentMode: string;
-  planContent: string;
-  pendingPermission: PendingPermission | null;
   isProcessing: boolean;
   creatingSession: boolean;
   error: string | null;
@@ -74,13 +82,13 @@ export type AppState = {
 export const initialState: AppState = {
   sessionId: null,
   sessions: [],
+  availableModes: [],
   messages: [],
   streamingContent: [],
   planEntries: [],
+  useCases: [],
   fileChanges: [],
-  currentMode: "",
-  planContent: "",
-  pendingPermission: null,
+  currentMode: "chat",
   isProcessing: false,
   creatingSession: false,
   error: null,

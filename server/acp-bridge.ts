@@ -14,16 +14,12 @@ import {
   type SessionNotification,
   type SessionInfo as AcpSessionInfo,
 } from "@agentclientprotocol/sdk";
+// Note: RequestPermissionRequest/Response still needed for the auto-approve handler signature
 import { join } from "path";
-import { readFileSync } from "fs";
 import { translateAcpUpdate } from "./acp-translate.ts";
 import type { EventPayload, ImageAttachment } from "./types.ts";
 
 export type OnEventCallback = (sessionId: string, payload: EventPayload) => void;
-type PendingPermission = {
-  resolve: (response: RequestPermissionResponse) => void;
-  options: RequestPermissionRequest["options"];
-};
 
 export class AcpBridge {
   private connection: ClientSideConnection | null = null;
@@ -31,8 +27,6 @@ export class AcpBridge {
   private cwd: string;
   private onEvent: OnEventCallback;
   private loadingSessions = new Set<string>();
-  private pendingPermissions = new Map<string, PendingPermission>();
-  private sessionPlanFilePaths = new Map<string, string>();
 
   constructor(cwd: string, onEvent: OnEventCallback) {
     this.cwd = cwd;
@@ -72,16 +66,6 @@ export class AcpBridge {
     this.connection = new ClientSideConnection(
       (_agent: Agent): Client => ({
         async sessionUpdate(params: SessionNotification): Promise<void> {
-
-          // Track plan file paths from tool_call events (per session)
-          if (params.update.sessionUpdate === "tool_call") {
-            const rawInput = params.update.rawInput as Record<string, unknown> | undefined;
-            const filePath = rawInput?.file_path;
-            if (typeof filePath === "string" && filePath.includes(".claude/plans/")) {
-              bridge.sessionPlanFilePaths.set(params.sessionId, filePath);
-            }
-          }
-
           const isLoading = bridge.loadingSessions.has(params.sessionId);
           const events = translateAcpUpdate(params.update, isLoading);
           for (const payload of events) {
@@ -92,55 +76,15 @@ export class AcpBridge {
         async requestPermission(
           params: RequestPermissionRequest,
         ): Promise<RequestPermissionResponse> {
-          const toolName = params.toolCall?.title ?? undefined;
-
-          // Only defer requests that should be shown to the user
-          // (ExitPlanMode has a "plan" reject_once option)
-          const isPlanApproval = params.options.some(
-            (o) => o.optionId === "plan" && o.kind === "reject_once",
+          // Auto-approve all tool permissions (plan mode is disabled)
+          const allowOption = params.options.find(
+            (o) => o.kind === "allow_once" || o.kind === "allow_always",
           );
-
-          if (!isPlanApproval) {
-            // Auto-approve regular tool permissions
-            const allowOption = params.options.find(
-              (o) => o.kind === "allow_once" || o.kind === "allow_always",
-            );
-            return {
-              outcome: allowOption
-                ? { outcome: "selected", optionId: allowOption.optionId }
-                : { outcome: "cancelled" },
-            };
-          }
-
-          // Read plan file content for the approval UI
-          let planContent: string | undefined;
-          const planPath = bridge.sessionPlanFilePaths.get(params.sessionId);
-          if (planPath) {
-            try {
-              planContent = readFileSync(planPath, "utf8");
-            } catch {
-              // Plan file may have been deleted
-            }
-          }
-
-          // Defer — wait for user to approve/reject via the UI
-          return new Promise<RequestPermissionResponse>((resolve) => {
-            bridge.pendingPermissions.set(params.sessionId, {
-              resolve,
-              options: params.options,
-            });
-
-            onEvent(params.sessionId, {
-              type: "PermissionRequested",
-              options: params.options.map((o) => ({
-                optionId: o.optionId,
-                name: o.name ?? o.optionId,
-                kind: o.kind,
-              })),
-              toolName,
-              planContent,
-            });
-          });
+          return {
+            outcome: allowOption
+              ? { outcome: "selected", optionId: allowOption.optionId }
+              : { outcome: "cancelled" },
+          };
         },
 
         async readTextFile(
@@ -186,14 +130,31 @@ export class AcpBridge {
     });
   }
 
-  async createSession(): Promise<string> {
+  async createSession(systemPromptAppend?: string): Promise<string> {
     if (!this.connection) {
       throw new Error("ACP connection not initialized");
+    }
+
+    const _meta: Record<string, unknown> = {
+      claudeCode: {
+        options: {
+          disallowedTools: ["EnterPlanMode", "ExitPlanMode"],
+        },
+      },
+    };
+
+    if (systemPromptAppend) {
+      _meta.systemPrompt = {
+        type: "preset",
+        preset: "claude_code",
+        append: systemPromptAppend,
+      };
     }
 
     const sessionResp = await this.connection.newSession({
       cwd: this.cwd,
       mcpServers: [],
+      _meta,
     });
     console.log("Session created:", sessionResp.sessionId);
     return sessionResp.sessionId;
@@ -261,44 +222,6 @@ export class AcpBridge {
         this.onEvent,
         sessionId,
         formatError(err),
-      );
-    }
-  }
-
-  /**
-   * Resolve a pending permission request by selecting an option.
-   */
-  respondPermission(sessionId: string, optionId: string): boolean {
-    const pending = this.pendingPermissions.get(sessionId);
-    if (!pending) return false;
-
-    pending.resolve({
-      outcome: { outcome: "selected", optionId },
-    });
-    this.pendingPermissions.delete(sessionId);
-    return true;
-  }
-
-  hasPendingPermission(sessionId: string): boolean {
-    return this.pendingPermissions.has(sessionId);
-  }
-
-  async setMode(sessionId: string, modeId: string): Promise<void> {
-    if (!this.connection) {
-      onEventError(this.onEvent, sessionId, "ACP connection not initialized");
-      return;
-    }
-
-    try {
-      await this.connection.setSessionMode({
-        sessionId: sessionId as SessionId,
-        modeId,
-      });
-    } catch (err) {
-      onEventError(
-        this.onEvent,
-        sessionId,
-        `Set mode failed: ${formatError(err)}`,
       );
     }
   }

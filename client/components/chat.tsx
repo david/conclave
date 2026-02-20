@@ -4,6 +4,7 @@ import { InputBar } from "./input-bar.tsx";
 import { SessionPicker } from "./session-picker.tsx";
 import type { AppState } from "../reducer.ts";
 import type { ImageAttachment } from "../../server/types.ts";
+import { getModeInfo } from "../mode-config.ts";
 
 type ChatProps = {
   state: AppState;
@@ -128,6 +129,7 @@ export function Chat({ state, onSubmit, onCancel, onSwitchSession, onCreateSessi
         onSubmit={onSubmit}
         onCancel={onCancel}
         isProcessing={state.isProcessing}
+        placeholder={getModeInfo(state.availableModes, state.currentMode).placeholder}
       />
     </div>
   );

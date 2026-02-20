@@ -195,36 +195,29 @@ describe("applyEvent", () => {
     expect(state.sessions[0].title).toBe("My Session");
   });
 
-  test("ModeChanged to plan sets currentMode and clears plan state", () => {
+  test("ModeChanged sets currentMode", () => {
     const state = applyEvent(
-      { ...initialState, planContent: "old plan" },
-      makeEvent("ModeChanged", { modeId: "plan" }),
-    );
-    expect(state.currentMode).toBe("plan");
-    expect(state.planContent).toBe("");
-    expect(state.pendingPermission).toBeNull();
-  });
-
-  test("ModeChanged to code sets currentMode", () => {
-    const state = applyEvent(
-      { ...initialState, currentMode: "plan" },
-      makeEvent("ModeChanged", { modeId: "code" }),
-    );
-    expect(state.currentMode).toBe("code");
-    expect(state.pendingPermission).toBeNull();
-  });
-
-  test("AgentText in plan mode still goes to streamingContent (chat)", () => {
-    let state = applyEvent(
       initialState,
-      makeEvent("ModeChanged", { modeId: "plan" }),
+      makeEvent("ModeChanged", { modeId: "research" }),
     );
-    state = applyEvent(state, makeEvent("AgentText", { text: "Researching..." }, 2));
+    expect(state.currentMode).toBe("research");
+  });
 
-    // Text goes to chat, not plan pane
-    expect(state.streamingContent).toHaveLength(1);
-    expect(state.streamingContent[0]).toEqual({ type: "text", text: "Researching..." });
-    expect(state.planContent).toBe("");
+  test("ModeChanged clears fileChanges when leaving non-implement mode", () => {
+    const state = applyEvent(
+      { ...initialState, currentMode: "implement", fileChanges: [{ filePath: "/a", action: "modified" as const, toolCallId: "tc1", status: "completed" }] },
+      makeEvent("ModeChanged", { modeId: "research" }),
+    );
+    expect(state.fileChanges).toEqual([]);
+  });
+
+  test("ModeChanged preserves fileChanges when entering implement mode", () => {
+    const files = [{ filePath: "/a", action: "modified" as const, toolCallId: "tc1", status: "completed" }];
+    const state = applyEvent(
+      { ...initialState, fileChanges: files },
+      makeEvent("ModeChanged", { modeId: "implement" }),
+    );
+    expect(state.fileChanges).toEqual(files);
   });
 
   test("ToolCallStarted with switch_mode in plan mode is ignored (not added to streamingContent)", () => {
@@ -246,62 +239,20 @@ describe("applyEvent", () => {
     expect(state.streamingContent).toEqual([]);
   });
 
-  test("PermissionRequested sets pendingPermission and planContent", () => {
-    let state = applyEvent(
-      initialState,
-      makeEvent("ModeChanged", { modeId: "plan" }),
-    );
-
-    const permEvent: WsEvent = {
-      type: "PermissionRequested",
-      options: [
-        { optionId: "acceptEdits", name: "Yes, and auto-accept edits", kind: "allow_always" },
-        { optionId: "default", name: "Yes, and manually approve edits", kind: "allow_once" },
-        { optionId: "plan", name: "No, keep planning", kind: "reject_once" },
+  test("ModeList event sets availableModes", () => {
+    const event: WsEvent = {
+      type: "ModeList",
+      modes: [
+        { id: "chat", label: "Chat", color: "neutral", icon: "chat", placeholder: "Type a message..." },
+        { id: "research", label: "Research", color: "blue", icon: "search", placeholder: "Ask a question..." },
       ],
-      toolName: "Ready to code?",
-      planContent: "# My Plan\n\nStep 1: Do stuff",
-      seq: 2,
+      seq: -1,
       timestamp: Date.now(),
-      sessionId: "s1",
     };
-    state = applyEvent(state, permEvent);
-
-    expect(state.pendingPermission).not.toBeNull();
-    expect(state.pendingPermission!.options).toHaveLength(3);
-    expect(state.pendingPermission!.options[0].name).toBe("Yes, and auto-accept edits");
-    expect(state.pendingPermission!.toolName).toBe("Ready to code?");
-    // Plan content comes from the event
-    expect(state.planContent).toBe("# My Plan\n\nStep 1: Do stuff");
-  });
-
-  test("PermissionRequested without planContent preserves existing planContent", () => {
-    let state = { ...initialState, planContent: "existing plan" };
-
-    const permEvent: WsEvent = {
-      type: "PermissionRequested",
-      options: [
-        { optionId: "allow", name: "Allow", kind: "allow_once" },
-      ],
-      seq: 1,
-      timestamp: Date.now(),
-      sessionId: "s1",
-    };
-    state = applyEvent(state, permEvent);
-
-    expect(state.planContent).toBe("existing plan");
-  });
-
-  test("PromptSubmitted clears pendingPermission", () => {
-    const perm = {
-      options: [{ optionId: "a", name: "Allow", kind: "allow_once" as const }],
-      toolName: "test",
-    };
-    let state = applyEvent(
-      { ...initialState, currentMode: "plan", pendingPermission: perm, planContent: "plan" },
-      makeEvent("PromptSubmitted", { text: "feedback" }),
-    );
-    expect(state.pendingPermission).toBeNull();
+    const state = applyEvent(initialState, event);
+    expect(state.availableModes).toHaveLength(2);
+    expect(state.availableModes[0].id).toBe("chat");
+    expect(state.availableModes[1].id).toBe("research");
   });
 
   test("AgentThought chunks accumulate as thought blocks in streamingContent", () => {

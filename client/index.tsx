@@ -1,19 +1,19 @@
-import React, { useEffect, useRef, useCallback } from "react";
+import React, { useEffect, useRef, useCallback, useMemo } from "react";
 import { createRoot } from "react-dom/client";
 import { useEventStore } from "./reducer.ts";
 import { Chat } from "./components/chat.tsx";
 import { Workspace } from "./components/workspace.tsx";
 import type { WsEvent, Command, ImageAttachment } from "../server/types.ts";
 import { getSessionIdFromUrl, pushSessionUrl, replaceSessionUrl, onPopState } from "./router.ts";
+import { parseRequirements } from "./parse-requirements.ts";
+import type { Message } from "./types.ts";
 
 function App() {
   const { state, append } = useEventStore();
   const wsRef = useRef<WebSocket | null>(null);
 
-  // Workspace is visible during plan review or while actively processing
-  const isPlanReview = state.currentMode === "plan" || state.pendingPermission !== null;
-  const hasWorkContent = state.planEntries.length > 0 || state.fileChanges.length > 0 || !!state.planContent;
-  const workspaceVisible = isPlanReview || (state.isProcessing && hasWorkContent);
+  // Workspace is always visible when a session is active (it hosts the mode picker)
+  const workspaceVisible = !!state.sessionId;
 
   useEffect(() => {
     function connect() {
@@ -123,23 +123,34 @@ function App() {
     });
   }, [handleSwitchSession, state.sessionId]);
 
-  const handlePermissionResponse = useCallback(
-    (optionId: string, feedback?: string) => {
-      sendCommand({ command: "permission_response", optionId, feedback });
+  const handleSetMode = useCallback(
+    (modeId: string) => {
+      sendCommand({ command: "set_mode", modeId });
     },
     [sendCommand],
   );
+
+  // Derive use cases from finalized assistant messages at render time
+  const useCases = useMemo(() => {
+    const allText = state.messages
+      .filter((m: Message) => m.role === "assistant")
+      .flatMap((m: Message) => m.content)
+      .filter((b) => b.type === "text")
+      .map((b) => (b as { type: "text"; text: string }).text)
+      .join("\n");
+    return parseRequirements(allText);
+  }, [state.messages]);
 
   return (
     <div className={`app-layout${workspaceVisible ? " app-layout--workspace-visible" : ""}`}>
       <Workspace
         entries={state.planEntries}
         fileChanges={state.fileChanges}
+        useCases={useCases}
         currentMode={state.currentMode}
-        planContent={state.planContent}
+        availableModes={state.availableModes}
         isProcessing={state.isProcessing}
-        pendingPermission={state.pendingPermission}
-        onPermissionResponse={handlePermissionResponse}
+        onSetMode={handleSetMode}
       />
       <Chat
         state={state}

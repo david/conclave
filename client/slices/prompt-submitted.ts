@@ -1,7 +1,7 @@
 import type { ContentBlock } from "../types.ts";
 import { createSlice } from "./create-slice.ts";
 
-/** PromptSubmitted → adds user message, sets processing, clears error and pending permission. */
+/** PromptSubmitted → adds user message, sets processing, clears error. */
 export const promptSubmittedSlice = createSlice("PromptSubmitted", (state, event) => {
   const userContent: ContentBlock[] = [];
   if (event.images?.length) {
@@ -23,7 +23,6 @@ export const promptSubmittedSlice = createSlice("PromptSubmitted", (state, event
       messages: prevMessages,
       isProcessing: true,
       error: null,
-      pendingPermission: null,
     };
   }
 
@@ -35,6 +34,5 @@ export const promptSubmittedSlice = createSlice("PromptSubmitted", (state, event
     ],
     isProcessing: true,
     error: null,
-    pendingPermission: null,
   };
 });

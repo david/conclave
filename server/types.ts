@@ -135,6 +135,21 @@ export type SessionListEvent = {
   timestamp: number;
 };
 
+export type ModeClientInfo = {
+  id: string;
+  label: string;
+  color: string;
+  icon: string;
+  placeholder: string;
+};
+
+export type ModeListEvent = {
+  type: "ModeList";
+  modes: ModeClientInfo[];
+  seq: -1;
+  timestamp: number;
+};
+
 export type DomainEvent =
   | SessionCreated
   | PromptSubmitted
@@ -155,7 +170,7 @@ export type DomainEvent =
   | SessionInfoUpdated;
 
 // Events sent over WebSocket (includes meta-events not stored in EventStore)
-export type WsEvent = DomainEvent | SessionListEvent;
+export type WsEvent = DomainEvent | SessionListEvent | ModeListEvent;
 
 export type DomainEventType = DomainEvent["type"];
 
@@ -192,4 +207,9 @@ export type PermissionResponseCommand = {
   feedback?: string;
 };
 
-export type Command = SubmitPromptCommand | CancelCommand | CreateSessionCommand | SwitchSessionCommand | PermissionResponseCommand;
+export type SetModeCommand = {
+  command: "set_mode";
+  modeId: string;
+};
+
+export type Command = SubmitPromptCommand | CancelCommand | CreateSessionCommand | SwitchSessionCommand | PermissionResponseCommand | SetModeCommand;

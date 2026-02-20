@@ -1,13 +1,34 @@
 import { EventStore } from "./event-store.ts";
 import { AcpBridge, formatError } from "./acp-bridge.ts";
-import type { Command, DomainEvent, WsEvent } from "./types.ts";
+import type { Command, DomainEvent, WsEvent, ModeListEvent, ModeClientInfo } from "./types.ts";
 import { join } from "path";
 import { createSessionRegistry } from "./projections/session-registry.ts";
 import { createLatestSessionProjection } from "./projections/latest-session.ts";
 import { createSessionListProjection, buildSessionList } from "./projections/session-list.ts";
+import { loadModes, buildModeSystemPrompt, type ModeDefinition } from "./mode-loader.ts";
 
 const PORT = Number(process.env.PORT) || 3000;
 const CWD = process.env.CONCLAVE_CWD || process.cwd();
+
+// Load modes from disk (global + project)
+const modes = loadModes(CWD);
+const modeSystemPrompt = buildModeSystemPrompt(modes);
+const modeMap = new Map<string, ModeDefinition>(modes.map((m) => [m.id, m]));
+
+function buildModeList(): ModeListEvent {
+  return {
+    type: "ModeList",
+    modes: modes.map((m): ModeClientInfo => ({
+      id: m.id,
+      label: m.label,
+      color: m.color,
+      icon: m.icon,
+      placeholder: m.placeholder,
+    })),
+    seq: -1,
+    timestamp: Date.now(),
+  };
+}
 
 const store = new EventStore();
 
@@ -16,7 +37,7 @@ const sessionRegistry = createSessionRegistry(store);
 const latestSession = createLatestSessionProjection(store);
 
 // Per-WS state (connection infrastructure — not domain state)
-type WsState = { currentSessionId: string | null; unsubscribe: (() => void) | null };
+type WsState = { currentSessionId: string | null; currentModeId: string; unsubscribe: (() => void) | null };
 const wsStates = new Map<object, WsState>();
 
 const bridge = new AcpBridge(CWD, (sessionId, payload) => {
@@ -116,10 +137,11 @@ const server = Bun.serve<{ requestedSessionId: string | null }>({
 
   websocket: {
     open(ws) {
-      wsStates.set(ws, { currentSessionId: null, unsubscribe: null });
+      wsStates.set(ws, { currentSessionId: null, currentModeId: "chat", unsubscribe: null });
 
-      // Send session list
+      // Send session list and mode list
       sendWs(ws, buildSessionList(sessionRegistry));
+      sendWs(ws, buildModeList());
 
       // Determine which session to replay: prefer URL-requested, fall back to latest
       const requested = ws.data.requestedSessionId;
@@ -196,7 +218,22 @@ const server = Bun.serve<{ requestedSessionId: string | null }>({
               }
             }
 
-            bridge.submitPrompt(sessionId, cmd.text, cmd.images);
+            // Prepend mode directive and skill content if the current mode has them
+            const currentMode = modeMap.get(wsState.currentModeId);
+            let promptText = cmd.text;
+            if (currentMode?.instruction || currentMode?.resolvedSkills.length) {
+              const parts: string[] = [`[Mode: ${currentMode.label}]`];
+              if (currentMode.instruction) {
+                parts.push(currentMode.instruction);
+              }
+              for (const skill of currentMode.resolvedSkills) {
+                parts.push(skill);
+              }
+              parts.push("---", cmd.text);
+              promptText = parts.join("\n\n");
+            }
+
+            bridge.submitPrompt(sessionId, promptText, cmd.images);
             break;
           }
 
@@ -210,7 +247,7 @@ const server = Bun.serve<{ requestedSessionId: string | null }>({
 
           case "create_session": {
             try {
-              const sessionId = await bridge.createSession();
+              const sessionId = await bridge.createSession(modeSystemPrompt);
               store.append(sessionId, { type: "SessionCreated" });
 
               // Switch this client to the new session
@@ -236,34 +273,24 @@ const server = Bun.serve<{ requestedSessionId: string | null }>({
             break;
           }
 
-          case "permission_response": {
-            const sessionId = wsState?.currentSessionId;
-            if (!sessionId) {
+          case "set_mode": {
+            if (!wsState) return;
+            const modeId = cmd.modeId;
+            if (!modeMap.has(modeId)) {
               sendWs(ws, {
                 type: "Error",
-                message: "No active session",
+                message: `Unknown mode: ${modeId}`,
                 seq: -1,
                 timestamp: Date.now(),
                 sessionId: "",
               });
               return;
             }
-            if (!bridge.respondPermission(sessionId, cmd.optionId)) {
-              sendWs(ws, {
-                type: "Error",
-                message: "No pending permission request",
-                seq: -1,
-                timestamp: Date.now(),
-                sessionId: "",
-              });
-              return;
-            }
-            // If rejection feedback was provided, submit it as a new prompt
-            // after a short delay for the turn to finish.
-            if (cmd.feedback) {
-              setTimeout(() => {
-                bridge.submitPrompt(sessionId, cmd.feedback!);
-              }, 500);
+            wsState.currentModeId = modeId;
+            // Emit ModeChanged into the store so it replays on reconnect
+            const sessionId = wsState.currentSessionId;
+            if (sessionId) {
+              store.append(sessionId, { type: "ModeChanged", modeId });
             }
             break;
           }
@@ -367,7 +394,7 @@ bridge.start().then(async () => {
 
   // Always create a fresh session to start with
   try {
-    const sessionId = await bridge.createSession();
+    const sessionId = await bridge.createSession(modeSystemPrompt);
     store.append(sessionId, { type: "SessionCreated" });
   } catch (err) {
     console.error("Failed to create initial session:", err);
