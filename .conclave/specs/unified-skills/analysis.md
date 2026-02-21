@@ -4,7 +4,7 @@ Conclave skills live in `.conclave/skills/` as the canonical location. On startu
 
 ## Use Cases
 
-```conclave:requirements
+```conclave:usecase
 {
   "id": "UC-1",
   "name": "Auto-create symlinks for Conclave skills",
@@ -26,7 +26,7 @@ Conclave skills live in `.conclave/skills/` as the canonical location. On startu
 }
 ```
 
-```conclave:requirements
+```conclave:usecase
 {
   "id": "UC-2",
   "name": "Remove stale skill symlinks",
@@ -47,7 +47,7 @@ Conclave skills live in `.conclave/skills/` as the canonical location. On startu
 }
 ```
 
-```conclave:requirements
+```conclave:usecase
 {
   "id": "UC-3",
   "name": "Skip conflicting entries",
@@ -70,7 +70,7 @@ Conclave skills live in `.conclave/skills/` as the canonical location. On startu
 }
 ```
 
-```conclave:requirements
+```conclave:usecase
 {
   "id": "UC-4",
   "name": "Migrate existing skills to .conclave/skills/",

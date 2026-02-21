@@ -25,7 +25,7 @@ Read key files referenced in CLAUDE.md (types, entry points, existing slices) to
 
 ### 3. Parse Use Cases
 
-Extract all `conclave:requirements` blocks from analysis.md. For each use case, note:
+Extract all `conclave:usecase` blocks from analysis.md. For each use case, note:
 - **id** and **dependencies** — determines implementation order
 - **actor** — System use cases are backend; End User use cases touch UI
 - **given/when/then** — maps to preconditions, handlers, and assertions

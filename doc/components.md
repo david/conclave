@@ -2,7 +2,7 @@
 
 Conclave extends standard markdown rendering with custom fenced code blocks that use the `conclave:` language prefix. When Claude's response contains these blocks, the chat UI renders them as rich interactive components instead of plain code.
 
-## `conclave:requirements`
+## `conclave:usecase`
 
 Renders structured use cases as cards in the chat and workspace panes. Each block contains a single JSON object describing one use case.
 
@@ -37,7 +37,7 @@ Renders structured use cases as cards in the chat and workspace panes. Each bloc
 ### Example
 
 ````
-```conclave:requirements
+```conclave:usecase
 {
   "id": "UC-1",
   "name": "Create new session",

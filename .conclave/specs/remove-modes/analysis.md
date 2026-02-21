@@ -8,16 +8,16 @@ The mode system bundles four concerns — output format, behavioral instructions
 
 ## Approach
 
-This is primarily a deletion task. The one piece that needs a new home is the `conclave:requirements` output format, which folds into the req skill. Everything else is removed. The `disallowedTools` setting for plan mode (in `acp-bridge.ts`) is unrelated to mode infrastructure and stays.
+This is primarily a deletion task. The one piece that needs a new home is the `conclave:usecase` output format, which folds into the req skill. Everything else is removed. The `disallowedTools` setting for plan mode (in `acp-bridge.ts`) is unrelated to mode infrastructure and stays.
 
 ## Use Cases
 
-```conclave:requirements
+```conclave:usecase
 {
   "id": "UC-1",
   "name": "Merge output format into req skill",
   "actor": "Developer",
-  "summary": "Move the conclave:requirements output format specification from the mode instruction into the req SKILL.md.",
+  "summary": "Move the conclave:usecase output format specification from the mode instruction into the req SKILL.md.",
   "given": [
     "The output format (JSON schema, fenced block convention, field definitions, guidelines) currently lives in .conclave/modes/requirements.md",
     "The req skill at ~/.claude/skills/req/SKILL.md currently defers to 'the active mode instruction' for output format"
@@ -28,14 +28,14 @@ This is primarily a deletion task. The one piece that needs a new home is the `c
     "Developer removes the 'Use the requirements-analyst skill methodology' guideline (now self-referential)"
   ],
   "then": [
-    "SKILL.md is self-contained: it describes both the methodology and the conclave:requirements output format",
+    "SKILL.md is self-contained: it describes both the methodology and the conclave:usecase output format",
     "The skill works without any mode infrastructure — Claude Code activates it based on context and it knows how to emit structured blocks"
   ],
   "priority": "high"
 }
 ```
 
-```conclave:requirements
+```conclave:usecase
 {
   "id": "UC-2",
   "name": "Remove server mode loading and prompt decoration",
@@ -68,7 +68,7 @@ This is primarily a deletion task. The one piece that needs a new home is the `c
 }
 ```
 
-```conclave:requirements
+```conclave:usecase
 {
   "id": "UC-3",
   "name": "Remove server mode types and translation",
@@ -94,7 +94,7 @@ This is primarily a deletion task. The one piece that needs a new home is the `c
 }
 ```
 
-```conclave:requirements
+```conclave:usecase
 {
   "id": "UC-4",
   "name": "Remove client mode state and slices",
@@ -123,7 +123,7 @@ This is primarily a deletion task. The one piece that needs a new home is the `c
 }
 ```
 
-```conclave:requirements
+```conclave:usecase
 {
   "id": "UC-5",
   "name": "Remove ModePicker component and mode UI",
@@ -149,7 +149,7 @@ This is primarily a deletion task. The one piece that needs a new home is the `c
 }
 ```
 
-```conclave:requirements
+```conclave:usecase
 {
   "id": "UC-6",
   "name": "Remove mode CSS",
@@ -172,7 +172,7 @@ This is primarily a deletion task. The one piece that needs a new home is the `c
 }
 ```
 
-```conclave:requirements
+```conclave:usecase
 {
   "id": "UC-7",
   "name": "Delete .conclave/modes/ and update docs",

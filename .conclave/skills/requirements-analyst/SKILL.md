@@ -103,10 +103,10 @@ Not everything is high priority. If everything is high, nothing is.
 
 ## Output Format
 
-Output **one fenced code block per use case**, each tagged `conclave:requirements` and containing a single JSON object:
+Output **one fenced code block per use case**, each tagged `conclave:usecase` and containing a single JSON object:
 
 ````
-```conclave:requirements
+```conclave:usecase
 {
   "id": "UC-1",
   "name": "Short descriptive name",
@@ -124,11 +124,11 @@ Output **one fenced code block per use case**, each tagged `conclave:requirement
 For multiple use cases, emit separate blocks one after another:
 
 ````
-```conclave:requirements
+```conclave:usecase
 { "id": "UC-1", ... }
 ```
 
-```conclave:requirements
+```conclave:usecase
 { "id": "UC-2", ... }
 ```
 ````
@@ -152,8 +152,8 @@ For multiple use cases, emit separate blocks one after another:
 3. **Keep use cases atomic.** Each use case should describe a single, cohesive interaction that can be developed, tested, and verified independently. Split complex workflows into multiple use cases. Use `dependencies` to make sequencing explicit when one use case requires another to be completed first.
 4. **Use consistent actors.** Define actors clearly and reuse the same names across use cases.
 5. **Prioritize realistically.** Not everything is high priority. Use `high` for core functionality, `medium` for important but non-critical features, and `low` for nice-to-haves.
-6. **You may include explanatory text** outside the code blocks — discussion, questions, rationale — but all use cases must be inside `conclave:requirements` blocks.
-7. **One block per use case.** Each `conclave:requirements` block should contain exactly one JSON object. This allows use cases to appear in the workspace incrementally as they are produced.
+6. **You may include explanatory text** outside the code blocks — discussion, questions, rationale — but all use cases must be inside `conclave:usecase` blocks.
+7. **One block per use case.** Each `conclave:usecase` block should contain exactly one JSON object. This allows use cases to appear in the workspace incrementally as they are produced.
 8. **Iterative refinement.** If the user asks to revise, output a complete updated set of use cases (not just the changes).
 
 ## Anti-Patterns to Avoid

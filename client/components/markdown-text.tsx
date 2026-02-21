@@ -142,8 +142,8 @@ const components: Components = {
       if (match) language = match[1];
     }
 
-    // Render conclave:requirements blocks as inline use case cards
-    if (language === "conclave:requirements") {
+    // Render conclave:usecase blocks as inline use case cards
+    if (language === "conclave:usecase") {
       const codeText = codeChild ? extractText(codeChild.props.children).replace(/\n$/, "") : "";
       return <InlineUseCases json={codeText} />;
     }

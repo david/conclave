@@ -15,7 +15,7 @@ Structured spec directory system for Conclave. One directory per spec, one file 
 
 ## Use Cases
 
-```conclave:requirements
+```conclave:usecase
 {
   "id": "UC-1",
   "name": "Scan specs directory on startup",
@@ -40,7 +40,7 @@ Structured spec directory system for Conclave. One directory per spec, one file 
 }
 ```
 
-```conclave:requirements
+```conclave:usecase
 {
   "id": "UC-2",
   "name": "Determine spec phase from files",
@@ -63,7 +63,7 @@ Structured spec directory system for Conclave. One directory per spec, one file 
 }
 ```
 
-```conclave:requirements
+```conclave:usecase
 {
   "id": "UC-3",
   "name": "Send spec list to client on WebSocket connect",
@@ -86,7 +86,7 @@ Structured spec directory system for Conclave. One directory per spec, one file 
 }
 ```
 
-```conclave:requirements
+```conclave:usecase
 {
   "id": "UC-4",
   "name": "Display specs section in workspace sidebar",
@@ -111,7 +111,7 @@ Structured spec directory system for Conclave. One directory per spec, one file 
 }
 ```
 
-```conclave:requirements
+```conclave:usecase
 {
   "id": "UC-5",
   "name": "Group child specs under epics in sidebar",
@@ -135,7 +135,7 @@ Structured spec directory system for Conclave. One directory per spec, one file 
 }
 ```
 
-```conclave:requirements
+```conclave:usecase
 {
   "id": "UC-6",
   "name": "Watch for spec directory changes",
@@ -158,7 +158,7 @@ Structured spec directory system for Conclave. One directory per spec, one file 
 }
 ```
 
-```conclave:requirements
+```conclave:usecase
 {
   "id": "UC-7",
   "name": "Remove completed spec",
@@ -181,7 +181,7 @@ Structured spec directory system for Conclave. One directory per spec, one file 
 }
 ```
 
-```conclave:requirements
+```conclave:usecase
 {
   "id": "UC-8",
   "name": "Requirements-analyst creates spec directory during analysis",
@@ -205,7 +205,7 @@ Structured spec directory system for Conclave. One directory per spec, one file 
 }
 ```
 
-```conclave:requirements
+```conclave:usecase
 {
   "id": "UC-9",
   "name": "Inject specs convention into ACP system prompt",
