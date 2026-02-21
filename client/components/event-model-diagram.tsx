@@ -134,17 +134,41 @@ function collectFeedsPairs(slices: EventModelSlice[]): { source: string; target:
   return pairs;
 }
 
+/** Build a map from node name → slice index for determining cross-column relationships. */
+function buildNodeSliceMap(slices: EventModelSlice[]): Map<string, number> {
+  const map = new Map<string, number>();
+  for (let i = 0; i < slices.length; i++) {
+    const slice = slices[i];
+    if (slice.screen) map.set(slice.screen, i);
+    if (slice.command) map.set(slice.command.name, i);
+    for (const e of slice.events ?? []) map.set(e.name, i);
+    for (const p of slice.projections ?? []) map.set(p.name, i);
+    for (const s of slice.sideEffects ?? []) map.set(s, i);
+  }
+  return map;
+}
+
 /**
  * Compute a connection point at the center of the nearest edge of a rectangle.
- * Always returns the exact midpoint of the chosen edge (top/bottom/left/right).
+ * When `preferSide` is set ("left" or "right"), forces that horizontal edge
+ * — used for cross-column feeds so arrows leave/enter from the sides.
  */
 function edgeMidpoint(
   rect: { left: number; top: number; width: number; height: number },
   targetX: number,
   targetY: number,
+  preferSide?: "left" | "right",
 ): { x: number; y: number; edge: "top" | "bottom" | "left" | "right" } {
   const cx = rect.left + rect.width / 2;
   const cy = rect.top + rect.height / 2;
+
+  if (preferSide === "right") {
+    return { x: rect.left + rect.width, y: cy, edge: "right" };
+  }
+  if (preferSide === "left") {
+    return { x: rect.left, y: cy, edge: "left" };
+  }
+
   const dx = targetX - cx;
   const dy = targetY - cy;
 
@@ -199,6 +223,8 @@ export function EventModelDiagram({ slices }: { slices: EventModelSlice[] }) {
       return;
     }
 
+    const nodeSliceMap = buildNodeSliceMap(slices);
+
     const nodeElements = container.querySelectorAll<HTMLElement>("[data-node-name]");
     const nodeMap = new Map<string, HTMLElement>();
     for (const el of nodeElements) {
@@ -235,8 +261,20 @@ export function EventModelDiagram({ slices }: { slices: EventModelSlice[] }) {
       const sourceCx = sr.left + sr.width / 2;
       const sourceCy = sr.top + sr.height / 2;
 
-      const sp = edgeMidpoint(sr, targetCx, targetCy);
-      const tp = edgeMidpoint(tr, sourceCx, sourceCy);
+      // For cross-column connections, force side edges so arrows don't cross through boxes
+      const sourceSlice = nodeSliceMap.get(source);
+      const targetSlice = nodeSliceMap.get(target);
+      const crossColumn = sourceSlice !== undefined && targetSlice !== undefined && sourceSlice !== targetSlice;
+
+      let sourcePreferSide: "left" | "right" | undefined;
+      let targetPreferSide: "left" | "right" | undefined;
+      if (crossColumn) {
+        sourcePreferSide = sourceCx < targetCx ? "right" : "left";
+        targetPreferSide = sourceCx < targetCx ? "left" : "right";
+      }
+
+      const sp = edgeMidpoint(sr, targetCx, targetCy, sourcePreferSide);
+      const tp = edgeMidpoint(tr, sourceCx, sourceCy, targetPreferSide);
 
       // Cubic bezier with control points extending outward from each edge
       const dx = tp.x - sp.x;
