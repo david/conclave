@@ -15,7 +15,7 @@ Analyze an implementation plan and produce a parallelization-aware task graph.
 
 ## Purpose
 
-Bridge between the architect's `implementation.md` and the orchestrator's parallel execution. The organizer determines **what can run concurrently** and **what must be sequential** by analyzing dependency declarations and file mutation overlaps.
+Bridge between the planner's `implementation.md` and the orchestrator's parallel execution. The organizer determines **what can run concurrently** and **what must be sequential** by analyzing dependency declarations and file mutation overlaps.
 
 ## Workflow
 
@@ -33,7 +33,7 @@ Extract all `## UC-X: ...` sections (including combined headings like `## UC-1 +
 - **Files**: Each file path and its operation (**create** vs **modify**)
 - **Steps**: The implementation steps
 - **Tests**: The test scenarios
-- **Dependencies**: Explicit from the analysis.md `dependencies` field, plus implicit from section ordering in implementation.md (the architect respects dependency order)
+- **Dependencies**: Explicit from the analysis.md `dependencies` field, plus implicit from section ordering in implementation.md (the planner respects dependency order)
 
 Also check for a `## New Types` section — this is always a prerequisite for everything else.
 
@@ -131,7 +131,7 @@ Write the output to `.conclave/specs/<spec-name>/tasks.md`.
 
 - The JSON block is the machine-readable source of truth. The markdown sections below it are the human-readable expanded view with full context from implementation.md.
 - Each markdown task section should include enough context (files, steps, tests) that an agent can execute it without reading implementation.md — the orchestrator will feed these sections as agent prompts.
-- Preserve the architect's step details and test scenarios — don't summarize away actionable information.
+- Preserve the planner's step details and test scenarios — don't summarize away actionable information.
 - Flag potential conflict risks in task descriptions (e.g., "Modifies `index.ts` — coordinate with T-3 if running in same wave").
 
 ### 7. Confirm with User

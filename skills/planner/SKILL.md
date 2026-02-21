@@ -1,9 +1,9 @@
 ---
-name: arq
-description: Translate a spec's analysis.md (containing structured use cases) into a concrete implementation.md plan. Use when a user wants to architect or plan the implementation of a spec, such as "architect this spec", "create implementation plan for...", "translate analysis to implementation", "/arq <spec-name>", or when a spec has an analysis.md and needs the next phase. Reads the analysis use cases and the project's CLAUDE.md to produce file-level implementation steps mapped to each use case.
+name: plan
+description: Translate a spec's analysis.md (containing structured use cases) into a concrete implementation.md plan. Use when a user wants to plan the implementation of a spec, such as "plan this spec", "create implementation plan for...", "translate analysis to implementation", "/plan <spec-name>", or when a spec has an analysis.md and needs the next phase. Reads the analysis use cases and the project's CLAUDE.md to produce file-level implementation steps mapped to each use case.
 ---
 
-# Architect
+# Planner
 
 Translate structured requirements (analysis.md) into a concrete implementation plan (implementation.md).
 
