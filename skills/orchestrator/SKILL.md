@@ -30,7 +30,8 @@ If tasks.md is missing, tell the user to run the organizer first (`/org <spec-na
 Read:
 - `CLAUDE.md` — project architecture and conventions
 - `.conclave/specs/<spec-name>/implementation.md` — full implementation plan for reference
-- `.conclave/skills/developer/SKILL.md` — the dev skill's TDD workflow and rules (embed into agent prompts)
+- `skills/developer/SKILL.md` — the dev skill's TDD workflow and rules (embed into agent prompts)
+- `skills/committer/SKILL.md` — the committer workflow (embed into committer agent prompts)
 
 ### 3. Execute Waves
 
@@ -57,7 +58,7 @@ Task tool parameters:
 
 Each agent prompt must be self-contained. Include:
 
-1. **Dev skill workflow**: Include the Workflow and Rules sections from `.conclave/skills/developer/SKILL.md` verbatim. Do not summarize or paraphrase — agents must follow the exact same TDD discipline.
+1. **Dev skill workflow**: Include the Workflow and Rules sections from `skills/developer/SKILL.md` verbatim. Do not summarize or paraphrase — agents must follow the exact same TDD discipline.
 
 2. **Project context**: Key sections from CLAUDE.md — commands (`bun test`, `bun run check`), architecture overview, key conventions. Keep it concise — only what the agent needs.
 
@@ -97,17 +98,26 @@ After each wave completes:
 
 After each wave's integration check passes, **always commit** — every wave must be checkpointed before proceeding to the next.
 
-1. Review all files changed in this wave.
-2. Use specific `git add <file>` (not `git add .`).
-3. Commit with this message format (use `spec.json`'s `type` field for the prefix if available, otherwise infer from context — e.g., `feat`, `fix`, `refactor`):
-   ```
-   <type>(<spec-name>): <wave summary>
+Delegate the commit to a committer agent:
 
-   Implements: <UC-list>
+```
+Task tool parameters:
+  subagent_type: "general-purpose"
+  description: "commit: wave <N> for <spec-name>"
+  prompt: <see below>
+```
 
-   Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
-   ```
-4. Report the commit in the wave's progress summary.
+The committer agent prompt must include:
+
+1. **Committer skill workflow**: Include the full Workflow section from `skills/committer/SKILL.md` verbatim so the agent follows the conventional commits spec.
+2. **Context for this wave**:
+   - **Spec name** — use as scope
+   - **Type hint** — from `spec.json`'s `type` field if available
+   - **Wave summary** — what was accomplished in this wave
+   - **UC list** — which use cases were implemented
+   - **File list** — the exact files created/modified by agents in this wave (collected in step 4)
+
+The committer agent handles staging, message composition, and the commit itself. Wait for it to complete before proceeding to the next wave.
 
 ### 7. Progress Reporting
 
