@@ -96,3 +96,112 @@ A machine-readable task graph used by the organizer and orchestrator skills. Thi
 ### Usage
 
 The `organizer` skill writes a `conclave:tasks` block into `.conclave/specs/<name>/tasks.md`. The `orchestrator` skill reads it to determine which tasks can run concurrently and spawns agents accordingly.
+
+## `conclave:eventmodel`
+
+Renders an event-model diagram showing the flow from screens through commands, events, and projections to side effects. Each block describes one vertical slice. Multiple blocks in the same assistant message are collected and rendered together as a single multi-column diagram below the markdown content.
+
+### Schema
+
+```json
+{
+  "slice": "create-session",
+  "label": "Create Session",
+  "screen": "Session Picker",
+  "command": {
+    "name": "CreateSession",
+    "new": true,
+    "fields": { "title": "string" },
+    "feeds": ["SessionList"]
+  },
+  "events": [
+    {
+      "name": "SessionCreated",
+      "new": false,
+      "fields": { "sessionId": "string", "title": "string" },
+      "feeds": ["SessionRegistry"]
+    }
+  ],
+  "projections": [
+    {
+      "name": "SessionRegistry",
+      "new": false,
+      "fields": { "sessions": "Map<string, SessionMeta>" }
+    }
+  ],
+  "sideEffects": ["Broadcast session list to all connected clients"]
+}
+```
+
+| Field            | Type              | Required | Description                                                                 |
+|------------------|-------------------|----------|-----------------------------------------------------------------------------|
+| `slice`          | string            | yes      | Kebab-case identifier for the event slice.                                  |
+| `label`          | string            | no       | Human-readable label for the slice column header. Falls back to `slice`.    |
+| `screen`         | string            | no       | UI screen or view that initiates this slice's command.                      |
+| `command`        | object            | no       | The command node for this slice.                                            |
+| `command.name`   | string            | yes      | Command name.                                                               |
+| `command.new`    | boolean           | no       | Whether this is a newly introduced command.                                 |
+| `command.fields` | Record<string,string> | no  | Key-value pairs of field name to type.                                      |
+| `command.feeds`  | string[]          | no       | Names of nodes in other slices that this command feeds into.                |
+| `events`         | object[]          | no       | Domain events emitted by this slice.                                        |
+| `events[].name`  | string            | yes      | Event name.                                                                 |
+| `events[].new`   | boolean           | no       | Whether this is a newly introduced event.                                   |
+| `events[].fields`| Record<string,string> | no  | Key-value pairs of field name to type.                                      |
+| `events[].feeds` | string[]          | no       | Names of nodes in other slices that this event feeds into.                  |
+| `projections`    | object[]          | no       | Read-model projections in this slice.                                       |
+| `projections[].name`   | string       | yes      | Projection name.                                                            |
+| `projections[].new`    | boolean       | no       | Whether this is a newly introduced projection.                              |
+| `projections[].fields` | Record<string,string> | no | Key-value pairs of field name to type.                                    |
+| `projections[].feeds`  | string[]      | no       | Names of nodes in other slices that this projection feeds into.             |
+| `sideEffects`    | string[]          | no       | Free-text descriptions of side effects triggered by this slice.             |
+
+### Rendering Behavior
+
+- Each `conclave:eventmodel` block represents one slice.
+- Multiple blocks in the same message are collected and rendered as a single multi-column diagram below the markdown content.
+- The diagram has a tier-labels gutter on the left and slice columns on the right (horizontally scrollable).
+- Five fixed tiers are laid out top-to-bottom: Screen, Command, Events, Projections, Side Effects.
+- Nodes are color-coded by tier: command = blue, event = orange, projection = gray, side effect = green, screen = neutral.
+- Nodes with `new: true` get a small indicator dot to highlight newly introduced elements.
+- Within-slice arrows connect adjacent populated tiers from top to bottom.
+- Cross-slice arrows (dashed SVG paths) connect nodes via `feeds` references, showing data flow between slices.
+- Nodes with `fields` are expandable on click to show key:type pairs.
+- Invalid blocks (bad JSON or missing `slice` field) fall back to standard code block rendering.
+
+### Example
+
+````
+```conclave:eventmodel
+{
+  "slice": "create-session",
+  "label": "Create Session",
+  "screen": "Session Picker",
+  "command": {
+    "name": "CreateSession",
+    "new": true,
+    "fields": { "title": "string" },
+    "feeds": ["SessionList"]
+  },
+  "events": [
+    {
+      "name": "SessionCreated",
+      "new": false,
+      "fields": { "sessionId": "string", "title": "string" },
+      "feeds": ["SessionRegistry"]
+    }
+  ],
+  "projections": [
+    {
+      "name": "SessionRegistry",
+      "new": false,
+      "fields": { "sessions": "Map<string, SessionMeta>" }
+    }
+  ],
+  "sideEffects": ["Broadcast session list to all connected clients"]
+}
+```
+````
+
+### Usage
+
+The `architect` skill emits one block per event slice. Multiple blocks in a single message form a unified multi-column diagram.

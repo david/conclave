@@ -37,6 +37,39 @@ export type UseCase = {
   dependencies?: string[];
 };
 
+export type EventModelNodeFields = Record<string, string>;
+
+export type EventModelCommand = {
+  name: string;
+  new?: boolean;
+  fields?: EventModelNodeFields;
+  feeds?: string[];
+};
+
+export type EventModelEvent = {
+  name: string;
+  new?: boolean;
+  fields?: EventModelNodeFields;
+  feeds?: string[];
+};
+
+export type EventModelProjection = {
+  name: string;
+  new?: boolean;
+  fields?: EventModelNodeFields;
+  feeds?: string[];
+};
+
+export type EventModelSlice = {
+  slice: string;
+  label?: string;
+  screen?: string;
+  command?: EventModelCommand;
+  events?: EventModelEvent[];
+  projections?: EventModelProjection[];
+  sideEffects?: string[];
+};
+
 export type GitFileEntry = {
   path: string;
   indexStatus: string;
