@@ -76,7 +76,13 @@ createSessionListProjection(store, sessionRegistry, () => {
 
 function sendWs(ws: object, event: WsEvent) {
   try {
-    (ws as { send(data: string): void }).send(JSON.stringify(event));
+    const bws = ws as { send(data: string): void; cork(cb: () => void): void };
+    const data = JSON.stringify(event);
+    // cork() ensures the write is flushed to the wire immediately.
+    // Without it, sends from outside WebSocket handler callbacks (open/message/drain)
+    // — such as those triggered by ACP event-store listeners — can sit in
+    // uWebSockets' internal buffer until the next socket activity.
+    bws.cork(() => bws.send(data));
   } catch {
     // Connection already closed — clean up
     const wsState = wsStates.get(ws);
