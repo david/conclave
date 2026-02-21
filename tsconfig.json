@@ -13,5 +13,6 @@
     "isolatedModules": true,
     "types": ["bun-types"]
   },
-  "include": ["server/**/*.ts", "client/**/*.tsx", "client/**/*.ts", "bun-build.ts"]
+  "include": ["server/**/*.ts", "client/**/*.tsx", "client/**/*.ts", "bun-build.ts"],
+  "exclude": ["server/compile.ts", "server/embedded-assets.ts"]
 }

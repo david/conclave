@@ -1,0 +1,48 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install
+
+      - run: bun run check
+
+      - run: bun test
+
+      - name: Build client and compile binary
+        run: |
+          bun run build
+          bun build --compile --target=bun-linux-x64 server/compile.ts --outfile conclave
+
+      - name: Package release
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/}"
+          STAGING="conclave-${VERSION}"
+          mkdir -p "${STAGING}"
+
+          cp conclave "${STAGING}/"
+          cp LICENSE "${STAGING}/"
+
+          zip -r "conclave-${VERSION}.zip" "${STAGING}"
+          echo "ASSET=conclave-${VERSION}.zip" >> "$GITHUB_ENV"
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.ASSET }}
+          generate_release_notes: true

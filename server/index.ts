@@ -8,6 +8,12 @@ import { createSessionListProjection, buildSessionList } from "./projections/ses
 import { scanSpecs } from "./spec-scanner.ts";
 import { watchSpecs } from "./spec-watcher.ts";
 
+// Pluggable static asset handler — set via setStaticAssetHandler() by compile.ts for embedded assets
+let serveStaticAsset: ((pathname: string) => Response | null) | null = null;
+export function setStaticAssetHandler(handler: (pathname: string) => Response | null) {
+  serveStaticAsset = handler;
+}
+
 const PORT = Number(process.env.PORT) || 3000;
 const CWD = process.env.CONCLAVE_CWD || process.cwd();
 
@@ -108,7 +114,21 @@ const server = Bun.serve<{ requestedSessionId: string | null }>({
       return undefined;
     }
 
-    // Static file serving from dist/
+    // Try embedded assets first (compiled binary), then fall back to dist/ on disk
+    if (serveStaticAsset) {
+      const embedded = serveStaticAsset(url.pathname);
+      if (embedded) return embedded;
+
+      // SPA fallback
+      if (url.pathname.startsWith("/session/")) {
+        const fallback = serveStaticAsset("/index.html");
+        if (fallback) return fallback;
+      }
+
+      return new Response("Not found", { status: 404 });
+    }
+
+    // Development: serve from dist/ on disk
     const distDir = join(import.meta.dir, "..", "dist");
     let filePath = url.pathname === "/" ? "/index.html" : url.pathname;
     const file = Bun.file(join(distDir, filePath));
