@@ -128,3 +128,33 @@ React component that renders `conclave:eventmodel` JSON blocks as vertical event
   "priority": "medium"
 }
 ```
+
+## Event Model
+
+This spec introduces no new domain events, commands, or server-side projections. All four use cases are **pure client-side rendering** — the `conclave:eventmodel` JSON is embedded in markdown text that already flows through the existing `AgentText` → `TurnCompleted` event pipeline. The rendering is handled entirely within the `MarkdownText` component's `<pre>` override, following the same pattern as `conclave:usecase`.
+
+```conclave:eventmodel
+{
+  "slice": "render-eventmodel-diagram",
+  "label": "Render Event Model Diagram (UC-1, UC-2, UC-3, UC-4)",
+  "screen": "Chat Pane",
+  "events": [
+    {
+      "name": "AgentText",
+      "new": false,
+      "fields": { "text": "string (markdown with conclave:eventmodel blocks)" }
+    }
+  ],
+  "projections": [
+    {
+      "name": "MarkdownText",
+      "new": false
+    }
+  ],
+  "sideEffects": [
+    "MarkdownText <pre> override detects language conclave:eventmodel",
+    "Parses JSON, renders EventModelDiagram component (new) with slice columns, tier-aligned nodes, within-slice arrows, cross-slice arrows, and expandable field details",
+    "Invalid JSON falls back to standard fenced code block rendering"
+  ]
+}
+```
