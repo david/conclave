@@ -154,7 +154,7 @@ For multiple use cases, emit separate blocks one after another:
 5. **Prioritize realistically.** Not everything is high priority. Use `high` for core functionality, `medium` for important but non-critical features, and `low` for nice-to-haves.
 6. **You may include explanatory text** outside the code blocks — discussion, questions, rationale — but all use cases must be inside `conclave:usecase` blocks.
 7. **One block per use case.** Each `conclave:usecase` block should contain exactly one JSON object. This allows use cases to appear in the workspace incrementally as they are produced.
-8. **Iterative refinement.** If the user asks to revise, output a complete updated set of use cases (not just the changes).
+8. **Iterative refinement.** If the user asks to revise, output **only the changed use cases** — not the entire set. Unchanged use cases should be omitted. This keeps responses focused and avoids redundant output.
 
 ## Anti-Patterns to Avoid
 
