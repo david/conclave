@@ -3,7 +3,8 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import type { Components } from "react-markdown";
-import type { UseCase } from "../types.ts";
+import type { UseCase, EventModelSlice } from "../types.ts";
+import { EventModelDiagram } from "./event-model-diagram.tsx";
 
 const remarkPlugins = [remarkGfm];
 const rehypePlugins = [rehypeHighlight];
@@ -125,6 +126,18 @@ function InlineUseCases({ json }: { json: string }) {
   }
 }
 
+function parseEventModelSlice(json: string): EventModelSlice | null {
+  try {
+    const parsed = JSON.parse(json);
+    if (parsed && typeof parsed === "object" && typeof parsed.slice === "string" && parsed.slice.length > 0) {
+      return parsed as EventModelSlice;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 const components: Components = {
   a: ({ children, href, ...props }) => (
     <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
@@ -148,6 +161,14 @@ const components: Components = {
       return <InlineUseCases json={codeText} />;
     }
 
+    // Suppress valid conclave:eventmodel blocks (rendered as diagram after ReactMarkdown)
+    if (language === "conclave:eventmodel") {
+      const codeText = codeChild ? extractText(codeChild.props.children).replace(/\n$/, "") : "";
+      const slice = parseEventModelSlice(codeText);
+      if (slice) return null;
+      // Invalid JSON: fall through to normal code block rendering
+    }
+
     const codeText = codeChild ? extractText(codeChild.props.children).replace(/\n$/, "") : "";
 
     return (
@@ -163,6 +184,15 @@ const components: Components = {
 };
 
 export function MarkdownText({ text }: { text: string }) {
+  // Extract all valid conclave:eventmodel slices from raw text
+  const validSlices: EventModelSlice[] = [];
+  const eventModelRegex = /```conclave:eventmodel\n([\s\S]*?)```/g;
+  let match: RegExpExecArray | null;
+  while ((match = eventModelRegex.exec(text)) !== null) {
+    const slice = parseEventModelSlice(match[1]);
+    if (slice) validSlices.push(slice);
+  }
+
   return (
     <div className="message__text message__text--markdown">
       <ReactMarkdown
@@ -172,6 +202,7 @@ export function MarkdownText({ text }: { text: string }) {
       >
         {text}
       </ReactMarkdown>
+      {validSlices.length > 0 && <EventModelDiagram slices={validSlices} />}
     </div>
   );
 }
