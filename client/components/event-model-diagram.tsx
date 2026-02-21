@@ -83,7 +83,7 @@ function SliceColumn({ slice, sliceIndex, expandedNodes, onToggleNode }: SliceCo
               }
               onClick={expandable ? () => onToggleNode(nodeKey) : undefined}
             >
-              {node.name}
+              <span className="em-diagram__node-name">{node.name}</span>
               {expanded && (
                 <div className="em-diagram__fields">
                   {Object.entries(node.fields!).map(([key, type]) => (

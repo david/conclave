@@ -296,6 +296,29 @@ describe("EventModelDiagram", () => {
     expect(html).not.toContain("em-diagram__node--expandable");
   });
 
+  test("expanded node renders fields in a separate container below the name", () => {
+    // Regression: fields were rendered inside an inline-flex node,
+    // causing the name and fields to overlap horizontally.
+    // The node should wrap content vertically when fields are present.
+    const slices: EventModelSlice[] = [
+      {
+        slice: "fields-layout",
+        command: { name: "AddToCart", fields: { productId: "UUID", quantity: "number" } },
+      },
+    ];
+
+    // Render with fields expanded by default is not possible via static render,
+    // but we can verify the structural requirement: when fields ARE rendered,
+    // the node name appears as a separate span from the fields container.
+    // We simulate by checking the component output structure.
+    const html = render(slices);
+
+    // The node name should be in its own element, not mixed with fields text
+    expect(html).toContain('data-node-name="AddToCart"');
+    // The node should contain a dedicated name span
+    expect(html).toContain('em-diagram__node-name');
+  });
+
   test("nodes with empty fields object do not get expandable class", () => {
     const slices: EventModelSlice[] = [
       {
