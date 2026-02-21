@@ -1,0 +1,3 @@
+{
+  "description": "Replace the Files panel with live git status showing staged/unstaged/untracked files with status icons and line-level diff stats"
+}
