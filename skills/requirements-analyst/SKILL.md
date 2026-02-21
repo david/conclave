@@ -181,10 +181,10 @@ For multiple use cases, emit separate blocks one after another:
 After all use cases are finalized, output a copyable command for the next phase:
 
 ```
-/plan <spec-name>
+/arq <spec-name>
 ```
 
-Replace `<spec-name>` with the resolved spec directory name (e.g. `/plan git-status-files`). This lets the user paste it into a new session to begin planning.
+Replace `<spec-name>` with the resolved spec directory name (e.g. `/arq git-status-files`). This lets the user paste it into a new session to begin architecture.
 
 ## Anti-Patterns to Avoid
 

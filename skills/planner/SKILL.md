@@ -1,11 +1,11 @@
 ---
 name: plan
-description: Translate a spec's analysis.md (containing structured use cases) into a concrete implementation.md plan. Use when a user wants to plan the implementation of a spec, such as "plan this spec", "create implementation plan for...", "translate analysis to implementation", "/plan <spec-name>", or when a spec has an analysis.md and needs the next phase. Reads the analysis use cases and the project's CLAUDE.md to produce file-level implementation steps mapped to each use case.
+description: Translate a spec's analysis.md (containing use cases and event models) into a concrete implementation.md plan. Use when a user wants to plan the implementation of a spec, such as "plan this spec", "create implementation plan for...", "translate analysis to implementation", "/plan <spec-name>", or when a spec has an analysis.md and needs the next phase. Reads the use cases, event models, and the project's CLAUDE.md to produce file-level implementation steps mapped to each use case.
 ---
 
 # Planner
 
-Translate structured requirements (analysis.md) into a concrete implementation plan (implementation.md).
+Translate structured requirements and event models (analysis.md) into a concrete implementation plan (implementation.md).
 
 ## Workflow
 
@@ -13,7 +13,7 @@ Translate structured requirements (analysis.md) into a concrete implementation p
 
 Resolve the spec name from the user's request. The spec directory is `.conclave/specs/<spec-name>/`.
 
-- Read `.conclave/specs/<spec-name>/analysis.md` — this contains the use cases.
+- Read `.conclave/specs/<spec-name>/analysis.md` — this contains the use cases and, if the architect has run, event model sections (commands, events, projections, side effects) under each use case.
 - Read `.conclave/specs/<spec-name>/spec.json` if it exists — for description, type, and epic context.
 - If the spec name is ambiguous or missing, list `.conclave/specs/` and ask.
 
