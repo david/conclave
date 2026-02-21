@@ -138,7 +138,8 @@ describe("EventModelDiagram", () => {
 
     // No arrows since screen and command are empty, and projections/sideEffects are empty
     // Only events tier is populated - no adjacent populated tier exists
-    expect(html).not.toContain("em-diagram__arrow");
+    // Use the exact class with trailing quote to avoid matching em-diagram__arrows (SVG overlay)
+    expect(html).not.toContain('em-diagram__arrow"');
   });
 
   test("renders tier labels in the left gutter", () => {
@@ -167,6 +168,75 @@ describe("EventModelDiagram", () => {
     expect(html).toContain("EventA");
     expect(html).toContain("EventB");
     expect(html).toContain("EventC");
+  });
+
+  test("renders data-node-name attributes on all nodes", () => {
+    const slices: EventModelSlice[] = [
+      {
+        slice: "attrs-test",
+        screen: "MyScreen",
+        command: { name: "DoStuff" },
+        events: [{ name: "StuffDone" }],
+        projections: [{ name: "StuffView" }],
+        sideEffects: ["Notify"],
+      },
+    ];
+    const html = render(slices);
+
+    expect(html).toContain('data-node-name="MyScreen"');
+    expect(html).toContain('data-node-name="DoStuff"');
+    expect(html).toContain('data-node-name="StuffDone"');
+    expect(html).toContain('data-node-name="StuffView"');
+    expect(html).toContain('data-node-name="Notify"');
+  });
+
+  test("renders SVG overlay element with em-diagram__arrows class", () => {
+    const slices: EventModelSlice[] = [
+      {
+        slice: "svg-test",
+        command: { name: "Cmd", feeds: ["SomeEvent"] },
+        events: [{ name: "SomeEvent" }],
+      },
+    ];
+    const html = render(slices);
+
+    expect(html).toContain("em-diagram__arrows");
+    expect(html).toContain("<svg");
+  });
+
+  test("renders without error when feeds references a nonexistent node", () => {
+    const slices: EventModelSlice[] = [
+      {
+        slice: "bad-ref",
+        command: { name: "Cmd", feeds: ["DoesNotExist"] },
+        events: [{ name: "RealEvent" }],
+      },
+    ];
+    // Should not throw
+    const html = render(slices);
+    expect(html).toContain("em-diagram");
+    expect(html).toContain("Cmd");
+    expect(html).toContain("RealEvent");
+  });
+
+  test("renders SVG overlay for two slices with cross-slice feeds", () => {
+    const slices: EventModelSlice[] = [
+      {
+        slice: "slice-a",
+        events: [{ name: "EventA", feeds: ["ProjectionB"] }],
+      },
+      {
+        slice: "slice-b",
+        projections: [{ name: "ProjectionB" }],
+      },
+    ];
+    const html = render(slices);
+
+    // Both slices render
+    expect(html).toContain("EventA");
+    expect(html).toContain("ProjectionB");
+    // SVG overlay present
+    expect(html).toContain("em-diagram__arrows");
   });
 });
 
