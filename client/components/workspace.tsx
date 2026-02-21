@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { TaskIcon, Chevron } from "./icons.tsx";
+import { TaskIcon, Chevron, GitStatusIcon } from "./icons.tsx";
 import type { PlanEntryInfo, GitFileEntry, SpecInfo } from "../reducer.ts";
 
 type SectionId = "specs" | "tasks" | "files";
@@ -52,11 +52,14 @@ function PlanEntry({ entry }: { entry: PlanEntryInfo }) {
   );
 }
 
-function GitFileRow({ file }: { file: GitFileEntry }) {
+function GitFileRow({ file, displayStatus }: { file: GitFileEntry; displayStatus: string }) {
   const fileName = file.path.split("/").pop() || file.path;
 
   return (
     <div className="file-change">
+      <span className="file-change__icon">
+        <GitStatusIcon status={displayStatus} />
+      </span>
       <span className="file-change__name" title={file.path}>
         {fileName}
       </span>
@@ -64,7 +67,15 @@ function GitFileRow({ file }: { file: GitFileEntry }) {
   );
 }
 
-function GitFileSubSection({ label, files }: { label: string; files: GitFileEntry[] }) {
+function GitFileSubSection({
+  label,
+  files,
+  statusKey,
+}: {
+  label: string;
+  files: GitFileEntry[];
+  statusKey: "indexStatus" | "workTreeStatus";
+}) {
   if (files.length === 0) return null;
   return (
     <div className="workspace__files-subsection">
@@ -73,7 +84,7 @@ function GitFileSubSection({ label, files }: { label: string; files: GitFileEntr
         <span className="workspace__files-subsection-count">{files.length}</span>
       </div>
       {files.map((file) => (
-        <GitFileRow key={file.path} file={file} />
+        <GitFileRow key={file.path} file={file} displayStatus={file[statusKey]} />
       ))}
     </div>
   );
@@ -324,9 +335,9 @@ export function Workspace({
                   const { staged, unstaged, untracked } = groupGitFiles(gitFiles);
                   return (
                     <>
-                      <GitFileSubSection label="Staged" files={staged} />
-                      <GitFileSubSection label="Unstaged" files={unstaged} />
-                      <GitFileSubSection label="Untracked" files={untracked} />
+                      <GitFileSubSection label="Staged" files={staged} statusKey="indexStatus" />
+                      <GitFileSubSection label="Unstaged" files={unstaged} statusKey="workTreeStatus" />
+                      <GitFileSubSection label="Untracked" files={untracked} statusKey="workTreeStatus" />
                     </>
                   );
                 })()}

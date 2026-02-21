@@ -91,6 +91,74 @@ export function FileActionIcon({
   );
 }
 
+/* ── Git status icons (for file change entries) ─── */
+
+export function GitStatusIcon({
+  status,
+  size = 14,
+  className,
+}: IconProps & { status: string }) {
+  const colorMap: Record<string, string> = {
+    M: "var(--warning)",
+    A: "var(--success)",
+    D: "var(--error)",
+    R: "var(--accent)",
+    "?": "var(--text-muted)",
+  };
+  const color = colorMap[status] ?? "var(--text-muted)";
+
+  return (
+    <span
+      className={`git-status-icon ${className ?? ""}`}
+      data-status={status}
+      style={{ color }}
+    >
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 14 14"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        {status === "M" ? (
+          /* pencil / edit */
+          <>
+            <path d="M8.5,2.5 L11.5,5.5 L5,12 L2,12 L2,9 Z" />
+            <line x1="7" y1="4" x2="10" y2="7" />
+          </>
+        ) : status === "A" ? (
+          /* plus */
+          <>
+            <line x1="7" y1="3" x2="7" y2="11" />
+            <line x1="3" y1="7" x2="11" y2="7" />
+          </>
+        ) : status === "D" ? (
+          /* minus */
+          <line x1="3" y1="7" x2="11" y2="7" />
+        ) : status === "R" ? (
+          /* right arrow */
+          <>
+            <line x1="2" y1="7" x2="12" y2="7" />
+            <polyline points="8,3.5 12,7 8,10.5" />
+          </>
+        ) : status === "?" ? (
+          /* question mark */
+          <>
+            <path d="M5,5 Q5,3 7,3 Q9,3 9,5 Q9,6.5 7,7 L7,8" />
+            <circle cx="7" cy="10.5" r="0.5" fill="currentColor" stroke="none" />
+          </>
+        ) : (
+          /* default: empty circle */
+          <circle cx="7" cy="7" r="5" fill="none" />
+        )}
+      </svg>
+    </span>
+  );
+}
+
 /* ── Task status icons (for plan entries) ───────── */
 
 export function TaskIcon({
