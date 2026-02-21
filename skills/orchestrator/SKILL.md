@@ -93,15 +93,13 @@ After each wave completes:
    - Report the issue to the user.
    - Offer to fix it directly or spawn a repair agent.
 
-### 6. Commit Strategy
+### 6. Commit After Each Wave
 
-After each wave's integration check passes:
+After each wave's integration check passes, **always commit** — every wave must be checkpointed before proceeding to the next.
 
 1. Review all files changed in this wave.
-2. Propose a commit grouping to the user. Default: one commit per wave with a summary message listing the UCs completed.
-3. Wait for user approval before committing.
-4. Use specific `git add <file>` (not `git add .`).
-5. Commit message format (use `spec.json`'s `type` field for the prefix if available, otherwise infer from context — e.g., `feat`, `fix`, `refactor`):
+2. Use specific `git add <file>` (not `git add .`).
+3. Commit with this message format (use `spec.json`'s `type` field for the prefix if available, otherwise infer from context — e.g., `feat`, `fix`, `refactor`):
    ```
    <type>(<spec-name>): <wave summary>
 
@@ -109,8 +107,7 @@ After each wave's integration check passes:
 
    Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
    ```
-
-Alternatively, if the user prefers more granular commits, offer one commit per task.
+4. Report the commit in the wave's progress summary.
 
 ### 7. Progress Reporting
 
