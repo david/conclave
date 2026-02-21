@@ -4,7 +4,7 @@ import type { EventModelSlice } from "../types.ts";
 const TIER_LABELS = ["Screen", "Command", "Events", "Projections", "Side Effects"] as const;
 
 type TierData = {
-  nodes: { name: string; isNew: boolean }[];
+  nodes: { name: string; isNew: boolean; fields?: Record<string, string> }[];
 };
 
 function buildTiers(slice: EventModelSlice): TierData[] {
@@ -12,13 +12,13 @@ function buildTiers(slice: EventModelSlice): TierData[] {
     nodes: slice.screen ? [{ name: slice.screen, isNew: false }] : [],
   };
   const command: TierData = {
-    nodes: slice.command ? [{ name: slice.command.name, isNew: !!slice.command.new }] : [],
+    nodes: slice.command ? [{ name: slice.command.name, isNew: !!slice.command.new, fields: slice.command.fields }] : [],
   };
   const events: TierData = {
-    nodes: (slice.events ?? []).map((e) => ({ name: e.name, isNew: !!e.new })),
+    nodes: (slice.events ?? []).map((e) => ({ name: e.name, isNew: !!e.new, fields: e.fields })),
   };
   const projections: TierData = {
-    nodes: (slice.projections ?? []).map((p) => ({ name: p.name, isNew: !!p.new })),
+    nodes: (slice.projections ?? []).map((p) => ({ name: p.name, isNew: !!p.new, fields: p.fields })),
   };
   const sideEffects: TierData = {
     nodes: (slice.sideEffects ?? []).map((s) => ({ name: s, isNew: false })),
@@ -29,7 +29,18 @@ function buildTiers(slice: EventModelSlice): TierData[] {
 
 const TIER_MODIFIERS = ["screen", "command", "event", "projection", "side-effect"] as const;
 
-function SliceColumn({ slice }: { slice: EventModelSlice }) {
+function hasFields(fields?: Record<string, string>): fields is Record<string, string> {
+  return !!fields && Object.keys(fields).length > 0;
+}
+
+type SliceColumnProps = {
+  slice: EventModelSlice;
+  sliceIndex: number;
+  expandedNodes: Set<string>;
+  onToggleNode: (key: string) => void;
+};
+
+function SliceColumn({ slice, sliceIndex, expandedNodes, onToggleNode }: SliceColumnProps) {
   const tiers = buildTiers(slice);
   const header = slice.label || slice.slice;
 
@@ -56,18 +67,37 @@ function SliceColumn({ slice }: { slice: EventModelSlice }) {
 
     elements.push(
       <div key={`tier-${i}`} className="em-diagram__tier">
-        {tier.nodes.map((node, j) => (
-          <div
-            key={j}
-            data-node-name={node.name}
-            className={
-              `em-diagram__node em-diagram__node--${modifier}` +
-              (node.isNew ? " em-diagram__node--new" : "")
-            }
-          >
-            {node.name}
-          </div>
-        ))}
+        {tier.nodes.map((node, j) => {
+          const expandable = hasFields(node.fields);
+          const nodeKey = `${sliceIndex}-${i}-${j}`;
+          const expanded = expandable && expandedNodes.has(nodeKey);
+
+          return (
+            <div
+              key={j}
+              data-node-name={node.name}
+              className={
+                `em-diagram__node em-diagram__node--${modifier}` +
+                (node.isNew ? " em-diagram__node--new" : "") +
+                (expandable ? " em-diagram__node--expandable" : "")
+              }
+              onClick={expandable ? () => onToggleNode(nodeKey) : undefined}
+            >
+              {node.name}
+              {expanded && (
+                <div className="em-diagram__fields">
+                  {Object.entries(node.fields!).map(([key, type]) => (
+                    <div key={key}>
+                      <span className="em-diagram__field-key">{key}</span>
+                      <span className="em-diagram__field-sep">:</span>
+                      <span className="em-diagram__field-type">{type}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>,
     );
   }
@@ -109,6 +139,19 @@ function collectFeedsPairs(slices: EventModelSlice[]): { source: string; target:
 export function EventModelDiagram({ slices }: { slices: EventModelSlice[] }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [arrows, setArrows] = useState<ArrowPath[]>([]);
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+
+  const handleToggleNode = useCallback((key: string) => {
+    setExpandedNodes((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }, []);
 
   const computeArrows = useCallback(() => {
     const container = containerRef.current;
@@ -177,7 +220,13 @@ export function EventModelDiagram({ slices }: { slices: EventModelSlice[] }) {
       </div>
       <div className="em-diagram__slices">
         {slices.map((slice, i) => (
-          <SliceColumn key={slice.slice || i} slice={slice} />
+          <SliceColumn
+            key={slice.slice || i}
+            slice={slice}
+            sliceIndex={i}
+            expandedNodes={expandedNodes}
+            onToggleNode={handleToggleNode}
+          />
         ))}
       </div>
       <svg

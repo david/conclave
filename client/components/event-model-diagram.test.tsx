@@ -238,6 +238,77 @@ describe("EventModelDiagram", () => {
     // SVG overlay present
     expect(html).toContain("em-diagram__arrows");
   });
+
+  test("renders expandable class on nodes with fields", () => {
+    const slices: EventModelSlice[] = [
+      {
+        slice: "with-fields",
+        command: { name: "CreateUser", fields: { userId: "string", email: "string" } },
+        events: [{ name: "UserCreated", fields: { userId: "string", timestamp: "Date" } }],
+      },
+    ];
+    const html = render(slices);
+
+    // Nodes with fields should have the expandable class
+    expect(html).toContain("em-diagram__node--expandable");
+  });
+
+  test("does not render expandable class on nodes without fields", () => {
+    const slices: EventModelSlice[] = [
+      {
+        slice: "no-fields",
+        command: { name: "DoSomething" },
+        events: [{ name: "SomethingDone" }],
+        projections: [{ name: "SomeView" }],
+        sideEffects: ["Notify"],
+        screen: "Dashboard",
+      },
+    ];
+    const html = render(slices);
+
+    // No nodes should have the expandable class
+    expect(html).not.toContain("em-diagram__node--expandable");
+  });
+
+  test("renders expandable class on projection nodes with fields", () => {
+    const slices: EventModelSlice[] = [
+      {
+        slice: "proj-fields",
+        projections: [{ name: "UserView", fields: { name: "string", role: "Role" } }],
+      },
+    ];
+    const html = render(slices);
+
+    expect(html).toContain("em-diagram__node--expandable");
+  });
+
+  test("screen and sideEffect nodes never have expandable class", () => {
+    const slices: EventModelSlice[] = [
+      {
+        slice: "screen-side",
+        screen: "MyScreen",
+        sideEffects: ["SendEmail"],
+      },
+    ];
+    const html = render(slices);
+
+    // Screen and sideEffects never have fields, so no expandable class
+    expect(html).not.toContain("em-diagram__node--expandable");
+  });
+
+  test("nodes with empty fields object do not get expandable class", () => {
+    const slices: EventModelSlice[] = [
+      {
+        slice: "empty-fields",
+        command: { name: "EmptyCmd", fields: {} },
+        events: [{ name: "EmptyEvt", fields: {} }],
+      },
+    ];
+    const html = render(slices);
+
+    // Empty fields should not be treated as expandable
+    expect(html).not.toContain("em-diagram__node--expandable");
+  });
 });
 
 describe("MarkdownText eventmodel integration", () => {
