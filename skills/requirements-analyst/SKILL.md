@@ -1,6 +1,6 @@
 ---
 name: req
-description: Analyze feature requests and produce structured requirements through systematic decomposition. Use when a user describes a feature, system, or change they want built and needs requirements analysis before implementation. Triggers on requests like "analyze requirements for...", "what are the use cases for...", "break down this feature...", or when entering a requirements/analysis mode. Also appropriate when a user describes something to build with ambiguous scope, multiple actors, or underspecified behavior.
+description: Analyze feature requests and produce structured requirements through systematic decomposition. Use when a user explicitly asks to analyze, decompose, or define requirements before building. Triggers on: "analyze requirements for...", "what are the use cases for...", "break down the requirements for...", "/req", "/req <topic>". Does NOT trigger on general feature requests meant for implementation — those go to the developer skill.
 ---
 
 # Requirements Analyst
@@ -32,6 +32,8 @@ Before doing any analysis, determine which spec this work belongs to.
    - Create `.conclave/specs/<name>/spec.json` with a `"description"` field summarizing the feature
    - Analysis output (use cases) will be written to `.conclave/specs/<name>/analysis.md`
 4. **Ambiguous match.** If multiple specs could apply, ask the user which one to use.
+
+**Epic resolution:** If the matched or created spec has an `"epic"` field in its `spec.json`, read the epic's `analysis.md` at `.conclave/specs/<epic>/analysis.md` first. The epic's analysis contains shared decisions, schemas, and constraints that apply to all child specs. Respect these when writing the child spec's use cases.
 
 All use case output goes into the resolved spec's `analysis.md`.
 
@@ -106,6 +108,11 @@ Use cases are both **emitted in chat** (as `conclave:usecase` fenced blocks for 
 
 <One-paragraph summary of what the feature does and why.>
 
+## Decisions
+
+- **<Decision name>**: <What was decided and why.>
+- ...
+
 ## Use Cases
 
 ### UC-1: <Name> (<Priority>)
@@ -120,6 +127,10 @@ Use cases are both **emitted in chat** (as `conclave:usecase` fenced blocks for 
 ### UC-2: <Name> (<Priority>, depends on UC-1)
 ...
 ```
+
+### Decisions vs Use Cases
+
+Not everything belongs in a use case. **Decisions** capture design choices — visual style, data schemas, conventions, layout rules, technology choices — that constrain the solution but aren't actor interactions. If you can't write a concrete When clause describing an actor action, it's a decision, not a use case.
 
 Maintain this file as use cases are added, modified, or removed during the conversation.
 
@@ -153,17 +164,7 @@ For multiple use cases, emit separate blocks one after another:
 ```
 ````
 
-### Field Definitions
-
-- **id**: Sequential identifier (UC-1, UC-2, etc.)
-- **name**: Short, action-oriented name (e.g. "Login with email/password")
-- **actor**: The role performing the action (e.g. "End User", "Admin", "System")
-- **summary**: One sentence describing the use case purpose
-- **given**: Preconditions that must be true before the action (BDD Given)
-- **when**: The steps the actor takes (BDD When)
-- **then**: The expected outcomes after the action (BDD Then)
-- **priority**: One of `"high"`, `"medium"`, or `"low"`
-- **dependencies** *(optional)*: Array of use case IDs (e.g. `["UC-1", "UC-3"]`) that must be completed before this one can be started. Omit if the use case has no dependencies.
+Field definitions for each JSON property are in `references/analysis-guidance.md`.
 
 ### Guidelines
 

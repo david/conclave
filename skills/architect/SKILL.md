@@ -20,6 +20,8 @@ Model the event architecture for each use case — commands, domain events, proj
 
 Resolve the spec name. Read `.conclave/specs/<spec-name>/analysis.md` and `spec.json`. If ambiguous, list `.conclave/specs/` and ask.
 
+**Epic resolution:** If `spec.json` contains an `"epic"` field, read the epic's `analysis.md` at `.conclave/specs/<epic>/analysis.md` first. The epic's analysis contains shared decisions, schemas, and constraints that apply to all child specs. Load this context before modeling events for the child spec's use cases.
+
 ### 2. Load Codebase Architecture
 
 Read `CLAUDE.md`, then read the key architectural files:
@@ -43,45 +45,54 @@ For each use case (or group of related use cases), determine:
 
 ### 4. Augment analysis.md
 
-Add an `#### Event Model` subsection under each use case heading in analysis.md. Do not alter existing use case content (Actor, Summary, Given/When/Then) — append the event model below it.
+Add an `## Event Model` section after the use cases in analysis.md. Do not alter existing use case content. Emit one `conclave:eventmodel` fenced code block per slice, both in chat and in analysis.md.
 
 #### Format
 
-```markdown
-### UC-1: <Name> (<Priority>)
-- **Actor:** <actor>
-- **Summary:** ...
-- **Given:** ...
-- **When:** ...
-- **Then:** ...
+Each slice is a JSON block. See the parent epic's analysis.md (`.conclave/specs/event-model-diagram/analysis.md`) for the full schema reference. Minimal example:
 
-#### Event Model
-**Command:** `command_name` — <trigger description>
-- field: type
-
-**Events:**
-- `EventName` (new/existing) — <what fact this records>
-  - field: type
-
-**Projections:**
-- `ProjectionName` (new/existing) — <what state it derives>
-  - State shape: `{ field: type }`
-  - Handles: `EventName` → <state transition>
-
-**Side Effects:**
-- WS broadcast: <what clients receive>
-- Client slice: `sliceName` handles `EventName` → <state change>
-- ACP: <subprocess interaction, if any>
+````
+```conclave:eventmodel
+{
+  "slice": "fill-inputs",
+  "label": "Fill Inputs",
+  "screen": "Input Form",
+  "command": {
+    "name": "FillInputs",
+    "new": true,
+    "fields": { "packetSessionId": "UUID", "userId": "UUID" }
+  },
+  "events": [
+    {
+      "name": "InputFilled",
+      "new": true,
+      "fields": { "inputId": "UUID", "value": "Custom" },
+      "feeds": ["MlsLookup"]
+    }
+  ],
+  "projections": [
+    {
+      "name": "MlsLookup",
+      "new": true,
+      "feeds": ["FillMlsInputs"]
+    }
+  ],
+  "sideEffects": [
+    "Broadcast InputFilled to session clients"
+  ]
+}
 ```
+````
 
-If use cases share the same event flow and were grouped by the analyst, add one event model section for the group.
+All tiers are optional — a reactive slice may have only projections. Use `feeds` to declare cross-slice connections by target node name.
+
+If use cases share the same event flow and were grouped by the analyst, emit one slice for the group.
 
 #### Guidelines
 
-- **Flag new vs existing** for every event, command, and projection.
-- **Name concretely.** Use actual TypeScript type names and field names. `SpecScanned` not "a scan event".
+- **Flag new vs existing** via the `new` boolean on commands, events, and projections.
+- **Name concretely.** Use actual TypeScript type names (`PromptSubmitted`, not "a prompt event") but don't specify file paths or function signatures — that's the planner's job.
 - **Follow existing conventions.** Events extend `BaseEvent` or `BaseGlobalEvent`. Commands use `{ command: string }`. Projections extend `Projection<S>`.
-- **Keep it architectural.** Focus on *what data flows where*, not file paths or function names — that's the planner's job.
 - **Calibrate depth.** Match effort to scope.
 
 ### 5. Confirm with User

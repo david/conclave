@@ -1,0 +1,4 @@
+{
+  "description": "Update architect skill to emit conclave:eventmodel blocks instead of markdown event model sections",
+  "epic": "event-model-diagram"
+}

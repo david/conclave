@@ -15,6 +15,7 @@ Resolve the spec name from the user's request. The spec directory is `.conclave/
 
 - Read `.conclave/specs/<spec-name>/analysis.md` — this contains the use cases and, if the architect has run, event model sections (commands, events, projections, side effects) under each use case.
 - Read `.conclave/specs/<spec-name>/spec.json` if it exists — for description, type, and epic context.
+- **Epic resolution:** If `spec.json` contains an `"epic"` field, read the epic's `analysis.md` at `.conclave/specs/<epic>/analysis.md` first. The epic's analysis contains shared decisions, schemas, and constraints that apply to all child specs. Load this context before planning the child spec's implementation.
 - If the spec name is ambiguous or missing, list `.conclave/specs/` and ask.
 
 ### 2. Load Project Context
@@ -23,12 +24,19 @@ Read `CLAUDE.md` at the project root. This describes the architecture, file layo
 
 Read key files referenced in CLAUDE.md (types, entry points, existing slices) to understand current patterns. Reference specific existing files as anchors for where new code fits.
 
-### 3. Parse Use Cases
+### 3. Parse Use Cases and Event Models
 
 Extract all `conclave:usecase` blocks from analysis.md. For each use case, note:
 - **id** and **dependencies** — determines implementation order
 - **actor** — System use cases are backend; End User use cases touch UI
 - **given/when/then** — maps to preconditions, handlers, and assertions
+
+Extract all `conclave:eventmodel` blocks from analysis.md (if present). For each slice, note:
+- **command** — maps to a command handler and command type
+- **events** — map to event types and slice reducers
+- **projections** — map to read model classes and state types
+- **sideEffects** — map to WS broadcasts, ACP calls, or client slice updates
+- **feeds** — cross-slice connections inform integration points and test boundaries
 
 ### 4. Produce the Implementation Plan
 

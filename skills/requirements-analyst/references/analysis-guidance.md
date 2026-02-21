@@ -36,3 +36,15 @@ Only when the feature warrants it. Check:
 - **Data**: Retention, backup, migration, GDPR/privacy
 
 Present NFRs separately from use cases — they crosscut multiple use cases.
+
+## conclave:usecase Field Definitions
+
+- **id**: Sequential identifier (UC-1, UC-2, etc.)
+- **name**: Short, action-oriented name (e.g. "Login with email/password")
+- **actor**: The role performing the action (e.g. "End User", "Admin", "System")
+- **summary**: One sentence describing the use case purpose
+- **given**: Preconditions that must be true before the action (BDD Given)
+- **when**: The steps the actor takes (BDD When)
+- **then**: The expected outcomes after the action (BDD Then)
+- **priority**: One of `"high"`, `"medium"`, or `"low"`
+- **dependencies** *(optional)*: Array of use case IDs (e.g. `["UC-1", "UC-3"]`) that must be completed before this one can be started. Omit if the use case has no dependencies.

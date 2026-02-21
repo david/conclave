@@ -1,0 +1,4 @@
+{
+  "description": "Update planner skill to parse conclave:eventmodel blocks from analysis.md when producing implementation plans",
+  "epic": "event-model-diagram"
+}
