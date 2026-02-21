@@ -176,6 +176,16 @@ For multiple use cases, emit separate blocks one after another:
 7. **One block per use case.** Each `conclave:usecase` block should contain exactly one JSON object. This allows use cases to appear in the workspace incrementally as they are produced.
 8. **Iterative refinement.** If the user asks to revise, output **only the changed use cases** — not the entire set. Unchanged use cases should be omitted. This keeps responses focused and avoids redundant output. **Always update the spec's `analysis.md`** to reflect the current state of all use cases (additions, modifications, and removals) so the file stays in sync with the conversation.
 
+### Next Step
+
+After all use cases are finalized, output a copyable command for the next phase:
+
+```
+/arq <spec-name>
+```
+
+Replace `<spec-name>` with the resolved spec directory name (e.g. `/arq git-status-files`). This lets the user paste it into a new session to begin architecture.
+
 ## Anti-Patterns to Avoid
 
 - **Implementation leaking in**: Requirements describe *what*, not *how*. "User can filter results" not "Add a SQL WHERE clause."
