@@ -7,6 +7,7 @@ export const sessionSwitchedSlice = createSlice("SessionSwitched", (state, event
     ...initialState,
     sessions: state.sessions,
     specs: state.specs,
+    gitFiles: state.gitFiles,
     sessionId: event.sessionId,
   };
 });

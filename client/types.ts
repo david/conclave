@@ -37,13 +37,12 @@ export type UseCase = {
   dependencies?: string[];
 };
 
-export type FileChangeAction = "modified" | "deleted";
-
-export type FileChangeInfo = {
-  filePath: string;
-  action: FileChangeAction;
-  toolCallId: string;
-  status: string;
+export type GitFileEntry = {
+  path: string;
+  indexStatus: string;
+  workTreeStatus: string;
+  linesAdded: number;
+  linesDeleted: number;
 };
 
 export type TextBlock = { type: "text"; text: string };
@@ -78,7 +77,7 @@ export type AppState = {
   messages: Message[];
   streamingContent: ContentBlock[];
   planEntries: PlanEntryInfo[];
-  fileChanges: FileChangeInfo[];
+  gitFiles: GitFileEntry[];
   specs: SpecInfo[];
   isProcessing: boolean;
   creatingSession: boolean;
@@ -92,7 +91,7 @@ export const initialState: AppState = {
   messages: [],
   streamingContent: [],
   planEntries: [],
-  fileChanges: [],
+  gitFiles: [],
   specs: [],
   isProcessing: false,
   creatingSession: false,
@@ -103,4 +102,8 @@ export const initialState: AppState = {
 // Transient client-side event (not persisted server-side, not replayed)
 type SessionInitiated = { type: "SessionInitiated" };
 
-export type ClientEvent = WsEvent | SessionInitiated;
+// Explicit type to ensure createSlice("GitStatusUpdated", ...) compiles
+// even if the server types haven't been updated yet.
+type GitStatusUpdatedEvent = { type: "GitStatusUpdated"; files: GitFileEntry[]; seq: number; timestamp: number };
+
+export type ClientEvent = WsEvent | SessionInitiated | GitStatusUpdatedEvent;

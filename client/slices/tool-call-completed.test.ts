@@ -42,39 +42,6 @@ describe("toolCallCompletedSlice", () => {
     }
   });
 
-  test("updates file change status", () => {
-    const withFileChange: AppState = {
-      ...initialState,
-      fileChanges: [{
-        filePath: "/foo.ts",
-        action: "modified",
-        toolCallId: "tc1",
-        status: "pending",
-      }],
-    };
-    const state = toolCallCompletedSlice(withFileChange, makeToolCallCompleted({}));
-    expect(state.fileChanges[0].status).toBe("completed");
-  });
-
-  test("handles failed status", () => {
-    const withFileChange: AppState = {
-      ...initialState,
-      fileChanges: [{
-        filePath: "/foo.ts",
-        action: "modified",
-        toolCallId: "tc1",
-        status: "pending",
-      }],
-    };
-    const state = toolCallCompletedSlice(withFileChange, makeToolCallCompleted({ status: "failed" }));
-    expect(state.fileChanges[0].status).toBe("failed");
-  });
-
-  test("ignores unknown toolCallId for file changes", () => {
-    const state = toolCallCompletedSlice(initialState, makeToolCallCompleted({ toolCallId: "unknown" }));
-    expect(state.fileChanges).toHaveLength(0);
-  });
-
   test("ignores unrelated events", () => {
     const event = { type: "AgentText", text: "hi", seq: 1, timestamp: Date.now(), sessionId: "s1" } as ClientEvent;
     const state = toolCallCompletedSlice(initialState, event);

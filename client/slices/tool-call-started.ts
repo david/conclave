@@ -1,12 +1,9 @@
 import type { ToolCallInfo } from "../types.ts";
 import { createSlice } from "./create-slice.ts";
-import { extractFilePath, kindToAction } from "./utils.ts";
 
-/** ToolCallStarted → adds tool call to streaming content, tracks file changes. */
+/** ToolCallStarted → adds tool call to streaming content. */
 export const toolCallStartedSlice = createSlice("ToolCallStarted", (state, event) => {
-  let { streamingContent, fileChanges } = state;
-
-  // --- streaming content ---
+  let { streamingContent } = state;
 
   // Deduplicate: ACP agent sends tool_call twice (stream + message completion)
   const alreadyExists = streamingContent.some(
@@ -26,27 +23,5 @@ export const toolCallStartedSlice = createSlice("ToolCallStarted", (state, event
     streamingContent = [...streamingContent, { type: "tool_call" as const, toolCall }];
   }
 
-  // --- file changes ---
-
-  const filePath = extractFilePath(event.input);
-  const action = kindToAction(event.kind);
-  if (filePath && action && !filePath.includes(".claude/plans/")) {
-    const idx = fileChanges.findIndex((f) => f.filePath === filePath);
-    if (idx !== -1) {
-      fileChanges = [...fileChanges];
-      fileChanges[idx] = {
-        ...fileChanges[idx],
-        action,
-        toolCallId: event.toolCallId,
-        status: "pending",
-      };
-    } else {
-      fileChanges = [
-        ...fileChanges,
-        { filePath, action, toolCallId: event.toolCallId, status: "pending" },
-      ];
-    }
-  }
-
-  return { ...state, streamingContent, fileChanges };
+  return { ...state, streamingContent };
 });

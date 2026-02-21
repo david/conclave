@@ -7,6 +7,7 @@ import { createLatestSessionProjection } from "./projections/latest-session.ts";
 import { createSessionListProjection, buildSessionList } from "./projections/session-list.ts";
 import { scanSpecs } from "./spec-scanner.ts";
 import { watchSpecs } from "./spec-watcher.ts";
+import { startGitStatusPoller } from "./git-status-poller.ts";
 
 // Pluggable static asset handler — set via setStaticAssetHandler() by compile.ts for embedded assets
 let serveStaticAsset: ((pathname: string) => Response | null) | null = null;
@@ -32,6 +33,18 @@ let latestSpecListEvent: DomainEvent | null = null;
 store.subscribe((event) => {
   if (event.type === "SpecListUpdated") {
     latestSpecListEvent = event;
+    // Broadcast to all connected clients
+    for (const [ws] of wsStates) {
+      sendWs(ws, event);
+    }
+  }
+});
+
+// Track latest GitStatusUpdated for replay on WS connect, and broadcast to all clients
+let latestGitStatusEvent: DomainEvent | null = null;
+store.subscribe((event) => {
+  if (event.type === "GitStatusUpdated") {
+    latestGitStatusEvent = event;
     // Broadcast to all connected clients
     for (const [ws] of wsStates) {
       sendWs(ws, event);
@@ -159,6 +172,11 @@ const server = Bun.serve<{ requestedSessionId: string | null }>({
       // Send latest spec list if available
       if (latestSpecListEvent) {
         sendWs(ws, latestSpecListEvent);
+      }
+
+      // Send latest git status if available
+      if (latestGitStatusEvent) {
+        sendWs(ws, latestGitStatusEvent);
       }
 
       // Determine which session to replay: prefer URL-requested, fall back to latest
@@ -389,6 +407,15 @@ bridge.start().then(async () => {
   } catch (err) {
     console.error("Failed to scan specs:", err);
   }
+
+  // Start git status poller
+  startGitStatusPoller({
+    cwd: CWD,
+    intervalMs: 3000,
+    onUpdate: (files) => {
+      store.appendGlobal({ type: "GitStatusUpdated", files });
+    },
+  });
 
   // Always create a fresh session to start with
   try {

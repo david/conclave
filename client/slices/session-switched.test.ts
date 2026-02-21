@@ -1,7 +1,7 @@
 import { describe, test, expect } from "bun:test";
 import { sessionSwitchedSlice } from "./session-switched.ts";
 import { initialState } from "../types.ts";
-import type { SpecInfo } from "../types.ts";
+import type { SpecInfo, GitFileEntry } from "../types.ts";
 import type { WsEvent } from "../../server/types.ts";
 
 const switchEvent: WsEvent = {
@@ -30,6 +30,17 @@ describe("sessionSwitchedSlice", () => {
       switchEvent,
     );
     expect(state.specs).toEqual(specs);
+  });
+
+  test("preserves gitFiles across session switch", () => {
+    const gitFiles: GitFileEntry[] = [
+      { path: "src/app.ts", indexStatus: "M", workTreeStatus: " ", linesAdded: 10, linesDeleted: 2 },
+    ];
+    const state = sessionSwitchedSlice(
+      { ...initialState, sessionId: "s1", gitFiles },
+      switchEvent,
+    );
+    expect(state.gitFiles).toEqual(gitFiles);
   });
 
   test("ignores non-SessionSwitched events", () => {

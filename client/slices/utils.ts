@@ -1,17 +1,4 @@
-import type { FileChangeAction, ContentBlock, ToolCallInfo } from "../types.ts";
-
-export function extractFilePath(input: unknown): string | null {
-  if (!input || typeof input !== "object") return null;
-  const obj = input as Record<string, unknown>;
-  const p = obj.file_path ?? obj.path;
-  return typeof p === "string" ? p : null;
-}
-
-export function kindToAction(kind: string | null | undefined): FileChangeAction | null {
-  if (kind === "edit") return "modified";
-  if (kind === "delete") return "deleted";
-  return null;
-}
+import type { ContentBlock, ToolCallInfo } from "../types.ts";
 
 /** Append text to the last streaming block if it matches `blockType`, otherwise push a new block. */
 export function appendStreamingText(

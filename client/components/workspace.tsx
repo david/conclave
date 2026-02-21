@@ -1,14 +1,42 @@
 import React, { useState, useEffect, useRef } from "react";
-import { TaskIcon, FileActionIcon, Chevron } from "./icons.tsx";
-import type { PlanEntryInfo, FileChangeInfo, SpecInfo } from "../reducer.ts";
+import { TaskIcon, Chevron } from "./icons.tsx";
+import type { PlanEntryInfo, GitFileEntry, SpecInfo } from "../reducer.ts";
 
 type SectionId = "specs" | "tasks" | "files";
 
 type WorkspaceProps = {
   entries: PlanEntryInfo[];
-  fileChanges: FileChangeInfo[];
+  gitFiles: GitFileEntry[];
   specs: SpecInfo[];
 };
+
+export type GitFileGroups = {
+  staged: GitFileEntry[];
+  unstaged: GitFileEntry[];
+  untracked: GitFileEntry[];
+};
+
+/** Partition git files into staged, unstaged, and untracked groups. A file can appear in both staged and unstaged. */
+export function groupGitFiles(files: GitFileEntry[]): GitFileGroups {
+  const staged: GitFileEntry[] = [];
+  const unstaged: GitFileEntry[] = [];
+  const untracked: GitFileEntry[] = [];
+
+  for (const file of files) {
+    if (file.indexStatus === "?" && file.workTreeStatus === "?") {
+      untracked.push(file);
+      continue;
+    }
+    if (file.indexStatus !== " " && file.indexStatus !== "?") {
+      staged.push(file);
+    }
+    if (file.workTreeStatus !== " " && file.workTreeStatus !== "?") {
+      unstaged.push(file);
+    }
+  }
+
+  return { staged, unstaged, untracked };
+}
 
 function PlanEntry({ entry }: { entry: PlanEntryInfo }) {
   return (
@@ -24,20 +52,29 @@ function PlanEntry({ entry }: { entry: PlanEntryInfo }) {
   );
 }
 
-function FileChangeRow({ fileChange }: { fileChange: FileChangeInfo }) {
-  const fileName = fileChange.filePath.split("/").pop() || fileChange.filePath;
+function GitFileRow({ file }: { file: GitFileEntry }) {
+  const fileName = file.path.split("/").pop() || file.path;
 
   return (
-    <div className="file-change" data-status={fileChange.status}>
-      <span className="file-change__icon">
-        <FileActionIcon action={fileChange.action} />
-      </span>
-      <span className="file-change__name" title={fileChange.filePath}>
+    <div className="file-change">
+      <span className="file-change__name" title={file.path}>
         {fileName}
       </span>
-      <span className={`file-change__action file-change__action--${fileChange.action}`}>
-        {fileChange.action}
-      </span>
+    </div>
+  );
+}
+
+function GitFileSubSection({ label, files }: { label: string; files: GitFileEntry[] }) {
+  if (files.length === 0) return null;
+  return (
+    <div className="workspace__files-subsection">
+      <div className="workspace__files-subsection-header">
+        <span className="workspace__files-subsection-label">{label}</span>
+        <span className="workspace__files-subsection-count">{files.length}</span>
+      </div>
+      {files.map((file) => (
+        <GitFileRow key={file.path} file={file} />
+      ))}
     </div>
   );
 }
@@ -147,18 +184,19 @@ function tasksSummary(entries: PlanEntryInfo[]): string {
   return `${completed} / ${entries.length} completed`;
 }
 
-function filesSummary(fileChanges: FileChangeInfo[]): string {
-  const count = fileChanges.length;
-  return `${count} file${count === 1 ? "" : "s"} changed`;
+function filesSummary(gitFiles: GitFileEntry[]): string {
+  // Deduplicated count — a file in both staged and unstaged still counts once
+  const count = gitFiles.length;
+  return `${count} file${count === 1 ? "" : "s"}`;
 }
 
 export function Workspace({
   entries,
-  fileChanges,
+  gitFiles,
   specs,
 }: WorkspaceProps) {
   const hasEntries = entries.length > 0;
-  const hasFiles = fileChanges.length > 0;
+  const hasFiles = gitFiles.length > 0;
   const hasSpecs = specs.length > 0;
   const hasContent = hasEntries || hasFiles || hasSpecs;
 
@@ -276,15 +314,22 @@ export function Workspace({
               <span className="workspace__section-label">Files</span>
               {expandedSection !== "files" && (
                 <span className="workspace__section-summary">
-                  {filesSummary(fileChanges)}
+                  {filesSummary(gitFiles)}
                 </span>
               )}
             </button>
             {expandedSection === "files" && (
               <div className="workspace__files">
-                {fileChanges.map((fc) => (
-                  <FileChangeRow key={fc.filePath} fileChange={fc} />
-                ))}
+                {(() => {
+                  const { staged, unstaged, untracked } = groupGitFiles(gitFiles);
+                  return (
+                    <>
+                      <GitFileSubSection label="Staged" files={staged} />
+                      <GitFileSubSection label="Unstaged" files={unstaged} />
+                      <GitFileSubSection label="Untracked" files={untracked} />
+                    </>
+                  );
+                })()}
               </div>
             )}
           </div>

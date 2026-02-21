@@ -148,6 +148,23 @@ export type SpecListUpdated = BaseGlobalEvent & {
   specs: SpecInfo[];
 };
 
+// --- Git Status ---
+
+export type GitFileStatus = " " | "M" | "A" | "D" | "R" | "?" | "!";
+
+export type GitFileEntry = {
+  path: string;
+  indexStatus: GitFileStatus;
+  workTreeStatus: GitFileStatus;
+  linesAdded: number;
+  linesDeleted: number;
+};
+
+export type GitStatusUpdated = BaseGlobalEvent & {
+  type: "GitStatusUpdated";
+  files: GitFileEntry[];
+};
+
 export type SessionListEvent = {
   type: "SessionList";
   sessions: Array<{ sessionId: string; name: string; title: string | null; firstPrompt: string | null }>;
@@ -173,7 +190,7 @@ export type SessionEvent =
   | UsageUpdated
   | SessionInfoUpdated;
 
-export type GlobalEvent = SpecListUpdated;
+export type GlobalEvent = SpecListUpdated | GitStatusUpdated;
 
 export type DomainEvent = SessionEvent | GlobalEvent;
 
