@@ -74,27 +74,22 @@ export function GitFileRow({ file, displayStatus }: { file: GitFileEntry; displa
   );
 }
 
-function GitFileSubSection({
-  label,
-  files,
-  statusKey,
-}: {
-  label: string;
-  files: GitFileEntry[];
-  statusKey: "indexStatus" | "workTreeStatus";
-}) {
-  if (files.length === 0) return null;
-  return (
-    <div className="workspace__files-subsection">
-      <div className="workspace__files-subsection-header">
-        <span className="workspace__files-subsection-label">{label}</span>
-        <span className="workspace__files-subsection-count">{files.length}</span>
-      </div>
-      {files.map((file) => (
-        <GitFileRow key={file.path} file={file} displayStatus={file[statusKey]} />
-      ))}
-    </div>
-  );
+/** Sort order for git statuses: staged first, then unstaged, then untracked. */
+const statusOrder: Record<string, number> = { A: 0, M: 1, D: 2, R: 3, "?": 4 };
+
+function effectiveStatus(file: GitFileEntry): string {
+  // Prefer index status (staged) over work-tree status
+  if (file.indexStatus !== " " && file.indexStatus !== "?") return file.indexStatus;
+  return file.workTreeStatus;
+}
+
+function sortedGitFiles(files: GitFileEntry[]): GitFileEntry[] {
+  return [...files].sort((a, b) => {
+    const sa = statusOrder[effectiveStatus(a)] ?? 9;
+    const sb = statusOrder[effectiveStatus(b)] ?? 9;
+    if (sa !== sb) return sa - sb;
+    return a.path.localeCompare(b.path);
+  });
 }
 
 function SpecIcon({ type }: { type: string }) {
@@ -342,16 +337,9 @@ export function Workspace({
             </button>
             {expandedSection === "files" && (
               <div className="workspace__files">
-                {(() => {
-                  const { staged, unstaged, untracked } = groupGitFiles(gitFiles);
-                  return (
-                    <>
-                      <GitFileSubSection label="Staged" files={staged} statusKey="indexStatus" />
-                      <GitFileSubSection label="Unstaged" files={unstaged} statusKey="workTreeStatus" />
-                      <GitFileSubSection label="Untracked" files={untracked} statusKey="workTreeStatus" />
-                    </>
-                  );
-                })()}
+                {sortedGitFiles(gitFiles).map((file) => (
+                  <GitFileRow key={file.path} file={file} displayStatus={effectiveStatus(file)} />
+                ))}
               </div>
             )}
           </div>
