@@ -26,9 +26,9 @@ When unsure, **start small and ask** whether the user wants deeper analysis. Del
 Before doing any analysis, determine which spec this work belongs to.
 
 1. **Scan existing specs.** Read each `spec.json` in `.conclave/specs/*/` to get the description of every existing spec.
-2. **Match.** If an existing spec is clearly relevant to the user's request, use it — read its `analysis.md` (if it exists) so you can build on prior work.
+2. **Match.** If an existing spec covers the same feature area or UI component as the user's request, use it — read its `analysis.md` (if it exists) so you can build on prior work. A spec about "git status in Files panel" matches a request to "add diff stats to the files view" but not "add a settings page".
 3. **Create.** If no existing spec matches, create a new one:
-   - Pick a short, kebab-case directory name (e.g. `git-status-files`)
+   - Derive a short, kebab-case directory name from the core noun/verb of the feature (e.g. "Replace Files panel with git status" → `git-status-files`)
    - Create `.conclave/specs/<name>/spec.json` with a `"description"` field summarizing the feature
    - Analysis output (use cases) will be written to `.conclave/specs/<name>/analysis.md`
 4. **Ambiguous match.** If multiple specs could apply, ask the user which one to use.
@@ -53,13 +53,7 @@ Good clarifying questions target:
 
 ### 2. Identify Actors
 
-List all actors who interact with the feature. Common actor types:
-- **End User** — the person using the UI
-- **Admin** — elevated privileges
-- **System** — automated/background processes (timers, webhooks, cron)
-- **External Service** — third-party APIs or integrations
-
-Use consistent actor names across all use cases.
+List all actors who interact with the feature. Use consistent names across all use cases. See `references/analysis-guidance.md` for common actor types.
 
 ### 3. Decompose into Atomic Use Cases
 
@@ -86,25 +80,11 @@ For each use case:
 
 ### 5. Discover Edge Cases
 
-Systematically probe each use case for:
-- **Empty/zero states**: What if there's no data? First-time user? Empty list?
-- **Boundaries**: Max length, min value, pagination limits, rate limits
-- **Failures**: Network error, timeout, invalid input, expired session, insufficient permissions
-- **Concurrency**: Two users editing the same thing, duplicate submissions, race conditions
-- **State transitions**: What happens mid-flow? (browser refresh, back button, session expiry)
-
-Don't enumerate every edge case upfront. Identify the most likely and most damaging ones. Offer to go deeper if the user wants.
+Identify the most likely and most damaging edge cases for each use case. Don't enumerate every edge case upfront — offer to go deeper if the user wants. See `references/analysis-guidance.md` for the probe checklist.
 
 ### 6. Identify Non-Functional Requirements
 
-Only when the feature warrants it. Check:
-- **Performance**: Response time targets, throughput, data volume
-- **Security**: Authentication, authorization, data sensitivity, input validation
-- **Accessibility**: Keyboard navigation, screen readers, contrast
-- **Compatibility**: Browsers, devices, screen sizes
-- **Data**: Retention, backup, migration, GDPR/privacy
-
-Present NFRs separately from use cases — they crosscut multiple use cases.
+Only when the feature warrants it. Present NFRs separately from use cases — they crosscut multiple use cases. See `references/analysis-guidance.md` for the NFR checklist.
 
 ### 7. Prioritize
 
@@ -117,7 +97,31 @@ Not everything is high priority. If everything is high, nothing is.
 
 ## Output Format
 
-Use cases are both **emitted in chat** (as `conclave:usecase` fenced blocks for workspace rendering) and **written to the spec's `analysis.md`** file (in the markdown format shown in existing specs — see `.conclave/specs/*/analysis.md` for the convention).
+Use cases are both **emitted in chat** (as `conclave:usecase` fenced blocks for workspace rendering) and **written to the spec's `analysis.md`** file.
+
+### analysis.md Template
+
+```markdown
+# <Feature Name>
+
+<One-paragraph summary of what the feature does and why.>
+
+## Use Cases
+
+### UC-1: <Name> (<Priority>)
+- **Actor:** <actor>
+- **Summary:** <one sentence>
+- **Given:** <preconditions>
+- **When:** <action steps>
+- **Then:**
+  - <expected outcome 1>
+  - <expected outcome 2>
+
+### UC-2: <Name> (<Priority>, depends on UC-1)
+...
+```
+
+Maintain this file as use cases are added, modified, or removed during the conversation.
 
 Output **one fenced code block per use case**, each tagged `conclave:usecase` and containing a single JSON object:
 
@@ -170,7 +174,7 @@ For multiple use cases, emit separate blocks one after another:
 5. **Prioritize realistically.** Not everything is high priority. Use `high` for core functionality, `medium` for important but non-critical features, and `low` for nice-to-haves.
 6. **You may include explanatory text** outside the code blocks — discussion, questions, rationale — but all use cases must be inside `conclave:usecase` blocks.
 7. **One block per use case.** Each `conclave:usecase` block should contain exactly one JSON object. This allows use cases to appear in the workspace incrementally as they are produced.
-8. **Iterative refinement.** If the user asks to revise, output **only the changed use cases** — not the entire set. Unchanged use cases should be omitted. This keeps responses focused and avoids redundant output.
+8. **Iterative refinement.** If the user asks to revise, output **only the changed use cases** — not the entire set. Unchanged use cases should be omitted. This keeps responses focused and avoids redundant output. **Always update the spec's `analysis.md`** to reflect the current state of all use cases (additions, modifications, and removals) so the file stays in sync with the conversation.
 
 ## Anti-Patterns to Avoid
 
