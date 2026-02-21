@@ -21,6 +21,20 @@ When unsure, **start small and ask** whether the user wants deeper analysis. Del
 
 ## Workflow
 
+### 0. Resolve or Create Spec
+
+Before doing any analysis, determine which spec this work belongs to.
+
+1. **Scan existing specs.** Read each `spec.json` in `.conclave/specs/*/` to get the description of every existing spec.
+2. **Match.** If an existing spec is clearly relevant to the user's request, use it — read its `analysis.md` (if it exists) so you can build on prior work.
+3. **Create.** If no existing spec matches, create a new one:
+   - Pick a short, kebab-case directory name (e.g. `git-status-files`)
+   - Create `.conclave/specs/<name>/spec.json` with a `"description"` field summarizing the feature
+   - Analysis output (use cases) will be written to `.conclave/specs/<name>/analysis.md`
+4. **Ambiguous match.** If multiple specs could apply, ask the user which one to use.
+
+All use case output goes into the resolved spec's `analysis.md`.
+
 ### 1. Understand Before Producing
 
 Read the full request. Identify:
@@ -102,6 +116,8 @@ Assign priority to each use case:
 Not everything is high priority. If everything is high, nothing is.
 
 ## Output Format
+
+Use cases are both **emitted in chat** (as `conclave:usecase` fenced blocks for workspace rendering) and **written to the spec's `analysis.md`** file (in the markdown format shown in existing specs — see `.conclave/specs/*/analysis.md` for the convention).
 
 Output **one fenced code block per use case**, each tagged `conclave:usecase` and containing a single JSON object:
 
