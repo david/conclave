@@ -1455,6 +1455,18 @@ body::before {
    Workspace — Files Section
    ============================================ */
 
+.git-file__additions {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--success);
+}
+
+.git-file__deletions {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--error-text);
+}
+
 /* ============================================
    Workspace — Specs Section
    ============================================ */

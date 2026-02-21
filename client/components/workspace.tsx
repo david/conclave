@@ -52,8 +52,9 @@ function PlanEntry({ entry }: { entry: PlanEntryInfo }) {
   );
 }
 
-function GitFileRow({ file, displayStatus }: { file: GitFileEntry; displayStatus: string }) {
+export function GitFileRow({ file, displayStatus }: { file: GitFileEntry; displayStatus: string }) {
   const fileName = file.path.split("/").pop() || file.path;
+  const hasLineChanges = file.linesAdded !== 0 || file.linesDeleted !== 0;
 
   return (
     <div className="file-change">
@@ -63,6 +64,12 @@ function GitFileRow({ file, displayStatus }: { file: GitFileEntry; displayStatus
       <span className="file-change__name" title={file.path}>
         {fileName}
       </span>
+      {hasLineChanges && (
+        <>
+          <span className="git-file__additions">{`+${file.linesAdded}`}</span>
+          <span className="git-file__deletions">{`-${file.linesDeleted}`}</span>
+        </>
+      )}
     </div>
   );
 }
@@ -195,10 +202,14 @@ function tasksSummary(entries: PlanEntryInfo[]): string {
   return `${completed} / ${entries.length} completed`;
 }
 
-function filesSummary(gitFiles: GitFileEntry[]): string {
+export function filesSummary(gitFiles: GitFileEntry[]): string {
   // Deduplicated count — a file in both staged and unstaged still counts once
   const count = gitFiles.length;
-  return `${count} file${count === 1 ? "" : "s"}`;
+  const totalAdded = gitFiles.reduce((sum, f) => sum + f.linesAdded, 0);
+  const totalDeleted = gitFiles.reduce((sum, f) => sum + f.linesDeleted, 0);
+  const base = `${count} file${count === 1 ? "" : "s"}`;
+  if (totalAdded === 0 && totalDeleted === 0) return base;
+  return `${base}  +${totalAdded} / -${totalDeleted}`;
 }
 
 export function Workspace({
