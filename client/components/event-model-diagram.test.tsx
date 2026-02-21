@@ -142,18 +142,15 @@ describe("EventModelDiagram", () => {
     expect(html).not.toContain('em-diagram__arrow"');
   });
 
-  test("renders tier labels in the left gutter", () => {
+  test("does not render tier labels (lane labels removed)", () => {
     const slices: EventModelSlice[] = [
       { slice: "test", events: [{ name: "E" }] },
     ];
     const html = render(slices);
 
-    expect(html).toContain("em-diagram__tier-label");
-    expect(html).toContain("Screen");
-    expect(html).toContain("Command");
-    expect(html).toContain("Events");
-    expect(html).toContain("Projections");
-    expect(html).toContain("Side Effects");
+    // Lane labels were removed — no tier label gutter should exist
+    expect(html).not.toContain("em-diagram__tier-label");
+    expect(html).not.toContain("em-diagram__tiers");
   });
 
   test("renders multiple events in a single tier", () => {
