@@ -103,6 +103,12 @@ export type ServiceProcess = {
   uptime: string;
 };
 
+export type MetaContextInfo = {
+  id: string;
+  name: string;
+  sessionIds: string[];
+};
+
 export type UsageInfo = {
   size: number;
   used: number;
@@ -119,6 +125,7 @@ export type AppState = {
   gitFiles: GitFileEntry[];
   specs: SpecInfo[];
   services: ServiceProcess[];
+  metaContexts: MetaContextInfo[];
   servicesAvailable: boolean;
   isProcessing: boolean;
   creatingSession: boolean;
@@ -135,6 +142,7 @@ export const initialState: AppState = {
   gitFiles: [],
   specs: [],
   services: [],
+  metaContexts: [],
   servicesAvailable: true,
   isProcessing: false,
   creatingSession: false,

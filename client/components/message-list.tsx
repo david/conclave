@@ -10,6 +10,7 @@ import type {
 import { ToolCallCard } from "./tool-call.tsx";
 import { ToolCallGroup } from "./tool-call-group.tsx";
 import { MarkdownText } from "./markdown-text.tsx";
+import type { NextBlockClickPayload } from "./next-block-button.tsx";
 import { Chevron } from "./icons.tsx";
 import { useCollapsible } from "../hooks/use-collapsible.ts";
 
@@ -17,6 +18,7 @@ type MessageListProps = {
   messages: Message[];
   streamingContent: ContentBlock[];
   isProcessing: boolean;
+  onNextBlockClick?: (payload: NextBlockClickPayload) => void;
 };
 
 type RenderSegment =
@@ -82,13 +84,15 @@ function ThoughtBlockView({ text }: { text: string }) {
 function RenderSegmentView({
   segment,
   role,
+  onNextBlockClick,
 }: {
   segment: RenderSegment;
   role: "user" | "assistant";
+  onNextBlockClick?: (payload: NextBlockClickPayload) => void;
 }) {
   if (segment.kind === "text") {
     if (role === "assistant") {
-      return <MarkdownText text={segment.block.text} />;
+      return <MarkdownText text={segment.block.text} onNextBlockClick={onNextBlockClick} />;
     }
     return <div className="message__text">{segment.block.text}</div>;
   }
@@ -110,7 +114,7 @@ function RenderSegmentView({
   return <ToolCallGroup blocks={segment.blocks} />;
 }
 
-function MessageBubble({ message }: { message: Message }) {
+function MessageBubble({ message, onNextBlockClick }: { message: Message; onNextBlockClick?: (payload: NextBlockClickPayload) => void }) {
   const segments = groupContentBlocks(message.content);
   return (
     <div className={`message message--${message.role}`}>
@@ -118,7 +122,7 @@ function MessageBubble({ message }: { message: Message }) {
         {message.role === "user" ? "You" : "Claude"}
       </div>
       {segments.map((segment, i) => (
-        <RenderSegmentView key={i} segment={segment} role={message.role} />
+        <RenderSegmentView key={i} segment={segment} role={message.role} onNextBlockClick={onNextBlockClick} />
       ))}
     </div>
   );
@@ -128,6 +132,7 @@ export function MessageList({
   messages,
   streamingContent,
   isProcessing,
+  onNextBlockClick,
 }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -149,13 +154,13 @@ export function MessageList({
         </div>
       )}
       {messages.map((msg, i) => (
-        <MessageBubble key={i} message={msg} />
+        <MessageBubble key={i} message={msg} onNextBlockClick={onNextBlockClick} />
       ))}
       {hasStreaming && (
         <div className="message message--assistant message--streaming">
           <div className="message__role">Claude</div>
           {streamingSegments.map((segment, i) => (
-            <RenderSegmentView key={i} segment={segment} role="assistant" />
+            <RenderSegmentView key={i} segment={segment} role="assistant" onNextBlockClick={onNextBlockClick} />
           ))}
         </div>
       )}

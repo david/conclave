@@ -131,6 +131,17 @@ export type SessionInfoUpdated = BaseEvent & {
   updatedAt?: string | null;
 };
 
+export type MetaContextCreated = BaseEvent & {
+  type: "MetaContextCreated";
+  metaContextId: string;
+  name: string;
+};
+
+export type SessionAddedToMetaContext = BaseEvent & {
+  type: "SessionAddedToMetaContext";
+  metaContextId: string;
+};
+
 // --- Spec System ---
 
 export type SpecPhase = "research" | "analysis" | "implementation";
@@ -165,9 +176,16 @@ export type GitStatusUpdated = BaseGlobalEvent & {
   files: GitFileEntry[];
 };
 
+export type MetaContextInfo = {
+  id: string;
+  name: string;
+  sessionIds: string[];
+};
+
 export type SessionListEvent = {
   type: "SessionList";
   sessions: Array<{ sessionId: string; name: string; title: string | null; firstPrompt: string | null }>;
+  metaContexts: MetaContextInfo[];
   seq: -1;
   timestamp: number;
 };
@@ -188,7 +206,9 @@ export type SessionEvent =
   | SessionDiscovered
   | SessionLoaded
   | UsageUpdated
-  | SessionInfoUpdated;
+  | SessionInfoUpdated
+  | MetaContextCreated
+  | SessionAddedToMetaContext;
 
 // --- Service Status ---
 
@@ -249,4 +269,11 @@ export type PermissionResponseCommand = {
   feedback?: string;
 };
 
-export type Command = SubmitPromptCommand | CancelCommand | CreateSessionCommand | SwitchSessionCommand | PermissionResponseCommand;
+export type NextBlockClickCommand = {
+  command: "next_block_click";
+  label: string;
+  commandText: string;
+  metaContext: string;
+};
+
+export type Command = SubmitPromptCommand | CancelCommand | CreateSessionCommand | SwitchSessionCommand | PermissionResponseCommand | NextBlockClickCommand;

@@ -1850,6 +1850,44 @@ body::before {
 }
 
 /* ============================================
+   Next Block Button
+   ============================================ */
+
+.next-block-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px;
+  margin: 8px 0;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-pill);
+  background: var(--accent-subtle);
+  color: var(--accent);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s, opacity 0.2s;
+}
+
+.next-block-btn:hover:not(:disabled) {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.next-block-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.next-block-btn:disabled,
+.next-block-btn--disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ============================================
    Use Case Cards — Inline in Chat
    ============================================ */
 

@@ -5,6 +5,7 @@ import { join } from "path";
 import { createSessionRegistry } from "./projections/session-registry.ts";
 import { createLatestSessionProjection } from "./projections/latest-session.ts";
 import { createSessionListProjection, buildSessionList } from "./projections/session-list.ts";
+import { createMetaContextRegistry } from "./projections/meta-context-registry.ts";
 import { scanSpecs } from "./spec-scanner.ts";
 import { watchSpecs } from "./spec-watcher.ts";
 import { startGitStatusPoller } from "./git-status-poller.ts";
@@ -25,6 +26,7 @@ const store = new EventStore();
 // Read models (projections)
 const sessionRegistry = createSessionRegistry(store);
 const latestSession = createLatestSessionProjection(store);
+const metaContextRegistry = createMetaContextRegistry(store, CWD);
 
 // Per-WS state (connection infrastructure — not domain state)
 type WsState = { currentSessionId: string | null; unsubscribe: (() => void) | null };
@@ -77,7 +79,7 @@ const bridge = new AcpBridge(CWD, (sessionId, payload) => {
 
 // Reactive session list broadcast — triggers whenever a session-affecting event lands
 function broadcastSessionList() {
-  const event = buildSessionList(sessionRegistry);
+  const event = buildSessionList(sessionRegistry, metaContextRegistry);
   for (const [ws] of wsStates) {
     sendWs(ws, event);
   }
@@ -85,7 +87,7 @@ function broadcastSessionList() {
 
 createSessionListProjection(store, sessionRegistry, () => {
   broadcastSessionList();
-});
+}, metaContextRegistry);
 
 function sendWs(ws: object, event: WsEvent) {
   try {
@@ -186,7 +188,7 @@ const server = Bun.serve<{ requestedSessionId: string | null }>({
       wsStates.set(ws, { currentSessionId: null, unsubscribe: null });
 
       // Send session list
-      sendWs(ws, buildSessionList(sessionRegistry));
+      sendWs(ws, buildSessionList(sessionRegistry, metaContextRegistry));
 
       // Send latest spec list if available
       if (latestSpecListEvent) {

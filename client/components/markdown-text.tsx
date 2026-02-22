@@ -1,10 +1,12 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import type { Components } from "react-markdown";
 import type { UseCase, EventModelSlice } from "../types.ts";
 import { EventModelDiagram } from "./event-model-diagram.tsx";
+import { NextBlockButton, parseNextBlock } from "./next-block-button.tsx";
+import type { NextBlockClickPayload } from "./next-block-button.tsx";
 
 const remarkPlugins = [remarkGfm];
 const rehypePlugins = [rehypeHighlight];
@@ -138,13 +140,16 @@ function parseEventModelSlice(json: string): EventModelSlice | null {
   }
 }
 
-const components: Components = {
+const baseComponents: Components = {
   a: ({ children, href, ...props }) => (
     <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
       {children}
     </a>
   ),
-  pre: ({ children, ...props }) => {
+};
+
+function makePreHandler(onNextBlockClick?: (payload: NextBlockClickPayload) => void): Components["pre"] {
+  return ({ children, ...props }) => {
     const codeChild = React.Children.toArray(children).find(
       (child) => React.isValidElement(child) && child.type === "code",
     ) as React.ReactElement<{ className?: string; children?: React.ReactNode }> | undefined;
@@ -153,6 +158,32 @@ const components: Components = {
     if (codeChild?.props?.className) {
       const match = /language-(\S+)/.exec(codeChild.props.className);
       if (match) language = match[1];
+    }
+
+    // Render conclave:next blocks as a button or warning
+    if (language === "conclave:next") {
+      const codeText = codeChild ? extractText(codeChild.props.children).replace(/\n$/, "") : "";
+      const parsed = parseNextBlock(codeText);
+      if (parsed.valid) {
+        if (parsed.metaContext) {
+          return (
+            <NextBlockButton
+              label={parsed.label}
+              command={parsed.command}
+              metaContext={parsed.metaContext}
+              onRun={onNextBlockClick ?? (() => {})}
+              disabled={false}
+            />
+          );
+        }
+        // Missing metaContext — render warning
+        return (
+          <span className="next-block-warning" style={{ color: "var(--text-muted)", fontStyle: "italic", fontSize: "13px" }}>
+            Next block missing metaContext
+          </span>
+        );
+      }
+      // Invalid JSON — fall through to normal code block
     }
 
     // Render conclave:usecase blocks as inline use case cards
@@ -180,10 +211,20 @@ const components: Components = {
         <pre {...props}>{children}</pre>
       </div>
     );
-  },
+  };
+}
+
+export type MarkdownTextProps = {
+  text: string;
+  onNextBlockClick?: (payload: NextBlockClickPayload) => void;
 };
 
-export function MarkdownText({ text }: { text: string }) {
+export function MarkdownText({ text, onNextBlockClick }: MarkdownTextProps) {
+  const memoComponents = useMemo<Components>(() => ({
+    ...baseComponents,
+    pre: makePreHandler(onNextBlockClick),
+  }), [onNextBlockClick]);
+
   // Extract all valid conclave:eventmodel slices from raw text
   const validSlices: EventModelSlice[] = [];
   const eventModelRegex = /```conclave:eventmodel\n([\s\S]*?)```/g;
@@ -198,7 +239,7 @@ export function MarkdownText({ text }: { text: string }) {
       <ReactMarkdown
         remarkPlugins={remarkPlugins}
         rehypePlugins={rehypePlugins}
-        components={components}
+        components={memoComponents}
       >
         {text}
       </ReactMarkdown>

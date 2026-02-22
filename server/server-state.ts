@@ -28,3 +28,20 @@ export type LatestSessionState = {
 export const initialLatestSessionState: LatestSessionState = {
   latestSessionId: null,
 };
+
+// MetaContextRegistry read model state
+export type MetaContextMeta = {
+  id: string;
+  name: string;
+  sessionIds: string[];
+};
+
+export type MetaContextRegistryState = {
+  contexts: Map<string, MetaContextMeta>;
+  nameIndex: Map<string, string>;
+};
+
+export const initialMetaContextRegistryState: MetaContextRegistryState = {
+  contexts: new Map(),
+  nameIndex: new Map(),
+};

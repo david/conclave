@@ -187,6 +187,7 @@ describe("applyEvent", () => {
         { sessionId: "s1", name: "Session 1", title: "My Session", firstPrompt: "hi" },
         { sessionId: "s2", name: "Session 2", title: null, firstPrompt: null },
       ],
+      metaContexts: [],
       seq: -1,
       timestamp: Date.now(),
     };
