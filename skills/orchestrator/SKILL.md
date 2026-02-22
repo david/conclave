@@ -133,16 +133,6 @@ After all waves complete, report:
 - Final test and typecheck status
 - Offer to run any additional verification
 
-### 8. Restart Services
-
-After all waves complete and the final commit succeeds, restart development services so the running app reflects the new code.
-
-1. Check CLAUDE.md for a `service-admin` `restart:` setting to determine which services to restart.
-2. If specified, restart only those services. If not, `process-compose process list -o json` to discover all processes, then restart each.
-3. Report restart results in the final summary.
-
-If process-compose is not running, skip this step and note it in the summary.
-
 ## Error Recovery
 
 - **Agent timeout**: If an agent doesn't complete within a reasonable time, check its output. Report to user.
