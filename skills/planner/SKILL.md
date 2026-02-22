@@ -26,7 +26,7 @@ Read key files referenced in CLAUDE.md (types, entry points, existing slices) to
 
 ### 3. Parse Use Cases and Event Models
 
-Read the `conclave` skill's `references/usecase.md` and `references/eventmodel.md` to understand the block schemas before parsing.
+Read `skills/conclave/references/usecase.md` and `skills/conclave/references/eventmodel.md` to understand the block schemas before parsing.
 
 Extract all `conclave:usecase` blocks from analysis.md. For each use case, note:
 - **id** and **dependencies** — determines implementation order

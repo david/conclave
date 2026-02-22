@@ -117,7 +117,7 @@ Write the output to `.conclave/specs/<spec-name>/tasks.md`.
 
 #### Field Definitions
 
-Read the `conclave` skill's `references/tasks.md` for the full schema and field definitions.
+Read `skills/conclave/references/tasks.md` for the full schema and field definitions.
 
 #### Guidelines
 

@@ -39,4 +39,4 @@ Present NFRs separately from use cases — they crosscut multiple use cases.
 
 ## conclave:usecase Reference
 
-For the full schema, field definitions, and examples, read the `conclave` skill's `references/usecase.md`.
+For the full schema, field definitions, and examples, read `skills/conclave/references/usecase.md`.

@@ -1,6 +1,6 @@
 ---
 name: req
-description: Analyze feature requests and produce structured requirements through systematic decomposition. Use when a user explicitly asks to analyze, decompose, or define requirements before building. Triggers on: "analyze requirements for...", "what are the use cases for...", "break down the requirements for...", "/req", "/req <topic>". Does NOT trigger on general feature requests meant for implementation — those go to the developer skill.
+description: Analyze feature requests and produce structured requirements through systematic decomposition. Use when a user explicitly asks to analyze, decompose, or define requirements before building. Triggers on: "analyze requirements for...", "what are the use cases for...", "break down the requirements for...", "/req", "/req <topic>". Does NOT trigger on general feature requests meant for implementation — those go to the developer skill. Does NOT trigger on open-ended exploration or research — those go to the researcher skill (/rsrc).
 ---
 
 # Requirements Analyst
@@ -136,7 +136,7 @@ Not everything belongs in a use case. **Decisions** capture design choices — v
 
 Maintain this file as use cases are added, modified, or removed during the conversation.
 
-Output one `conclave:usecase` fenced code block per use case. Read the `conclave` skill's `references/usecase.md` for the full schema, field definitions, and examples before emitting blocks.
+Output one `conclave:usecase` fenced code block per use case. Read `skills/conclave/references/usecase.md` for the full schema, field definitions, and examples before emitting blocks.
 
 ### Guidelines
 

@@ -49,7 +49,7 @@ Add an `## Event Model` section after the use cases in analysis.md. Do not alter
 
 #### Format
 
-Read the `conclave` skill's `references/eventmodel.md` for the full schema, field definitions, rendering behavior, and examples before emitting blocks.
+Read `skills/conclave/references/eventmodel.md` for the full schema, field definitions, rendering behavior, and examples before emitting blocks.
 
 Emit one `conclave:eventmodel` fenced code block per slice. If grouped use cases share the same event flow, emit one slice for the group.
 
