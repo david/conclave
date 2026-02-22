@@ -148,7 +148,7 @@ const baseComponents: Components = {
   ),
 };
 
-function makePreHandler(onNextBlockClick?: (payload: NextBlockClickPayload) => void): Components["pre"] {
+function makePreHandler(onNextBlockClick?: (payload: NextBlockClickPayload) => void, isReplay?: boolean): Components["pre"] {
   return ({ children, ...props }) => {
     const codeChild = React.Children.toArray(children).find(
       (child) => React.isValidElement(child) && child.type === "code",
@@ -172,7 +172,7 @@ function makePreHandler(onNextBlockClick?: (payload: NextBlockClickPayload) => v
               command={parsed.command}
               metaContext={parsed.metaContext}
               onRun={onNextBlockClick ?? (() => {})}
-              disabled={false}
+              disabled={!!isReplay}
             />
           );
         }
@@ -217,13 +217,14 @@ function makePreHandler(onNextBlockClick?: (payload: NextBlockClickPayload) => v
 export type MarkdownTextProps = {
   text: string;
   onNextBlockClick?: (payload: NextBlockClickPayload) => void;
+  isReplay?: boolean;
 };
 
-export function MarkdownText({ text, onNextBlockClick }: MarkdownTextProps) {
+export function MarkdownText({ text, onNextBlockClick, isReplay }: MarkdownTextProps) {
   const memoComponents = useMemo<Components>(() => ({
     ...baseComponents,
-    pre: makePreHandler(onNextBlockClick),
-  }), [onNextBlockClick]);
+    pre: makePreHandler(onNextBlockClick, isReplay),
+  }), [onNextBlockClick, isReplay]);
 
   // Extract all valid conclave:eventmodel slices from raw text
   const validSlices: EventModelSlice[] = [];

@@ -4,6 +4,7 @@ import { InputBar, type InputBarHandle } from "./input-bar.tsx";
 import { SessionPicker } from "./session-picker.tsx";
 import type { AppState } from "../reducer.ts";
 import type { ImageAttachment } from "../../server/types.ts";
+import type { NextBlockClickPayload } from "./next-block-button.tsx";
 
 type ChatProps = {
   state: AppState;
@@ -11,6 +12,7 @@ type ChatProps = {
   onCancel: () => void;
   onSwitchSession: (sessionId: string) => void;
   onCreateSession: () => void;
+  onNextBlockClick?: (payload: NextBlockClickPayload) => void;
 };
 
 function formatTokenCount(n: number): string {
@@ -63,7 +65,7 @@ function ContextBar({ usage }: { usage: NonNullable<AppState["usage"]> }) {
   );
 }
 
-export const Chat = forwardRef<InputBarHandle, ChatProps>(function Chat({ state, onSubmit, onCancel, onSwitchSession, onCreateSession }, ref) {
+export const Chat = forwardRef<InputBarHandle, ChatProps>(function Chat({ state, onSubmit, onCancel, onSwitchSession, onCreateSession, onNextBlockClick }, ref) {
   const [copied, setCopied] = useState(false);
 
   const handleCopySessionId = useCallback(() => {
@@ -80,6 +82,7 @@ export const Chat = forwardRef<InputBarHandle, ChatProps>(function Chat({ state,
         <div className="chat__header-row">
           <SessionPicker
             sessions={state.sessions}
+            metaContexts={state.metaContexts}
             currentSessionId={state.sessionId}
             onSwitch={onSwitchSession}
             onCreate={onCreateSession}
@@ -123,6 +126,7 @@ export const Chat = forwardRef<InputBarHandle, ChatProps>(function Chat({ state,
         messages={state.messages}
         streamingContent={state.streamingContent}
         isProcessing={state.isProcessing}
+        onNextBlockClick={onNextBlockClick}
       />
       <InputBar
         ref={ref}

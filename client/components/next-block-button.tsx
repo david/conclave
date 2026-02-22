@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 
 export type NextBlockClickPayload = {
   label: string;
@@ -15,12 +15,16 @@ type NextBlockButtonProps = {
 };
 
 export function NextBlockButton({ label, command, metaContext, onRun, disabled }: NextBlockButtonProps) {
+  const [clicked, setClicked] = useState(false);
+  const isDisabled = disabled || clicked;
+
   return (
     <button
-      className={`next-block-btn${disabled ? " next-block-btn--disabled" : ""}`}
-      disabled={disabled}
+      className={`next-block-btn${isDisabled ? " next-block-btn--disabled" : ""}`}
+      disabled={isDisabled}
       onClick={() => {
-        if (!disabled) {
+        if (!isDisabled) {
+          setClicked(true);
           onRun({ label, command, metaContext });
         }
       }}

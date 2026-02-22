@@ -97,3 +97,41 @@ describe("MarkdownText invalid block fallback", () => {
     expect(html).not.toContain("em-diagram");
   });
 });
+
+describe("MarkdownText isReplay prop", () => {
+  const nextBlockJson = JSON.stringify({
+    label: "Run Phase 2",
+    command: "run phase2",
+    metaContext: "workflow-1",
+  });
+  const nextBlockMarkdown = "```conclave:next\n" + nextBlockJson + "\n```";
+
+  test("next-block button is enabled when isReplay is false", () => {
+    const html = renderToStaticMarkup(
+      <MarkdownText text={nextBlockMarkdown} isReplay={false} />,
+    );
+    // Button should be present and not disabled
+    expect(html).toContain("next-block-btn");
+    expect(html).not.toContain("next-block-btn--disabled");
+    expect(html).not.toContain("disabled");
+  });
+
+  test("next-block button is disabled when isReplay is true", () => {
+    const html = renderToStaticMarkup(
+      <MarkdownText text={nextBlockMarkdown} isReplay={true} />,
+    );
+    // Button should be present and disabled
+    expect(html).toContain("next-block-btn");
+    expect(html).toContain("next-block-btn--disabled");
+    expect(html).toContain("disabled");
+  });
+
+  test("next-block button is enabled when isReplay is omitted", () => {
+    const html = renderToStaticMarkup(
+      <MarkdownText text={nextBlockMarkdown} />,
+    );
+    // Default behavior: button should not be disabled
+    expect(html).toContain("next-block-btn");
+    expect(html).not.toContain("next-block-btn--disabled");
+  });
+});

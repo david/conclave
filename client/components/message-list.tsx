@@ -85,14 +85,16 @@ function RenderSegmentView({
   segment,
   role,
   onNextBlockClick,
+  isReplay,
 }: {
   segment: RenderSegment;
   role: "user" | "assistant";
   onNextBlockClick?: (payload: NextBlockClickPayload) => void;
+  isReplay?: boolean;
 }) {
   if (segment.kind === "text") {
     if (role === "assistant") {
-      return <MarkdownText text={segment.block.text} onNextBlockClick={onNextBlockClick} />;
+      return <MarkdownText text={segment.block.text} onNextBlockClick={onNextBlockClick} isReplay={isReplay} />;
     }
     return <div className="message__text">{segment.block.text}</div>;
   }
@@ -122,7 +124,7 @@ function MessageBubble({ message, onNextBlockClick }: { message: Message; onNext
         {message.role === "user" ? "You" : "Claude"}
       </div>
       {segments.map((segment, i) => (
-        <RenderSegmentView key={i} segment={segment} role={message.role} onNextBlockClick={onNextBlockClick} />
+        <RenderSegmentView key={i} segment={segment} role={message.role} onNextBlockClick={onNextBlockClick} isReplay={true} />
       ))}
     </div>
   );
@@ -160,7 +162,7 @@ export function MessageList({
         <div className="message message--assistant message--streaming">
           <div className="message__role">Claude</div>
           {streamingSegments.map((segment, i) => (
-            <RenderSegmentView key={i} segment={segment} role="assistant" onNextBlockClick={onNextBlockClick} />
+            <RenderSegmentView key={i} segment={segment} role="assistant" onNextBlockClick={onNextBlockClick} isReplay={false} />
           ))}
         </div>
       )}

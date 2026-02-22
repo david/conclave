@@ -5,6 +5,7 @@ import { Chat } from "./components/chat.tsx";
 import type { InputBarHandle } from "./components/input-bar.tsx";
 import { Workspace } from "./components/workspace.tsx";
 import type { WsEvent, Command, ImageAttachment } from "../server/types.ts";
+import type { NextBlockClickPayload } from "./components/next-block-button.tsx";
 import { getSessionIdFromUrl, pushSessionUrl, replaceSessionUrl, onPopState } from "./router.ts";
 
 function App() {
@@ -87,6 +88,21 @@ function App() {
     append({ type: "SessionInitiated" });
     sendCommand({ command: "create_session" });
   }, [sendCommand, state.creatingSession]);
+
+  const handleNextBlockClick = useCallback(
+    (payload: NextBlockClickPayload) => {
+      const ws = wsRef.current;
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          command: "next_block_click",
+          label: payload.label,
+          commandText: payload.command,
+          metaContext: payload.metaContext,
+        }));
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -198,6 +214,7 @@ function App() {
         onCancel={handleCancel}
         onSwitchSession={handleSwitchSession}
         onCreateSession={handleCreateSession}
+        onNextBlockClick={handleNextBlockClick}
       />
     </div>
   );

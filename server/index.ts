@@ -367,6 +367,69 @@ const server = Bun.serve<{ requestedSessionId: string | null }>({
             break;
           }
 
+          case "next_block_click": {
+            const currentSessionId = wsState?.currentSessionId;
+            if (!currentSessionId) {
+              sendWs(ws, {
+                type: "Error",
+                message: "No active session",
+                seq: -1,
+                timestamp: Date.now(),
+                sessionId: "",
+              });
+              return;
+            }
+
+            try {
+              const metaContextName = cmd.metaContext;
+              const mcState = metaContextRegistry.getState();
+              let metaContextId = mcState.nameIndex.get(metaContextName);
+
+              // If meta-context doesn't exist, create it
+              if (!metaContextId) {
+                metaContextId = crypto.randomUUID();
+                store.append(currentSessionId, {
+                  type: "MetaContextCreated",
+                  metaContextId,
+                  name: metaContextName,
+                });
+              }
+
+              // Create a new ACP session
+              const newSessionId = await bridge.createSession();
+              store.append(newSessionId, { type: "SessionCreated" });
+
+              // Add the new session to the meta-context
+              store.append(newSessionId, {
+                type: "SessionAddedToMetaContext",
+                metaContextId,
+              });
+
+              // Switch this client to the new session
+              sendWs(ws, {
+                type: "SessionSwitched",
+                sessionId: newSessionId,
+                seq: -1,
+                timestamp: Date.now(),
+              } as any);
+              subscribeWsToSession(ws, newSessionId);
+              replaySession(ws, newSessionId);
+
+              // Submit the prompt
+              store.append(newSessionId, { type: "PromptSubmitted", text: cmd.commandText });
+              bridge.submitPrompt(newSessionId, cmd.commandText, undefined, true);
+            } catch (err) {
+              sendWs(ws, {
+                type: "Error",
+                message: `Failed to handle next block click: ${formatError(err)}`,
+                seq: -1,
+                timestamp: Date.now(),
+                sessionId: "",
+              });
+            }
+            break;
+          }
+
           default:
             sendWs(ws, {
               type: "Error",
