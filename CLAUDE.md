@@ -94,4 +94,4 @@ The `SessionListEvent` is a meta-event sent over WebSocket (not stored in EventS
 - **Event sourcing**: Server state is derived from events via projections (read models). Each slice handles one command→event path. The EventStore is a dumb log; projections subscribe and maintain views. Write side (command handlers) emits events; read side (projections) derives state.
 - **Multi-session support**: Server discovers existing ACP sessions on startup, creates a fresh one, and supports switching/loading on demand
 - **Markdown rendering**: Assistant messages use `react-markdown` with GFM and syntax highlighting via `rehype-highlight`
-- **Custom markdown blocks**: Conclave uses `conclave:`-prefixed fenced code blocks for rich rendering. See `doc/components.md` for schemas and usage. Update that file when adding, changing, or removing custom blocks.
+- **Custom markdown blocks**: Conclave uses `conclave:`-prefixed fenced code blocks for rich rendering. Schemas and field definitions live in the `conclave` skill's `references/` directory (`usecase.md`, `eventmodel.md`, `tasks.md`). Update those files when adding, changing, or removing custom blocks.

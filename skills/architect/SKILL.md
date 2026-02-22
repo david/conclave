@@ -49,44 +49,9 @@ Add an `## Event Model` section after the use cases in analysis.md. Do not alter
 
 #### Format
 
-Each slice is a JSON block. See the parent epic's analysis.md (`.conclave/specs/event-model-diagram/analysis.md`) for the full schema reference. Minimal example:
+Read the `conclave` skill's `references/eventmodel.md` for the full schema, field definitions, rendering behavior, and examples before emitting blocks.
 
-````
-```conclave:eventmodel
-{
-  "slice": "fill-inputs",
-  "label": "Fill Inputs",
-  "screen": "Input Form",
-  "command": {
-    "name": "FillInputs",
-    "new": true,
-    "fields": { "packetSessionId": "UUID", "userId": "UUID" }
-  },
-  "events": [
-    {
-      "name": "InputFilled",
-      "new": true,
-      "fields": { "inputId": "UUID", "value": "Custom" },
-      "feeds": ["MlsLookup"]
-    }
-  ],
-  "projections": [
-    {
-      "name": "MlsLookup",
-      "new": true,
-      "feeds": ["FillMlsInputs"]
-    }
-  ],
-  "sideEffects": [
-    "Broadcast InputFilled to session clients"
-  ]
-}
-```
-````
-
-All tiers are optional — a reactive slice may have only projections. Use `feeds` to declare cross-slice connections by target node name.
-
-If use cases share the same event flow and were grouped by the analyst, emit one slice for the group.
+Emit one `conclave:eventmodel` fenced code block per slice. If grouped use cases share the same event flow, emit one slice for the group.
 
 #### Guidelines
 

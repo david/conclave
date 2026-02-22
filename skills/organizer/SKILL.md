@@ -117,15 +117,7 @@ Write the output to `.conclave/specs/<spec-name>/tasks.md`.
 
 #### Field Definitions
 
-- **id**: Sequential `T-0`, `T-1`, etc.
-- **name**: Short action-oriented name
-- **ucs**: UC IDs covered by this task
-- **depends**: Task IDs that must complete first (empty array = no dependencies)
-- **wave**: Execution wave number (0 = first, can start immediately)
-- **kind**: One of `"code"` (implementation work), `"convention"` (skill/doc convention, no code), `"no-op"` (covered by another task)
-- **files.create**: Files this task creates
-- **files.modify**: Files this task modifies
-- **description**: What the task accomplishes — enough context for an agent to understand scope
+Read the `conclave` skill's `references/tasks.md` for the full schema and field definitions.
 
 #### Guidelines
 

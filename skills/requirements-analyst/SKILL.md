@@ -134,37 +134,7 @@ Not everything belongs in a use case. **Decisions** capture design choices — v
 
 Maintain this file as use cases are added, modified, or removed during the conversation.
 
-Output **one fenced code block per use case**, each tagged `conclave:usecase` and containing a single JSON object:
-
-````
-```conclave:usecase
-{
-  "id": "UC-1",
-  "name": "Short descriptive name",
-  "actor": "Who performs the action",
-  "summary": "One-sentence description of the use case",
-  "given": ["Precondition 1", "Precondition 2"],
-  "when": ["Action step 1", "Action step 2"],
-  "then": ["Expected outcome 1", "Expected outcome 2"],
-  "priority": "high",
-  "dependencies": ["UC-0"]
-}
-```
-````
-
-For multiple use cases, emit separate blocks one after another:
-
-````
-```conclave:usecase
-{ "id": "UC-1", ... }
-```
-
-```conclave:usecase
-{ "id": "UC-2", ... }
-```
-````
-
-Field definitions for each JSON property are in `references/analysis-guidance.md`.
+Output one `conclave:usecase` fenced code block per use case. Read the `conclave` skill's `references/usecase.md` for the full schema, field definitions, and examples before emitting blocks.
 
 ### Guidelines
 
