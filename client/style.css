@@ -1355,7 +1355,7 @@ body::before {
   padding: 16px 18px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0;
 }
 
 .workspace__empty {
@@ -1512,10 +1512,8 @@ body::before {
 
 .spec-entry__icon {
   flex-shrink: 0;
-  width: 18px;
   display: flex;
   align-items: center;
-  justify-content: center;
   color: var(--text-muted);
 }
 
@@ -1634,10 +1632,8 @@ body::before {
 
 .file-change__icon {
   flex-shrink: 0;
-  width: 18px;
   display: flex;
   align-items: center;
-  justify-content: center;
   color: var(--status-color, var(--text-muted));
 }
 
@@ -1712,11 +1708,9 @@ body::before {
 
 .plan-entry__icon {
   flex-shrink: 0;
-  width: 18px;
   height: 20px;
   display: flex;
   align-items: center;
-  justify-content: center;
   color: var(--status-color, var(--text-muted));
   transition: color 0.2s;
 }

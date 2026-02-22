@@ -104,8 +104,8 @@ function SpecIcon({ type }: { type: string }) {
           </>
         ) : (
           <>
-            <path d="M3.5,1.5 L8.5,1.5 L11,4 L11,12.5 L3.5,12.5 Z" />
-            <polyline points="8.5,1.5 8.5,4 11,4" />
+            <path d="M2,1.5 L7,1.5 L9.5,4 L9.5,12.5 L2,12.5 Z" />
+            <polyline points="7,1.5 7,4 9.5,4" />
           </>
         )}
       </svg>
