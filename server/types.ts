@@ -133,7 +133,7 @@ export type SessionInfoUpdated = BaseEvent & {
 
 // --- Spec System ---
 
-export type SpecPhase = "analysis" | "implementation";
+export type SpecPhase = "research" | "analysis" | "implementation";
 
 export type SpecInfo = {
   name: string;

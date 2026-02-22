@@ -1561,6 +1561,11 @@ body::before {
   line-height: 1.7;
 }
 
+.spec-entry__phase--research {
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.05);
+}
+
 .spec-entry__phase--analysis {
   color: var(--accent);
   background: rgba(212, 148, 76, 0.1);

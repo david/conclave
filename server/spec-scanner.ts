@@ -32,15 +32,18 @@ export async function scanSpecs(baseDir: string): Promise<SpecInfo[]> {
       // No spec.json or invalid — use defaults
     }
 
-    // Determine phase: implementation.md wins over analysis.md
+    // Determine phase: later phase wins (implementation > analysis > research)
     let phase: SpecInfo["phase"] = null;
     const hasImpl = await Bun.file(join(dir, "implementation.md")).exists();
     const hasAnalysis = await Bun.file(join(dir, "analysis.md")).exists();
+    const hasResearch = await Bun.file(join(dir, "research.md")).exists();
 
     if (hasImpl) {
       phase = "implementation";
     } else if (hasAnalysis) {
       phase = "analysis";
+    } else if (hasResearch) {
+      phase = "research";
     }
 
     specs.push({ name, description, phase, type, epic });

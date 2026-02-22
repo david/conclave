@@ -35,6 +35,8 @@ Before doing any analysis, determine which spec this work belongs to.
 
 **Epic resolution:** If the matched or created spec has an `"epic"` field in its `spec.json`, read the epic's `analysis.md` at `.conclave/specs/<epic>/analysis.md` first. The epic's analysis contains shared decisions, schemas, and constraints that apply to all child specs. Respect these when writing the child spec's use cases.
 
+**Research input:** If the resolved spec has a `research.md`, read it before starting analysis. It contains prior exploration — findings, open questions, and leanings — that should inform the use cases. Don't repeat research already captured there; build on it.
+
 All use case output goes into the resolved spec's `analysis.md`.
 
 ### 1. Understand Before Producing
