@@ -190,7 +190,21 @@ export type SessionEvent =
   | UsageUpdated
   | SessionInfoUpdated;
 
-export type GlobalEvent = SpecListUpdated | GitStatusUpdated;
+// --- Service Status ---
+
+export type ServiceProcess = {
+  name: string;
+  status: string;
+  uptime: string;
+};
+
+export type ServiceStatusUpdated = BaseGlobalEvent & {
+  type: "ServiceStatusUpdated";
+  available: boolean;
+  services: ServiceProcess[];
+};
+
+export type GlobalEvent = SpecListUpdated | GitStatusUpdated | ServiceStatusUpdated;
 
 export type DomainEvent = SessionEvent | GlobalEvent;
 

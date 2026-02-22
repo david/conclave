@@ -97,6 +97,12 @@ export type SpecInfo = {
   epic: string | null;
 };
 
+export type ServiceProcess = {
+  name: string;
+  status: string;
+  uptime: string;
+};
+
 export type UsageInfo = {
   size: number;
   used: number;
@@ -112,6 +118,8 @@ export type AppState = {
   planEntries: PlanEntryInfo[];
   gitFiles: GitFileEntry[];
   specs: SpecInfo[];
+  services: ServiceProcess[];
+  servicesAvailable: boolean;
   isProcessing: boolean;
   creatingSession: boolean;
   error: string | null;
@@ -126,6 +134,8 @@ export const initialState: AppState = {
   planEntries: [],
   gitFiles: [],
   specs: [],
+  services: [],
+  servicesAvailable: true,
   isProcessing: false,
   creatingSession: false,
   error: null,
