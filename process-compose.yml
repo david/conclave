@@ -1,6 +1,9 @@
 processes:
   build:
-    command: bun run build
+    command: bun run build -- --watch
 
   server:
     command: bun run dev
+    shutdown:
+      parent_only: yes
+      signal: 15

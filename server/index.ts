@@ -379,6 +379,22 @@ const server = Bun.serve<{ requestedSessionId: string | null }>({
 
 console.log(`Conclave server listening on http://localhost:${PORT}`);
 
+// Graceful shutdown — clean up child processes, timers, and the HTTP server
+let stopSpecWatcher: (() => void) | null = null;
+let stopGitPoller: (() => void) | null = null;
+
+function shutdown() {
+  console.log("Shutting down...");
+  server.stop();
+  bridge.stop();
+  if (stopSpecWatcher) stopSpecWatcher();
+  if (stopGitPoller) stopGitPoller();
+  process.exit(0);
+}
+
+process.on("SIGTERM", shutdown);
+process.on("SIGINT", shutdown);
+
 // Start the ACP bridge, discover existing sessions, then create one if needed
 bridge.start().then(async () => {
   // Discover existing sessions from the ACP agent
@@ -407,7 +423,7 @@ bridge.start().then(async () => {
     if (specs.length > 0) {
       console.log(`Found ${specs.length} spec(s)`);
     }
-    watchSpecs(specsDir, (updatedSpecs) => {
+    stopSpecWatcher = watchSpecs(specsDir, (updatedSpecs) => {
       store.appendGlobal({ type: "SpecListUpdated", specs: updatedSpecs });
     });
   } catch (err) {
@@ -415,13 +431,14 @@ bridge.start().then(async () => {
   }
 
   // Start git status poller
-  startGitStatusPoller({
+  const gitPoller = startGitStatusPoller({
     cwd: CWD,
     intervalMs: 3000,
     onUpdate: (files) => {
       store.appendGlobal({ type: "GitStatusUpdated", files });
     },
   });
+  stopGitPoller = gitPoller.stop;
 
   // Always create a fresh session to start with
   try {

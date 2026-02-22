@@ -243,6 +243,14 @@ export class AcpBridge {
     }
   }
 
+  async stop(): Promise<void> {
+    if (this.proc) {
+      this.proc.kill();
+      this.proc = null;
+    }
+    this.connection = null;
+  }
+
   async cancel(sessionId: string): Promise<void> {
     if (!this.connection) return;
 
