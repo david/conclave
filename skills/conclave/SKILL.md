@@ -2,7 +2,7 @@
 name: conclave
 description: >
   Conclave custom markdown block reference. Provides schemas, field definitions, and examples
-  for `conclave:usecase`, `conclave:eventmodel`, and `conclave:tasks` fenced code blocks.
+  for `conclave:usecase`, `conclave:eventmodel`, `conclave:tasks`, and `conclave:next` fenced code blocks.
   Use when emitting or parsing any `conclave:*` block — read the relevant reference file
   before generating output. Other skills (req, arq, org, plan) depend on this for output format.
 ---
@@ -18,6 +18,7 @@ Conclave extends markdown with custom fenced code blocks using the `conclave:` l
 | `conclave:usecase` | Yes — interactive card | [references/usecase.md](references/usecase.md) | req | arq, plan |
 | `conclave:eventmodel` | Yes — multi-column diagram | [references/eventmodel.md](references/eventmodel.md) | arq | plan |
 | `conclave:tasks` | No — machine-readable only | [references/tasks.md](references/tasks.md) | org | orc |
+| `conclave:next` | Yes — clickable button | [references/next.md](references/next.md) | skills | client |
 
 Before emitting any block, read its reference file for the schema, field definitions, and examples.
 
