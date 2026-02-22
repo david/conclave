@@ -124,3 +124,206 @@ Group multiple ACP sessions under a single logical context so multi-phase workfl
 - **Then:**
   - A warning indicator is shown instead of (or alongside) the button
   - The user is informed that the block is missing a required metaContext field
+
+## Event Model
+
+### Slice: next-block-click (UC-1, UC-2)
+
+The primary write-side flow. A new `NextBlockClick` command triggers find-or-create semantics for the meta-context, creates a session within it, and submits the prompt. Two new domain events are introduced: `MetaContextCreated` (emitted only when a new meta-context is created) and `SessionAddedToMetaContext` (emitted every time, linking the new session to its meta-context). The existing `SessionCreated` and `PromptSubmitted` events are reused for the session lifecycle.
+
+```conclave:eventmodel
+{
+  "slice": "next-block-click",
+  "label": "Next Block Click",
+  "screen": "Chat Pane (conclave:next button)",
+  "command": {
+    "name": "NextBlockClick",
+    "new": true,
+    "fields": {
+      "label": "string",
+      "command": "string",
+      "metaContext": "string"
+    }
+  },
+  "events": [
+    {
+      "name": "MetaContextCreated",
+      "new": true,
+      "fields": {
+        "metaContextId": "string",
+        "name": "string"
+      },
+      "feeds": ["MetaContextRegistry"]
+    },
+    {
+      "name": "SessionAddedToMetaContext",
+      "new": true,
+      "fields": {
+        "metaContextId": "string",
+        "sessionId": "string"
+      },
+      "feeds": ["MetaContextRegistry"]
+    },
+    {
+      "name": "SessionCreated",
+      "new": false,
+      "feeds": ["SessionRegistry"]
+    },
+    {
+      "name": "PromptSubmitted",
+      "new": false,
+      "fields": {
+        "text": "string"
+      }
+    }
+  ],
+  "projections": [
+    {
+      "name": "MetaContextRegistry",
+      "new": true,
+      "fields": {
+        "contexts": "Map<string, MetaContext>",
+        "nameIndex": "Map<string, string>"
+      }
+    },
+    {
+      "name": "SessionRegistry",
+      "new": false
+    }
+  ],
+  "sideEffects": [
+    "ACP bridge creates session",
+    "ACP bridge submits prompt to new session",
+    "Broadcast session list (includes meta-context data)",
+    "Write-through to .conclave/state/meta-contexts.json",
+    "Subscribe WS to new session, replay events"
+  ]
+}
+```
+
+### Slice: meta-context-projection (UC-8)
+
+The server-side read model. `MetaContextRegistry` is a new projection that subscribes to `MetaContextCreated` and `SessionAddedToMetaContext` events, maintains an in-memory map, and writes through to a JSON file for persistence across restarts. The existing `SessionListProjection` is extended to include meta-context data in its broadcasts.
+
+```conclave:eventmodel
+{
+  "slice": "meta-context-projection",
+  "label": "Meta-Context Projection",
+  "events": [
+    {
+      "name": "MetaContextCreated",
+      "new": true,
+      "feeds": ["MetaContextRegistry"]
+    },
+    {
+      "name": "SessionAddedToMetaContext",
+      "new": true,
+      "feeds": ["MetaContextRegistry"]
+    }
+  ],
+  "projections": [
+    {
+      "name": "MetaContextRegistry",
+      "new": true,
+      "fields": {
+        "contexts": "Map<string, MetaContext>",
+        "nameIndex": "Map<string, string>"
+      },
+      "feeds": ["SessionListProjection"]
+    },
+    {
+      "name": "SessionListProjection",
+      "new": false,
+      "fields": {
+        "metaContexts": "MetaContextInfo[]"
+      }
+    }
+  ],
+  "sideEffects": [
+    "Write-through to .conclave/state/meta-contexts.json on every change",
+    "Hydrate from JSON file on startup before subscribing",
+    "Broadcast SessionList with meta-context data to all WS clients"
+  ]
+}
+```
+
+### Slice: session-picker-groups (UC-5, UC-6)
+
+Client-side state changes. The existing `SessionList` meta-event is extended with a `metaContexts` array. The client `sessionListSlice` consumes this to populate grouped options in the picker. The existing `switch_session` command is reused — when a meta-context is selected, the client resolves it to the most recent session ID and sends a standard `switch_session`.
+
+```conclave:eventmodel
+{
+  "slice": "session-picker-groups",
+  "label": "Session Picker Groups",
+  "screen": "Session Picker",
+  "command": {
+    "name": "SwitchSession",
+    "new": false,
+    "fields": {
+      "sessionId": "string"
+    }
+  },
+  "events": [
+    {
+      "name": "SessionList",
+      "new": false,
+      "fields": {
+        "sessions": "SessionInfo[]",
+        "metaContexts": "MetaContextInfo[]"
+      },
+      "feeds": ["ClientSessionListSlice"]
+    },
+    {
+      "name": "SessionSwitched",
+      "new": false
+    }
+  ],
+  "projections": [
+    {
+      "name": "ClientSessionListSlice",
+      "new": false,
+      "fields": {
+        "sessions": "SessionInfo[]",
+        "metaContexts": "MetaContextInfo[]"
+      }
+    }
+  ],
+  "sideEffects": [
+    "Session picker renders grouped options (Specs / Sessions)",
+    "Selecting meta-context resolves to most recent session, sends switch_session"
+  ]
+}
+```
+
+### Slice: next-block-render (UC-4, UC-9)
+
+Pure client-side rendering. No new commands, events, or projections. The `MarkdownText` component gains a handler for `conclave:next` fenced code blocks (same pattern as `conclave:usecase` and `conclave:eventmodel`). Valid blocks render as a button; blocks missing `metaContext` render a warning.
+
+```conclave:eventmodel
+{
+  "slice": "next-block-render",
+  "label": "Next Block Render",
+  "screen": "Chat Pane (markdown)",
+  "sideEffects": [
+    "conclave:next blocks parsed and rendered as clickable buttons",
+    "Missing metaContext field renders warning instead of button",
+    "Button click dispatches NextBlockClick command via WebSocket"
+  ]
+}
+```
+
+### Slice: next-block-disable (UC-3)
+
+Client-side button state management. No new domain events. Each `conclave:next` button tracks whether it has been clicked (local React state) and whether it belongs to a replayed past session (derived from comparing the block's message position against the streaming boundary). Both conditions disable the button.
+
+```conclave:eventmodel
+{
+  "slice": "next-block-disable",
+  "label": "Next Block Disable",
+  "screen": "Chat Pane (conclave:next button)",
+  "sideEffects": [
+    "Button disabled after click (local React state, prevents duplicates)",
+    "Button disabled when block is from replayed past session (not the active streaming session)"
+  ]
+}
+```
