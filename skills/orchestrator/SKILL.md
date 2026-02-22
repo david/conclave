@@ -33,7 +33,33 @@ Read:
 - `skills/developer/SKILL.md` — the dev skill's TDD workflow and rules (embed into agent prompts)
 - `skills/committer/SKILL.md` — the committer workflow (embed into committer agent prompts)
 
-### 3. Execute Waves
+### 3. Commit Spec Files
+
+Before starting implementation, commit all spec files so the design artifacts are checkpointed separately from code changes.
+
+Delegate to a committer agent:
+
+```
+Task tool parameters:
+  subagent_type: "general-purpose"
+  description: "commit: spec files for <spec-name>"
+  prompt: <see below>
+```
+
+The committer agent prompt must include:
+
+1. **Committer skill workflow**: Include the full Workflow section from `skills/committer/SKILL.md` verbatim.
+2. **Context**:
+   - **Type**: `docs`
+   - **Scope**: spec name
+   - **Description**: "add spec files for <spec-name>"
+   - **File list**: All files in `.conclave/specs/<spec-name>/` (e.g. `spec.json`, `research.md`, `analysis.md`, `implementation.md`, `tasks.md` — whatever exists)
+
+Wait for the commit to complete before proceeding to wave execution.
+
+If there are no uncommitted spec files (they were already committed in earlier pipeline steps), skip this step.
+
+### 4. Execute Waves
 
 Process waves sequentially (wave 0, then wave 1, etc.). Within each wave, launch all tasks in parallel using the Task tool.
 
@@ -71,7 +97,7 @@ Each agent prompt must be self-contained. Include:
 
 5. **Completion signal**: "When done, report: which files you created/modified, which tests pass, and any issues encountered."
 
-### 4. Monitor and Collect Results
+### 5. Monitor and Collect Results
 
 As agents complete, collect their results. Track:
 - Which tasks succeeded
@@ -83,7 +109,7 @@ If an agent reports failure:
 - After the wave completes, assess whether dependent tasks in later waves can proceed or if the failure blocks them
 - Report blocked tasks to the user and ask how to proceed
 
-### 5. Integration Check
+### 6. Integration Check
 
 After each wave completes:
 
@@ -94,7 +120,7 @@ After each wave completes:
    - Report the issue to the user.
    - Offer to fix it directly or spawn a repair agent.
 
-### 6. Commit After Each Wave
+### 7. Commit After Each Wave
 
 After each wave's integration check passes, **always commit** — every wave must be checkpointed before proceeding to the next.
 
@@ -115,11 +141,11 @@ The committer agent prompt must include:
    - **Type hint** — from `spec.json`'s `type` field if available
    - **Wave summary** — what was accomplished in this wave
    - **UC list** — which use cases were implemented
-   - **File list** — the exact files created/modified by agents in this wave (collected in step 4)
+   - **File list** — the exact files created/modified by agents in this wave (collected in step 5), **plus** `.conclave/specs/<spec-name>/tasks.md` (so the task plan state is checkpointed with each wave)
 
 The committer agent handles staging, message composition, and the commit itself. Wait for it to complete before proceeding to the next wave.
 
-### 7. Progress Reporting
+### 8. Progress Reporting
 
 After each wave, report:
 - Tasks completed in this wave
