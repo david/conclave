@@ -246,7 +246,7 @@ export function Workspace({
     prevHasEntries.current = hasEntries;
   }, [hasEntries]);
 
-  // UC-1: Toggle — clicking the expanded section's header is a no-op (always one open);
+  // Toggle — clicking the expanded section's header is a no-op (always one open);
   // clicking a collapsed section expands it and collapses the other.
   const handleToggle = (section: SectionId) => {
     if (section !== expandedSection) {
@@ -258,7 +258,7 @@ export function Workspace({
     <div className="workspace">
       <div className="workspace__content">
         {hasSpecs && (
-          <div className="workspace__specs-section">
+          <div className={`workspace__specs-section${expandedSection === "specs" ? " workspace__section--expanded" : ""}`}>
             <button
               type="button"
               className="workspace__section-header"
@@ -274,27 +274,29 @@ export function Workspace({
               )}
             </button>
             {expandedSection === "specs" && (
-              <div className="workspace__specs">
-                {(() => {
-                  const { standalone, epicGroups } = groupSpecs(specs);
-                  return (
-                    <>
-                      {standalone.map((spec) => (
-                        <SpecEntry key={spec.name} spec={spec} />
-                      ))}
-                      {epicGroups.map((group) => (
-                        <EpicGroupRow key={group.epic.name} group={group} />
-                      ))}
-                    </>
-                  );
-                })()}
+              <div className="workspace__section-scroll">
+                <div className="workspace__specs">
+                  {(() => {
+                    const { standalone, epicGroups } = groupSpecs(specs);
+                    return (
+                      <>
+                        {standalone.map((spec) => (
+                          <SpecEntry key={spec.name} spec={spec} />
+                        ))}
+                        {epicGroups.map((group) => (
+                          <EpicGroupRow key={group.epic.name} group={group} />
+                        ))}
+                      </>
+                    );
+                  })()}
+                </div>
               </div>
             )}
           </div>
         )}
 
         {hasEntries && (
-          <div className="workspace__tasks-section">
+          <div className={`workspace__tasks-section${expandedSection === "tasks" ? " workspace__section--expanded" : ""}`}>
             <button
               type="button"
               className="workspace__section-header"
@@ -310,17 +312,19 @@ export function Workspace({
               )}
             </button>
             {expandedSection === "tasks" && (
-              <div className="workspace__entries">
-                {entries.map((entry, i) => (
-                  <PlanEntry key={i} entry={entry} />
-                ))}
+              <div className="workspace__section-scroll">
+                <div className="workspace__entries">
+                  {entries.map((entry, i) => (
+                    <PlanEntry key={i} entry={entry} />
+                  ))}
+                </div>
               </div>
             )}
           </div>
         )}
 
         {hasFiles && (
-          <div className="workspace__files-section">
+          <div className={`workspace__files-section${expandedSection === "files" ? " workspace__section--expanded" : ""}`}>
             <button
               type="button"
               className="workspace__section-header"
@@ -336,10 +340,12 @@ export function Workspace({
               )}
             </button>
             {expandedSection === "files" && (
-              <div className="workspace__files">
-                {sortedGitFiles(gitFiles).map((file) => (
-                  <GitFileRow key={file.path} file={file} displayStatus={effectiveStatus(file)} />
-                ))}
+              <div className="workspace__section-scroll">
+                <div className="workspace__files">
+                  {sortedGitFiles(gitFiles).map((file) => (
+                    <GitFileRow key={file.path} file={file} displayStatus={effectiveStatus(file)} />
+                  ))}
+                </div>
               </div>
             )}
           </div>
