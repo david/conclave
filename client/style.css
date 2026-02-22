@@ -1510,6 +1510,92 @@ body::before {
 }
 
 /* ============================================
+   Workspace — Services Section
+   ============================================ */
+
+.workspace__services-section {
+  border-top: 1px solid var(--border);
+  padding-top: 4px;
+  margin-top: 4px;
+  min-height: 0;
+}
+
+.workspace__services-section:first-child {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
+
+.workspace__services {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  animation: accordion-reveal 0.2s ease-out;
+}
+
+.workspace__services-unavailable {
+  padding: 6px 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ============================================
+   Service Row
+   ============================================ */
+
+.service-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  line-height: 1.55;
+  transition: background 0.15s;
+}
+
+.service-row:hover {
+  background: var(--bg-hover);
+}
+
+.service-row__icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.service-row__name {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.service-row__uptime {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ============================================
+   Service Status Dot
+   ============================================ */
+
+.service-status-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+/* ============================================
    Spec Entries
    ============================================ */
 

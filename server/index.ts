@@ -8,6 +8,7 @@ import { createSessionListProjection, buildSessionList } from "./projections/ses
 import { scanSpecs } from "./spec-scanner.ts";
 import { watchSpecs } from "./spec-watcher.ts";
 import { startGitStatusPoller } from "./git-status-poller.ts";
+import { runStartHook } from "./start-hook.ts";
 
 // Pluggable static asset handler — set via setStaticAssetHandler() by compile.ts for embedded assets
 let serveStaticAsset: ((pathname: string) => Response | null) | null = null;
@@ -397,6 +398,9 @@ process.on("SIGINT", shutdown);
 
 // Start the ACP bridge, discover existing sessions, then create one if needed
 bridge.start().then(async () => {
+  // Run start hook (fire-and-forget) before session discovery
+  runStartHook(CWD);
+
   // Discover existing sessions from the ACP agent
   const existing = await bridge.listSessions();
   const now = Date.now();

@@ -16,6 +16,7 @@ import { errorSlice } from "./error.ts";
 import { usageUpdatedSlice } from "./usage-updated.ts";
 import { specListUpdatedSlice } from "./spec-list-updated.ts";
 import { gitStatusUpdatedSlice } from "./git-status-updated.ts";
+import { serviceStatusUpdatedSlice } from "./service-status-updated.ts";
 
 const slices: Array<(state: AppState, event: ClientEvent) => AppState> = [
   sessionInitiatedSlice,
@@ -35,6 +36,7 @@ const slices: Array<(state: AppState, event: ClientEvent) => AppState> = [
   usageUpdatedSlice,
   specListUpdatedSlice,
   gitStatusUpdatedSlice,
+  serviceStatusUpdatedSlice,
 ];
 
 /** Runs all client slices sequentially. */

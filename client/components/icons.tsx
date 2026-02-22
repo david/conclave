@@ -159,6 +159,31 @@ export function GitStatusIcon({
   );
 }
 
+/* ── Service status icons ───────────────────────── */
+
+export function ServiceStatusIcon({
+  status,
+  size = 8,
+  className,
+}: IconProps & { status: string }) {
+  const colorMap: Record<string, string> = {
+    Running: "var(--success)",
+    Completed: "var(--text-muted)",
+    Skipped: "var(--text-muted)",
+    Launching: "var(--warning)",
+    Restarting: "var(--warning)",
+  };
+  const color = colorMap[status] ?? "var(--error)";
+
+  return (
+    <span className={`service-status-dot ${className ?? ""}`} style={{ color }}>
+      <svg width={size} height={size} viewBox="0 0 8 8">
+        <circle cx="4" cy="4" r="4" fill="currentColor" />
+      </svg>
+    </span>
+  );
+}
+
 /* ── Task status icons (for plan entries) ───────── */
 
 export function TaskIcon({

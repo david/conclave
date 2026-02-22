@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef } from "react";
-import { TaskIcon, Chevron, GitStatusIcon } from "./icons.tsx";
-import type { PlanEntryInfo, GitFileEntry, SpecInfo } from "../reducer.ts";
+import { TaskIcon, Chevron, GitStatusIcon, ServiceStatusIcon } from "./icons.tsx";
+import type { PlanEntryInfo, GitFileEntry, SpecInfo, ServiceProcess } from "../reducer.ts";
 
-type SectionId = "specs" | "tasks" | "files";
+type SectionId = "services" | "specs" | "tasks" | "files";
 
 type WorkspaceProps = {
   entries: PlanEntryInfo[];
   gitFiles: GitFileEntry[];
   specs: SpecInfo[];
+  services: ServiceProcess[];
+  servicesAvailable: boolean;
 };
 
 export type GitFileGroups = {
@@ -187,6 +189,24 @@ function EpicGroupRow({ group }: { group: EpicGroup }) {
   );
 }
 
+function servicesSummary(services: ServiceProcess[], available: boolean): string {
+  if (!available) return "unavailable";
+  const running = services.filter((s) => s.status === "Running").length;
+  return `${running} running`;
+}
+
+function ServiceRow({ service }: { service: ServiceProcess }) {
+  return (
+    <div className="service-row">
+      <span className="service-row__icon">
+        <ServiceStatusIcon status={service.status} />
+      </span>
+      <span className="service-row__name">{service.name}</span>
+      <span className="service-row__uptime">{service.uptime}</span>
+    </div>
+  );
+}
+
 function specsSummary(specs: SpecInfo[]): string {
   const count = specs.filter((s) => s.type !== "epic").length;
   return `${count} spec${count === 1 ? "" : "s"}`;
@@ -211,11 +231,14 @@ export function Workspace({
   entries,
   gitFiles,
   specs,
+  services,
+  servicesAvailable,
 }: WorkspaceProps) {
   const hasEntries = entries.length > 0;
   const hasFiles = gitFiles.length > 0;
   const hasSpecs = specs.length > 0;
-  const hasContent = hasEntries || hasFiles || hasSpecs;
+  const hasServices = services.length > 0 || !servicesAvailable;
+  const hasContent = hasEntries || hasFiles || hasSpecs || hasServices;
 
   const [expandedSection, setExpandedSection] = useState<SectionId | null>(null);
 
@@ -225,7 +248,10 @@ export function Workspace({
   // Auto-expand first section to receive content
   useEffect(() => {
     if (autoExpandedRef.current) return;
-    if (hasEntries) {
+    if (hasServices) {
+      setExpandedSection("services");
+      autoExpandedRef.current = true;
+    } else if (hasEntries) {
       setExpandedSection("tasks");
       autoExpandedRef.current = true;
     } else if (hasFiles) {
@@ -235,7 +261,7 @@ export function Workspace({
       setExpandedSection("specs");
       autoExpandedRef.current = true;
     }
-  }, [hasEntries, hasFiles, hasSpecs]);
+  }, [hasServices, hasEntries, hasFiles, hasSpecs]);
 
   // If tasks arrive after another section was auto-expanded, switch to tasks
   const prevHasEntries = useRef(hasEntries);
@@ -257,6 +283,38 @@ export function Workspace({
   return (
     <div className="workspace">
       <div className="workspace__content">
+        {hasServices && (
+          <div className={`workspace__services-section${expandedSection === "services" ? " workspace__section--expanded" : ""}`}>
+            <button
+              type="button"
+              className="workspace__section-header"
+              onClick={() => handleToggle("services")}
+              aria-expanded={expandedSection === "services"}
+            >
+              <Chevron expanded={expandedSection === "services"} />
+              <span className="workspace__section-label">Services</span>
+              {expandedSection !== "services" && (
+                <span className="workspace__section-summary">
+                  {servicesSummary(services, servicesAvailable)}
+                </span>
+              )}
+            </button>
+            {expandedSection === "services" && (
+              <div className="workspace__section-scroll">
+                <div className="workspace__services">
+                  {servicesAvailable ? (
+                    services.map((service) => (
+                      <ServiceRow key={service.name} service={service} />
+                    ))
+                  ) : (
+                    <div className="workspace__services-unavailable">unavailable</div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {hasSpecs && (
           <div className={`workspace__specs-section${expandedSection === "specs" ? " workspace__section--expanded" : ""}`}>
             <button

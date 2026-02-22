@@ -169,11 +169,12 @@ function App() {
     });
   }, [handleSwitchSession, state.sessionId]);
 
-  // Show workspace sidebar when there are plan entries, git files, or specs
+  // Show workspace sidebar when there are plan entries, git files, specs, or services
   const workspaceVisible = !!state.sessionId && (
     state.planEntries.length > 0 ||
     state.gitFiles.length > 0 ||
-    state.specs.length > 0
+    state.specs.length > 0 ||
+    state.services.length > 0
   );
 
   const layoutClasses = [
@@ -187,6 +188,8 @@ function App() {
         entries={state.planEntries}
         gitFiles={state.gitFiles}
         specs={state.specs}
+        services={state.services}
+        servicesAvailable={state.servicesAvailable}
       />
       <Chat
         ref={inputBarRef}

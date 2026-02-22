@@ -10,6 +10,7 @@ export type {
   PlanEntryInfo,
   GitFileEntry,
   SpecInfo,
+  ServiceProcess,
   TextBlock,
   ImageBlock,
   ToolCallBlock,
