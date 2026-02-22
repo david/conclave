@@ -8,6 +8,7 @@ import { createSessionListProjection, buildSessionList } from "./projections/ses
 import { scanSpecs } from "./spec-scanner.ts";
 import { watchSpecs } from "./spec-watcher.ts";
 import { startGitStatusPoller } from "./git-status-poller.ts";
+import { startServiceStatusPoller } from "./service-status-poller.ts";
 import { runStartHook } from "./start-hook.ts";
 
 // Pluggable static asset handler — set via setStaticAssetHandler() by compile.ts for embedded assets
@@ -47,6 +48,17 @@ store.subscribe((event) => {
   if (event.type === "GitStatusUpdated") {
     latestGitStatusEvent = event;
     // Broadcast to all connected clients
+    for (const [ws] of wsStates) {
+      sendWs(ws, event);
+    }
+  }
+});
+
+// Track latest ServiceStatusUpdated for replay on WS connect, and broadcast to all clients
+let latestServiceStatusEvent: DomainEvent | null = null;
+store.subscribe((event) => {
+  if (event.type === "ServiceStatusUpdated") {
+    latestServiceStatusEvent = event;
     for (const [ws] of wsStates) {
       sendWs(ws, event);
     }
@@ -184,6 +196,11 @@ const server = Bun.serve<{ requestedSessionId: string | null }>({
       // Send latest git status if available
       if (latestGitStatusEvent) {
         sendWs(ws, latestGitStatusEvent);
+      }
+
+      // Send latest service status if available
+      if (latestServiceStatusEvent) {
+        sendWs(ws, latestServiceStatusEvent);
       }
 
       // Determine which session to replay: prefer URL-requested, fall back to latest
@@ -383,6 +400,7 @@ console.log(`Conclave server listening on http://localhost:${PORT}`);
 // Graceful shutdown — clean up child processes, timers, and the HTTP server
 let stopSpecWatcher: (() => void) | null = null;
 let stopGitPoller: (() => void) | null = null;
+let stopServicePoller: (() => void) | null = null;
 
 function shutdown() {
   console.log("Shutting down...");
@@ -390,6 +408,7 @@ function shutdown() {
   bridge.stop();
   if (stopSpecWatcher) stopSpecWatcher();
   if (stopGitPoller) stopGitPoller();
+  if (stopServicePoller) stopServicePoller();
   process.exit(0);
 }
 
@@ -443,6 +462,16 @@ bridge.start().then(async () => {
     },
   });
   stopGitPoller = gitPoller.stop;
+
+  // Start service status poller
+  const servicePoller = startServiceStatusPoller({
+    apiUrl: "http://localhost:8080/processes",
+    intervalMs: 5000,
+    onUpdate: (available, services) => {
+      store.appendGlobal({ type: "ServiceStatusUpdated", available, services });
+    },
+  });
+  stopServicePoller = servicePoller.stop;
 
   // Always create a fresh session to start with
   try {
