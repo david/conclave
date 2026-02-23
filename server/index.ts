@@ -29,43 +29,86 @@ const latestSession = createLatestSessionProjection(store);
 const metaContextRegistry = createMetaContextRegistry(store, CWD);
 
 // Per-WS state (connection infrastructure — not domain state)
-type WsState = { currentSessionId: string | null; unsubscribe: (() => void) | null };
+export type WsState = { currentSessionId: string | null; unsubscribe: (() => void) | null };
 const wsStates = new Map<object, WsState>();
 
 // Track latest SpecListUpdated for replay on WS connect, and broadcast to all clients
 let latestSpecListEvent: DomainEvent | null = null;
-store.subscribe((event) => {
-  if (event.type === "SpecListUpdated") {
-    latestSpecListEvent = event;
-    // Broadcast to all connected clients
-    for (const [ws] of wsStates) {
-      sendWs(ws, event);
+{
+  let pending: DomainEvent[] = [];
+  let flushScheduled = false;
+  store.subscribe((event) => {
+    if (event.type === "SpecListUpdated") {
+      latestSpecListEvent = event;
+      pending.push(event);
+      if (!flushScheduled) {
+        flushScheduled = true;
+        setTimeout(() => {
+          const batch = pending;
+          pending = [];
+          flushScheduled = false;
+          for (const e of batch) {
+            for (const [ws] of wsStates) {
+              sendWs(ws, e);
+            }
+          }
+        }, 0);
+      }
     }
-  }
-});
+  });
+}
 
 // Track latest GitStatusUpdated for replay on WS connect, and broadcast to all clients
 let latestGitStatusEvent: DomainEvent | null = null;
-store.subscribe((event) => {
-  if (event.type === "GitStatusUpdated") {
-    latestGitStatusEvent = event;
-    // Broadcast to all connected clients
-    for (const [ws] of wsStates) {
-      sendWs(ws, event);
+{
+  let pending: DomainEvent[] = [];
+  let flushScheduled = false;
+  store.subscribe((event) => {
+    if (event.type === "GitStatusUpdated") {
+      latestGitStatusEvent = event;
+      pending.push(event);
+      if (!flushScheduled) {
+        flushScheduled = true;
+        setTimeout(() => {
+          const batch = pending;
+          pending = [];
+          flushScheduled = false;
+          for (const e of batch) {
+            for (const [ws] of wsStates) {
+              sendWs(ws, e);
+            }
+          }
+        }, 0);
+      }
     }
-  }
-});
+  });
+}
 
 // Track latest ServiceStatusUpdated for replay on WS connect, and broadcast to all clients
 let latestServiceStatusEvent: DomainEvent | null = null;
-store.subscribe((event) => {
-  if (event.type === "ServiceStatusUpdated") {
-    latestServiceStatusEvent = event;
-    for (const [ws] of wsStates) {
-      sendWs(ws, event);
+{
+  let pending: DomainEvent[] = [];
+  let flushScheduled = false;
+  store.subscribe((event) => {
+    if (event.type === "ServiceStatusUpdated") {
+      latestServiceStatusEvent = event;
+      pending.push(event);
+      if (!flushScheduled) {
+        flushScheduled = true;
+        setTimeout(() => {
+          const batch = pending;
+          pending = [];
+          flushScheduled = false;
+          for (const e of batch) {
+            for (const [ws] of wsStates) {
+              sendWs(ws, e);
+            }
+          }
+        }, 0);
+      }
     }
-  }
-});
+  });
+}
 
 const bridge = new AcpBridge(CWD, (sessionId, payload) => {
   // Skip system-level errors without a real session
@@ -89,7 +132,7 @@ createSessionListProjection(store, sessionRegistry, () => {
   broadcastSessionList();
 }, metaContextRegistry);
 
-function sendWs(ws: object, event: WsEvent) {
+export function sendWs(ws: object, event: WsEvent) {
   try {
     const bws = ws as { send(data: string): void; cork(cb: () => void): void };
     const data = JSON.stringify(event);
@@ -106,8 +149,13 @@ function sendWs(ws: object, event: WsEvent) {
   }
 }
 
-function subscribeWsToSession(ws: object, sessionId: string) {
-  const state = wsStates.get(ws);
+export function subscribeWsToSession(
+  ws: object,
+  sessionId: string,
+  storeArg: EventStore = store,
+  wsStatesArg: Map<object, WsState> = wsStates,
+) {
+  const state = wsStatesArg.get(ws);
   if (!state) return;
 
   // Unsubscribe from previous
@@ -117,10 +165,23 @@ function subscribeWsToSession(ws: object, sessionId: string) {
 
   state.currentSessionId = sessionId;
 
-  // Subscribe with session filter
-  state.unsubscribe = store.subscribe((event: DomainEvent) => {
+  // Subscribe with session filter — batch events and flush asynchronously
+  // via setTimeout(fn, 0) to break the microtask chain that starves
+  // uWebSockets' IO loop during burst ACP processing.
+  let pending: DomainEvent[] = [];
+  let flushScheduled = false;
+  state.unsubscribe = storeArg.subscribe((event: DomainEvent) => {
     if ("sessionId" in event && event.sessionId === sessionId) {
-      sendWs(ws, event);
+      pending.push(event);
+      if (!flushScheduled) {
+        flushScheduled = true;
+        setTimeout(() => {
+          const batch = pending;
+          pending = [];
+          flushScheduled = false;
+          for (const e of batch) sendWs(ws, e);
+        }, 0);
+      }
     }
   });
 }

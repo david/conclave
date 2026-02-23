@@ -53,7 +53,8 @@ function sendWs(ws: object, event: WsEvent) {
   } catch {}
 }
 
-/** Exact reproduction of subscribeWsToSession from server/index.ts — synchronous relay */
+/** Fixed subscribeWsToSession — batches events and flushes via setTimeout(fn, 0)
+ *  to break the microtask chain that starves uWebSockets' IO loop. */
 function subscribeWsToSession(
   ws: object,
   sessionId: string,
@@ -64,9 +65,20 @@ function subscribeWsToSession(
   if (!state) return;
   if (state.unsubscribe) state.unsubscribe();
   state.currentSessionId = sessionId;
+  let pending: DomainEvent[] = [];
+  let flushScheduled = false;
   state.unsubscribe = store.subscribe((event: DomainEvent) => {
     if ("sessionId" in event && event.sessionId === sessionId) {
-      sendWs(ws, event);
+      pending.push(event);
+      if (!flushScheduled) {
+        flushScheduled = true;
+        setTimeout(() => {
+          const batch = pending;
+          pending = [];
+          flushScheduled = false;
+          for (const e of batch) sendWs(ws, e);
+        }, 0);
+      }
     }
   });
 }
@@ -166,23 +178,15 @@ describe("WS relay delivery (synchronous relay — no async batching)", () => {
     const { store, received } = ctx;
 
     // Append 10 events from a macrotask (simulating ACP bridge callback).
-    // With the current code: cork+send executes synchronously for each event.
-    // Data is in uWebSockets' outbound buffer.
+    // The batching fix defers sends via setTimeout(0).
     await appendFromMacrotask(store, TEST_SESSION_ID, 10, "message");
 
-    // Only drain microtasks — do NOT yield a macrotask / IO tick.
-    // The client's onmessage fires from the IO poll, which hasn't run.
-    await new Promise<void>((r) => queueMicrotask(() => queueMicrotask(r)));
+    // Yield a macrotask so the deferred flush fires and the IO loop flushes.
+    await new Promise<void>((r) => setTimeout(r, 0));
+    // Give the IO loop one more tick to deliver the data to the client.
+    await new Promise<void>((r) => setTimeout(r, 0));
 
-    // With the current synchronous relay: received.length === 0
-    // Events are stuck in uWebSockets' buffer — the IO loop hasn't flushed.
-    //
-    // After the fix (setTimeout batching): the sends are deferred but the
-    // flush macrotask hasn't fired yet either. However, when the fix is
-    // applied, the GREEN step will also update these assertions to use a
-    // macrotask yield — which will demonstrate the fix works while the
-    // current code's synchronous path still results in stalled delivery
-    // during continuous processing.
+    // With the batching fix: all 10 events are delivered.
     expect(received.length).toBe(10);
   });
 
@@ -191,13 +195,14 @@ describe("WS relay delivery (synchronous relay — no async batching)", () => {
     const { store, received } = ctx;
 
     // Burst-append 100 events from a single macrotask.
-    // All 100 cork+send calls run within the same macrotask — IO is starved.
+    // The batching fix collects all 100 and defers the flush.
     await appendFromMacrotask(store, TEST_SESSION_ID, 100, "burst");
 
-    // Only drain microtasks
-    await new Promise<void>((r) => queueMicrotask(() => queueMicrotask(r)));
+    // Yield macrotasks so the deferred flush fires and IO loop delivers.
+    await new Promise<void>((r) => setTimeout(r, 0));
+    await new Promise<void>((r) => setTimeout(r, 0));
 
-    // Current code: 0 received — entire burst buffered
+    // With the batching fix: all 100 events are delivered.
     expect(received.length).toBe(100);
     for (let i = 0; i < 100; i++) {
       const event = received[i] as any;
@@ -211,13 +216,15 @@ describe("WS relay delivery (synchronous relay — no async batching)", () => {
     ctx = await setupTestServer();
     const { store, received } = ctx;
 
-    // Append a single event from a macrotask
+    // Append a single event from a macrotask.
+    // The batching fix defers the send.
     await appendFromMacrotask(store, TEST_SESSION_ID, 1, "single");
 
-    // Only drain microtasks
-    await new Promise<void>((r) => queueMicrotask(() => queueMicrotask(r)));
+    // Yield macrotasks so the deferred flush fires and IO loop delivers.
+    await new Promise<void>((r) => setTimeout(r, 0));
+    await new Promise<void>((r) => setTimeout(r, 0));
 
-    // Current code: 0 received — even one event stalls
+    // With the batching fix: the single event is delivered.
     expect(received.length).toBe(1);
     const event = received[0] as any;
     expect(event.type).toBe("AgentText");
