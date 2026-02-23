@@ -56,17 +56,37 @@ Each UC section from implementation.md becomes one task by default. Adjust when:
 - **Merge** UC sections that are trivially small (e.g., "no code changes needed") into a parent task or mark as no-op.
 - **Convention tasks**: UC sections that describe skill conventions or documentation-only changes (no code) should be marked as `kind: "convention"` — the orchestrator can skip these or handle them differently.
 
-### 5. Assign Parallel Lanes
+### 5. Enforce TDD Task Ordering (Red-Green)
+
+Every code task that has associated tests must follow strict TDD ordering:
+
+1. **Tests come first.** The test task is always in an earlier wave than the implementation task it validates. Never place tests after or in the same wave as the code they cover.
+2. **Red must be meaningful.** The test task must fail against the *current* codebase for the right reason — the actual bug or missing behavior — not because a function doesn't exist or a file can't be imported. If the tests would fail for a structural reason (e.g., importing a file that doesn't exist yet), the task that creates that structural prerequisite goes in an earlier wave.
+3. **Green is the implementation.** The implementation task's description must explicitly state "run the T-N tests — all must pass green" as its final step.
+4. **Name tasks with phase prefixes** when the red-green cycle is the primary structure: `"Red: <what the tests cover>"`, `"Green: <what the fix/feature does>"`.
+
+Example wave assignment for a bug fix:
+- **Wave 0**: `T-0: Red — tests that reproduce the bug` (fail with meaningful assertion like "expected 10 events, received 0")
+- **Wave 1**: `T-1: Green — apply the fix` (tests pass)
+
+For new features with types + tests + implementation:
+- **Wave 0**: `T-0: New types` (structural prerequisite)
+- **Wave 1**: `T-1: Red — tests for UC-1` (imports types, fails because behavior is missing)
+- **Wave 2**: `T-2: Green — implement UC-1` (tests pass)
+
+If multiple UCs have independent test+implementation pairs, their red tasks can share a wave and their green tasks can share a later wave.
+
+### 6. Assign Parallel Lanes
 
 Group tasks into execution waves — sets of tasks that can run concurrently:
 
-- **Wave 0**: Tasks with no dependencies (often `New Types` or foundational setup)
+- **Wave 0**: Tasks with no dependencies (often `New Types`, foundational setup, or red tests that run against existing code)
 - **Wave 1**: Tasks whose dependencies are all in wave 0
 - **Wave N**: Tasks whose dependencies are all in waves < N
 
 Tasks in the same wave run in parallel. Waves execute sequentially.
 
-### 6. Write tasks.md
+### 7. Write tasks.md
 
 Write the output to `.conclave/specs/<spec-name>/tasks.md`.
 
@@ -126,7 +146,7 @@ Read `skills/conclave/references/tasks.md` for the full schema and field definit
 - Preserve the planner's step details and test scenarios — don't summarize away actionable information.
 - Flag potential conflict risks in task descriptions (e.g., "Modifies `index.ts` — coordinate with T-3 if running in same wave").
 
-### 7. Confirm with User
+### 8. Confirm with User
 
 After writing tasks.md, present:
 - Total task count and wave count
