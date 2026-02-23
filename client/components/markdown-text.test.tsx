@@ -167,6 +167,25 @@ describe("MarkdownText heading normalization", () => {
     expect(html).not.toContain("<h5");
     expect(html).not.toContain("<h6");
   });
+
+  test("heading syntax inside inline code is not split onto its own line", () => {
+    const html = renderToStaticMarkup(
+      <MarkdownText text={'mentions `## Wave N` in inline code'} />,
+    );
+    // Should render as inline code, not as a heading
+    expect(html).not.toContain("<h2");
+    expect(html).toContain("<code>## Wave N</code>");
+  });
+
+  test("multiple inline code spans with heading syntax are preserved", () => {
+    const html = renderToStaticMarkup(
+      <MarkdownText text={'Use `## H2` or `### H3` for headings'} />,
+    );
+    expect(html).not.toContain("<h2");
+    expect(html).not.toContain("<h3");
+    expect(html).toContain("<code>## H2</code>");
+    expect(html).toContain("<code>### H3</code>");
+  });
 });
 
 describe("MarkdownText code fence separation", () => {

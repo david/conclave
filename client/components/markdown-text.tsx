@@ -34,10 +34,18 @@ export function normalizeMarkdown(text: string): string {
     } else {
       const isTableRow = /^\s*\|/.test(line);
       if (!isTableRow) {
+        // Shelter inline code spans from the heading/fence regexes
+        const codeSpans: string[] = [];
+        line = line.replace(/`[^`]+`/g, (m) => {
+          codeSpans.push(m);
+          return `\x00CS${codeSpans.length - 1}\x00`;
+        });
         // Ensure headings start on their own line
         line = line.replace(/([^\n#])(#{1,6}\s)/g, "$1\n\n$2");
         // Split mid-line ``` so opening fences start on their own line
         line = line.replace(/([^`\n])(```)/g, "$1\n\n$2");
+        // Restore inline code spans
+        line = line.replace(/\x00CS(\d+)\x00/g, (_, i) => codeSpans[Number(i)]);
       }
       out.push(line);
     }
