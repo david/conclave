@@ -90,7 +90,7 @@ When you're ready for the next phase, read `skills/conclave/references/next.md` 
 
 ````
 ```conclave:next
-{"label":"Continue to Task Organization","command":"/org <spec-name>","metaContext":"<spec-name>"}
+{"label":"Review Plan","command":"/review plan <spec-name>","metaContext":"<spec-name>"}
 ```
 ````
 

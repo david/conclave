@@ -151,13 +151,13 @@ Output one `conclave:usecase` fenced code block per use case. Read `skills/concl
 
 ### Next Step
 
-After all use cases are finalized, offer the next phase transition.
+After all use cases are finalized, offer to review the output before moving on.
 
 Read `skills/conclave/references/next.md` for the schema, then emit a `conclave:next` fenced code block:
 
 ````
 ```conclave:next
-{"label":"Continue to Architecture","command":"/arq <spec-name>","metaContext":"<spec-name>"}
+{"label":"Review Requirements","command":"/review req <spec-name>","metaContext":"<spec-name>"}
 ```
 ````
 
