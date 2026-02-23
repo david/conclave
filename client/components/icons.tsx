@@ -184,6 +184,101 @@ export function ServiceStatusIcon({
   );
 }
 
+/* ── Section icons (workspace icon bar) ─────────── */
+
+export function ServicesIcon({ size = 20, className }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      {/* Three stacked horizontal bars (server/process) */}
+      <line x1="4" y1="5" x2="16" y2="5" />
+      <line x1="4" y1="10" x2="16" y2="10" />
+      <line x1="4" y1="15" x2="16" y2="15" />
+      <circle cx="15" cy="5" r="1" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="10" r="1" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="15" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function SpecsIcon({ size = 20, className }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      {/* Document with lines */}
+      <path d="M5,2 L12,2 L15,5 L15,18 L5,18 Z" />
+      <polyline points="12,2 12,5 15,5" />
+      <line x1="7.5" y1="9" x2="12.5" y2="9" />
+      <line x1="7.5" y1="12" x2="12.5" y2="12" />
+      <line x1="7.5" y1="15" x2="10.5" y2="15" />
+    </svg>
+  );
+}
+
+export function TasksIcon({ size = 20, className }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      {/* Checkbox / checklist */}
+      <rect x="3" y="3" width="5" height="5" rx="1" />
+      <polyline points="4.5,5.5 6,7 8.5,3.5" />
+      <line x1="11" y1="5.5" x2="17" y2="5.5" />
+      <rect x="3" y="12" width="5" height="5" rx="1" />
+      <line x1="11" y1="14.5" x2="17" y2="14.5" />
+    </svg>
+  );
+}
+
+export function FilesIcon({ size = 20, className }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      {/* Branching tree (git/file-diff) */}
+      <circle cx="6" cy="4" r="2" />
+      <circle cx="6" cy="16" r="2" />
+      <circle cx="14" cy="8" r="2" />
+      <line x1="6" y1="6" x2="6" y2="14" />
+      <path d="M6,8 Q6,10 8,10 L12,10 Q14,10 14,8" />
+    </svg>
+  );
+}
+
 /* ── Task status icons (for plan entries) ───────── */
 
 export function TaskIcon({
