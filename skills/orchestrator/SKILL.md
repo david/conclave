@@ -1,11 +1,11 @@
 ---
-name: orc
+name: orchestrate
 description: >
   Execute a spec's task plan by orchestrating parallel agent teams. Reads implementation.json (produced
   by the organizer skill), spawns agents via the Task tool respecting dependency waves, monitors
   progress, and coordinates commits. Use when a spec has an implementation.json and is ready for parallel
   implementation. Triggers on: "orchestrate...", "execute tasks for...", "run the swarm",
-  "/orc", "/orc <spec-name>", or when a spec has implementation.json and the user wants to begin
+  "/orchestrate", "/orchestrate <spec-name>", or when a spec has implementation.json and the user wants to begin
   multi-agent execution.
 ---
 
@@ -23,7 +23,7 @@ Read a spec's `implementation.json`, spawn agents for each task respecting depen
 
 Read `.conclave/specs/<spec-name>/implementation.json` and `JSON.parse()` it directly to get the task graph. Each task's `description` field contains the full agent prompt context (files, steps, and test scenarios).
 
-If implementation.json is missing, tell the user to run the organizer first (`/org <spec-name>`).
+If implementation.json is missing, tell the user to run the organizer first (`/organize <spec-name>`).
 
 ### 2. Load Context
 

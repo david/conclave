@@ -1,13 +1,13 @@
 ---
-name: bug
+name: triage-bug
 description: >
   Debug and triage bugs to produce a diagnosis and fix plan for other skills to implement.
   Investigates root cause, identifies missing test coverage, and outputs research.md and
   implementation.md into the spec pipeline. Use when the user reports a bug, unexpected behavior,
   or regression and wants to understand why it happened before fixing it.
   Triggers on: "debug...", "triage...", "why is X broken", "investigate this bug",
-  "/bug", "/bug <description>". Does NOT fix the bug itself — produces artifacts for
-  /org → /orc (or /dev) to execute. Does NOT handle already-failing tests — use /dev for those.
+  "/triage-bug", "/triage-bug <description>". Does NOT fix the bug itself — produces artifacts for
+  /organize → /orchestrate (or /develop) to execute. Does NOT handle already-failing tests — use /develop for those.
 ---
 
 # Bug
@@ -16,9 +16,9 @@ Investigate a bug, diagnose its root cause, identify what tests would have caugh
 
 ## Pipeline Position
 
-`/bug <description>` → `research.md` + `implementation.md` → `/org` → `/orc`
+`/triage-bug <description>` → `research.md` + `implementation.md` → `/organize` → `/orchestrate`
 
-The bug skill replaces `/rsrc` + `/req` + `/arq` + `/plan` for bug work. Its output slots directly into the task decomposition phase.
+The triage-bug skill replaces `/research` + `/gather-requirements` + `/architect` + `/plan` for bug work. Its output slots directly into the task decomposition phase.
 
 ## Workflow
 
@@ -69,7 +69,7 @@ This is the durable diagnostic record — it explains the bug for anyone reading
 
 Write `.conclave/specs/bug-<name>/implementation.md`. See [references/implementation-format.md](references/implementation-format.md) for the format.
 
-This is what `/org` picks up to decompose into tasks.
+This is what `/organize` picks up to decompose into tasks.
 
 ### 7. Next Step
 
@@ -79,7 +79,7 @@ When you're ready for the next phase, read `skills/conclave/references/next.md` 
 
 ````
 ```conclave:next
-{"label":"Continue to Task Organization","command":"/org bug-<name>","metaContext":"bug-<name>"}
+{"label":"Continue to Task Organization","command":"/organize bug-<name>","metaContext":"bug-<name>"}
 ```
 ````
 

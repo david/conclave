@@ -1,12 +1,12 @@
 ---
-name: org
+name: organize
 description: >
   Analyze a spec's breakdown.md and produce a parallelization-aware task plan (implementation.json).
   Reads UC sections, analyzes dependency chains and file mutation overlaps, determines which
   tasks can run in parallel vs sequentially, and assigns appropriate granularity. Use when
   a spec has a breakdown.md and needs task decomposition before orchestrated execution.
-  Triggers on: "organize tasks for...", "plan tasks for...", "decompose into tasks", "/org",
-  "/org <spec-name>", or when preparing a spec for parallel agent execution.
+  Triggers on: "organize tasks for...", "plan tasks for...", "decompose into tasks", "/organize",
+  "/organize <spec-name>", or when preparing a spec for parallel agent execution.
 ---
 
 # Organizer
@@ -133,7 +133,7 @@ When you're ready for the next phase, read `skills/conclave/references/next.md` 
 
 ````
 ```conclave:next
-{"label":"Review Implementation","command":"/review org <spec-name>","metaContext":"<spec-name>"}
+{"label":"Review Implementation","command":"/review organize <spec-name>","metaContext":"<spec-name>"}
 ```
 ````
 

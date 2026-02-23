@@ -1,12 +1,12 @@
 ---
-name: dev
+name: develop
 description: >
   Disciplined software development with strict TDD (red-green-refactor), KISS, DRY, and YAGNI.
   Use when the user asks to implement a feature, fix a bug, build something, add functionality,
   or any task that produces behavioral code changes. Triggers on: "implement X", "build X",
-  "add feature X", "fix bug X", "/dev", or when entering a development/coding mode.
+  "add feature X", "fix bug X", "/develop", or when entering a development/coding mode.
   Does NOT trigger for purely structural changes (renames, formatting, moves) that have no
-  behavioral impact. For spec-driven work, use the org/orc pipeline instead.
+  behavioral impact. For spec-driven work, use the organize/orchestrate pipeline instead.
 ---
 
 # Dev

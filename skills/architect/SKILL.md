@@ -1,12 +1,12 @@
 ---
-name: arq
+name: architect
 description: >
   Model the event architecture for a spec's use cases. Reads analysis.md (use cases) and the
   existing codebase (types, slices, projections) to augment analysis.md with event model
   sections — mapping each use case to commands, domain events, projections, and side effects.
   Use when a spec has an analysis.md and needs event modeling before implementation planning.
-  Triggers on: "architect this spec", "model events for...", "event model for...", "/arq",
-  "/arq <spec-name>", or when a spec has an analysis.md and the user wants to design the
+  Triggers on: "architect this spec", "model events for...", "event model for...", "/architect",
+  "/architect <spec-name>", or when a spec has an analysis.md and the user wants to design the
   event flows.
 ---
 
@@ -68,7 +68,7 @@ When you're ready for the next phase, read `skills/conclave/references/next.md` 
 
 ````
 ```conclave:next
-{"label":"Review Architecture","command":"/review arq <spec-name>","metaContext":"<spec-name>"}
+{"label":"Review Architecture","command":"/review architect <spec-name>","metaContext":"<spec-name>"}
 ```
 ````
 

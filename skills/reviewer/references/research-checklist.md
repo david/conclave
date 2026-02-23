@@ -29,6 +29,6 @@ Criteria for evaluating `research.md`.
 
 ## Completeness
 
-14. **Sufficient for /req.** A requirements analyst reading only this file would have enough context to produce use cases without re-doing the research.
+14. **Sufficient for /gather-requirements.** A requirements analyst reading only this file would have enough context to produce use cases without re-doing the research.
 15. **No transcript residue.** The file reads as a distilled briefing, not a conversation log or raw notes dump.
 16. **Scope is clear.** The boundary of what was explored (and what was deliberately excluded) is evident.

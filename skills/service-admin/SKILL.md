@@ -1,11 +1,11 @@
 ---
-name: svc
+name: manage-services
 description: >
   Manage development services via process-compose. Start, stop, restart processes, check
   status, and tail logs. Use when the user asks to restart services, check service status,
   view process logs, or manage running processes. Also used by the orchestrator to restart
   services after all waves complete. Triggers on: "restart services", "restart the server",
-  "check service status", "show me the logs", "/svc", "/svc restart", or when another skill
+  "check service status", "show me the logs", "/manage-services", "/manage-services restart", or when another skill
   needs to bounce services after code changes.
 ---
 

@@ -5,7 +5,7 @@ description: >
   Evaluates the document in isolation — no upstream/downstream context, no codebase
   reading — just the artifact against the checklist criteria. Use when a skill has
   produced its artifact and you want a quality gate before moving to the next phase.
-  Triggers on: "/review <skill>", "review the req output", "review the architecture",
+  Triggers on: "/review <skill>", "review the gather-requirements output", "review the architecture",
   "review the plan", "review the tasks".
 ---
 
@@ -17,17 +17,17 @@ Evaluate a pipeline skill's artifact against its review checklist. The review is
 
 | Argument | Skill | Artifact | Checklist |
 |----------|-------|----------|-----------|
-| `rsrc` | Researcher | `research.md` | `references/rsrc-checklist.md` |
-| `req` | Requirements Analyst | `analysis.md` (use cases + decisions) | `references/req-checklist.md` |
-| `arq` | Architect | `analysis.md` (event model sections) | `references/arq-checklist.md` |
+| `research` | Researcher | `research.md` | `references/research-checklist.md` |
+| `gather-requirements` | Requirements Analyst | `analysis.md` (use cases + decisions) | `references/gather-requirements-checklist.md` |
+| `architect` | Architect | `analysis.md` (event model sections) | `references/architect-checklist.md` |
 | `plan` | Planner | `implementation.md` | `references/plan-checklist.md` |
-| `org` | Organizer | `tasks.md` | `references/org-checklist.md` |
+| `organize` | Organizer | `tasks.md` | `references/organize-checklist.md` |
 
 ## Workflow
 
 ### 1. Resolve the Target
 
-Parse the skill argument from the user's command (e.g., `/review req`, `/review arq`).
+Parse the skill argument from the user's command (e.g., `/review gather-requirements`, `/review architect`).
 
 If the user didn't specify a spec name, scan `.conclave/specs/*/` and pick the most recently modified spec that has the relevant artifact. If ambiguous, ask.
 
@@ -37,11 +37,11 @@ Read the artifact file from `.conclave/specs/<spec-name>/`:
 
 | Skill | File to read |
 |-------|-------------|
-| `rsrc` | `research.md` — the full file |
-| `req` | `analysis.md` — only the use cases and decisions sections (stop before `## Event Model` if present) |
-| `arq` | `analysis.md` — only the `## Event Model` section and its `conclave:eventmodel` blocks |
+| `research` | `research.md` — the full file |
+| `gather-requirements` | `analysis.md` — only the use cases and decisions sections (stop before `## Event Model` if present) |
+| `architect` | `analysis.md` — only the `## Event Model` section and its `conclave:eventmodel` blocks |
 | `plan` | `implementation.md` — the full file |
-| `org` | `tasks.md` — the full file |
+| `organize` | `tasks.md` — the full file |
 
 **Do not read any other files.** No `spec.json`, no `CLAUDE.md`, no source code, no upstream or downstream artifacts. The review is conducted in isolation — the artifact must be self-explanatory.
 
@@ -49,11 +49,11 @@ Read the artifact file from `.conclave/specs/<spec-name>/`:
 
 Read the corresponding checklist from this skill's `references/` directory:
 
-- `references/rsrc-checklist.md`
-- `references/req-checklist.md`
-- `references/arq-checklist.md`
+- `references/research-checklist.md`
+- `references/gather-requirements-checklist.md`
+- `references/architect-checklist.md`
 - `references/plan-checklist.md`
-- `references/org-checklist.md`
+- `references/organize-checklist.md`
 
 ### 4. Evaluate
 
@@ -108,11 +108,11 @@ Read `skills/conclave/references/next.md` for the schema.
 
 | Reviewed | Next label | Next command |
 |----------|-----------|-------------|
-| `rsrc` | Continue to Requirements | `/req <spec-name>` |
-| `req` | Continue to Architecture | `/arq <spec-name>` |
-| `arq` | Continue to Planning | `/plan <spec-name>` |
-| `plan` | Continue to Task Organization | `/org <spec-name>` |
-| `org` | Continue to Orchestration | `/orc <spec-name>` |
+| `research` | Continue to Requirements | `/gather-requirements <spec-name>` |
+| `gather-requirements` | Continue to Architecture | `/architect <spec-name>` |
+| `architect` | Continue to Planning | `/plan <spec-name>` |
+| `plan` | Continue to Task Organization | `/organize <spec-name>` |
+| `organize` | Continue to Orchestration | `/orchestrate <spec-name>` |
 
 ````
 ```conclave:next
@@ -122,7 +122,7 @@ Read `skills/conclave/references/next.md` for the schema.
 
   For **Yes with caveats**, also list the non-blocking improvements above the button.
 
-- If **No**: Do not emit a `conclave:next` block. List the blocking issues and suggest re-running the skill (e.g., "You may want to re-run `/req <spec-name>` to address these issues").
+- If **No**: Do not emit a `conclave:next` block. List the blocking issues and suggest re-running the skill (e.g., "You may want to re-run `/gather-requirements <spec-name>` to address these issues").
 
 ## Guidelines
 

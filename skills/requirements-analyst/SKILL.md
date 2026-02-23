@@ -1,6 +1,6 @@
 ---
-name: req
-description: Analyze feature requests and produce structured requirements through systematic decomposition. Use when a user explicitly asks to analyze, decompose, or define requirements before building. Triggers on: "analyze requirements for...", "what are the use cases for...", "break down the requirements for...", "/req", "/req <topic>". Does NOT trigger on general feature requests meant for implementation — those go to the developer skill. Does NOT trigger on open-ended exploration or research — those go to the researcher skill (/rsrc).
+name: gather-requirements
+description: Analyze feature requests and produce structured requirements through systematic decomposition. Use when a user explicitly asks to analyze, decompose, or define requirements before building. Triggers on: "analyze requirements for...", "what are the use cases for...", "break down the requirements for...", "/gather-requirements", "/gather-requirements <topic>". Does NOT trigger on general feature requests meant for implementation — those go to the developer skill. Does NOT trigger on open-ended exploration or research — those go to the researcher skill (/research).
 ---
 
 # Requirements Analyst
@@ -157,7 +157,7 @@ Read `skills/conclave/references/next.md` for the schema, then emit a `conclave:
 
 ````
 ```conclave:next
-{"label":"Review Requirements","command":"/review req <spec-name>","metaContext":"<spec-name>"}
+{"label":"Review Requirements","command":"/review gather-requirements <spec-name>","metaContext":"<spec-name>"}
 ```
 ````
 

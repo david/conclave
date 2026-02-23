@@ -30,4 +30,4 @@
 - The "Fix" section covers the minimal code change to resolve the bug. No unrelated cleanup.
 - The "New Tests" section describes tests that would have caught the bug (from research.md) plus any regression test for the fix itself.
 - Each test entry is a scenario → expectation pair, not test code.
-- Keep it buildable — `/org` should be able to decompose this into tasks without ambiguity.
+- Keep it buildable — `/organize` should be able to decompose this into tasks without ambiguity.

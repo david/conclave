@@ -1,6 +1,6 @@
 ---
-name: rsrc
-description: Explore a problem space before committing to requirements. Use when the user wants to understand what a feature should do, investigate how something works, explore trade-offs, or research approaches before formalizing use cases. Triggers on: "research...", "explore how...", "what should X do", "how does X work", "investigate...", "/rsrc", "/rsrc <topic>". Does NOT trigger on requests ready for structured requirements — those go to the req skill.
+name: research
+description: Explore a problem space before committing to requirements. Use when the user wants to understand what a feature should do, investigate how something works, explore trade-offs, or research approaches before formalizing use cases. Triggers on: "research...", "explore how...", "what should X do", "how does X work", "investigate...", "/research", "/research <topic>". Does NOT trigger on requests ready for structured requirements — those go to the gather-requirements skill.
 ---
 
 # Researcher
@@ -17,9 +17,9 @@ Dialogue-driven exploration of a problem space. Produces understanding, not spec
 
 ## Pipeline Position
 
-`/rsrc` → `research.md` → `/req` → `analysis.md` → `/arq` → ...
+`/research` → `research.md` → `/gather-requirements` → `analysis.md` → `/architect` → ...
 
-Research precedes requirements. The output (`research.md`) feeds into `/req` as context.
+Research precedes requirements. The output (`research.md`) feeds into `/gather-requirements` as context.
 
 ## Workflow
 
@@ -49,7 +49,7 @@ This is a conversation, not a deliverable assembly line. The user steers.
 
 **Do not:**
 - Drive toward a predetermined output format
-- Produce use cases (that's `/req`'s job)
+- Produce use cases (that's `/gather-requirements`'s job)
 - Rush to conclusions — let the user arrive at understanding
 
 **Good research moves:**
@@ -82,7 +82,7 @@ Update `.conclave/specs/<name>/research.md` incrementally as findings emerge, or
 - <Where the user is trending, decisions that feel settled>
 ```
 
-The file should read as a useful briefing for someone (or a future `/req` session) picking up where the research left off. It is not a transcript — distill the conversation into insights.
+The file should read as a useful briefing for someone (or a future `/gather-requirements` session) picking up where the research left off. It is not a transcript — distill the conversation into insights.
 
 ### 3. Next Step
 
@@ -92,7 +92,7 @@ Read `skills/conclave/references/next.md` for the schema, then emit a `conclave:
 
 ````
 ```conclave:next
-{"label":"Review Research","command":"/review rsrc <spec-name>","metaContext":"<spec-name>"}
+{"label":"Review Research","command":"/review research <spec-name>","metaContext":"<spec-name>"}
 ```
 ````
 
