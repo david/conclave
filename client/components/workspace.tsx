@@ -296,7 +296,7 @@ function ContentPanel({ activeSection, entries, gitFiles, specs, services, servi
         {activeSection === "services" && (
           <div className="workspace__services">
             {servicesAvailable ? (
-              services.map((service) => (
+              [...services].sort((a, b) => a.name.localeCompare(b.name)).map((service) => (
                 <ServiceRow key={service.name} service={service} />
               ))
             ) : (
