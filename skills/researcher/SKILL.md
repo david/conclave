@@ -86,10 +86,14 @@ The file should read as a useful briefing for someone (or a future `/req` sessio
 
 ### 3. Next Step
 
-When the user is ready to move on, suggest:
+When the user is ready to move on, offer to review the research before moving on.
 
-```
-/req <spec-name>
-```
+Read `skills/conclave/references/next.md` for the schema, then emit a `conclave:next` fenced code block:
 
-The `/req` skill will read `research.md` as input context.
+````
+```conclave:next
+{"label":"Review Research","command":"/review rsrc <spec-name>","metaContext":"<spec-name>"}
+```
+````
+
+Replace `<spec-name>` with the resolved spec directory name.

@@ -17,6 +17,7 @@ Evaluate a pipeline skill's artifact against its review checklist. The review is
 
 | Argument | Skill | Artifact | Checklist |
 |----------|-------|----------|-----------|
+| `rsrc` | Researcher | `research.md` | `references/rsrc-checklist.md` |
 | `req` | Requirements Analyst | `analysis.md` (use cases + decisions) | `references/req-checklist.md` |
 | `arq` | Architect | `analysis.md` (event model sections) | `references/arq-checklist.md` |
 | `plan` | Planner | `implementation.md` | `references/plan-checklist.md` |
@@ -36,6 +37,7 @@ Read the artifact file from `.conclave/specs/<spec-name>/`:
 
 | Skill | File to read |
 |-------|-------------|
+| `rsrc` | `research.md` — the full file |
 | `req` | `analysis.md` — only the use cases and decisions sections (stop before `## Event Model` if present) |
 | `arq` | `analysis.md` — only the `## Event Model` section and its `conclave:eventmodel` blocks |
 | `plan` | `implementation.md` — the full file |
@@ -47,6 +49,7 @@ Read the artifact file from `.conclave/specs/<spec-name>/`:
 
 Read the corresponding checklist from this skill's `references/` directory:
 
+- `references/rsrc-checklist.md`
 - `references/req-checklist.md`
 - `references/arq-checklist.md`
 - `references/plan-checklist.md`
@@ -105,6 +108,7 @@ Read `skills/conclave/references/next.md` for the schema.
 
 | Reviewed | Next label | Next command |
 |----------|-----------|-------------|
+| `rsrc` | Continue to Requirements | `/req <spec-name>` |
 | `req` | Continue to Architecture | `/arq <spec-name>` |
 | `arq` | Continue to Planning | `/plan <spec-name>` |
 | `plan` | Continue to Task Organization | `/org <spec-name>` |
