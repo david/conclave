@@ -20,7 +20,12 @@ function detectSupport(): boolean {
   );
 }
 
-export function useSpeechRecognition(): UseSpeechRecognitionReturn {
+type UseSpeechRecognitionOptions = {
+  onFinalResult?: (text: string) => void;
+  onVoiceSubmit?: (text: string) => void;
+};
+
+export function useSpeechRecognition(_options?: UseSpeechRecognitionOptions): UseSpeechRecognitionReturn {
   const [isSupported] = useState(() => detectSupport());
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
