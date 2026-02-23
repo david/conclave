@@ -37,9 +37,9 @@ describe("MessageList isReplay computation", () => {
       />,
     );
 
-    expect(html).toContain("next-block-btn");
-    expect(html).not.toContain("next-block-btn--disabled");
-    expect(html).not.toContain("disabled");
+    expect(html).toContain("next-block__diamond");
+    expect(html).not.toContain("next-block--disabled");
+    expect(html).toContain('aria-disabled="false"');
   });
 
   test("earlier assistant messages render next-block buttons as disabled", () => {
@@ -69,9 +69,9 @@ describe("MessageList isReplay computation", () => {
     const firstSection = html.slice(0, splitPoint);
     const secondSection = html.slice(splitPoint);
 
-    expect(firstSection).toContain("next-block-btn--disabled");
-    expect(secondSection).toContain("next-block-btn");
-    expect(secondSection).not.toContain("next-block-btn--disabled");
+    expect(firstSection).toContain("next-block--disabled");
+    expect(secondSection).toContain("next-block__diamond");
+    expect(secondSection).not.toContain("next-block--disabled");
   });
 
   test("committed messages during streaming have disabled buttons", () => {
@@ -93,8 +93,8 @@ describe("MessageList isReplay computation", () => {
       />,
     );
 
-    expect(html).toContain("next-block-btn");
-    expect(html).toContain("next-block-btn--disabled");
+    expect(html).toContain("next-block__diamond");
+    expect(html).toContain("next-block--disabled");
   });
 
   test("no streaming content: last assistant button is enabled", () => {
@@ -112,7 +112,7 @@ describe("MessageList isReplay computation", () => {
       />,
     );
 
-    expect(html).toContain("next-block-btn");
-    expect(html).not.toContain("next-block-btn--disabled");
+    expect(html).toContain("next-block__diamond");
+    expect(html).not.toContain("next-block--disabled");
   });
 });

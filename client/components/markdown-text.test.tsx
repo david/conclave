@@ -110,28 +110,25 @@ describe("MarkdownText isReplay prop", () => {
     const html = renderToStaticMarkup(
       <MarkdownText text={nextBlockMarkdown} isReplay={false} />,
     );
-    // Button should be present and not disabled
-    expect(html).toContain("next-block-btn");
-    expect(html).not.toContain("next-block-btn--disabled");
-    expect(html).not.toContain("disabled");
+    expect(html).toContain("next-block__diamond");
+    expect(html).not.toContain("next-block--disabled");
+    expect(html).toContain('aria-disabled="false"');
   });
 
   test("next-block button is disabled when isReplay is true", () => {
     const html = renderToStaticMarkup(
       <MarkdownText text={nextBlockMarkdown} isReplay={true} />,
     );
-    // Button should be present and disabled
-    expect(html).toContain("next-block-btn");
-    expect(html).toContain("next-block-btn--disabled");
-    expect(html).toContain("disabled");
+    expect(html).toContain("next-block__diamond");
+    expect(html).toContain("next-block--disabled");
+    expect(html).toContain('aria-disabled="true"');
   });
 
   test("next-block button is enabled when isReplay is omitted", () => {
     const html = renderToStaticMarkup(
       <MarkdownText text={nextBlockMarkdown} />,
     );
-    // Default behavior: button should not be disabled
-    expect(html).toContain("next-block-btn");
-    expect(html).not.toContain("next-block-btn--disabled");
+    expect(html).toContain("next-block__diamond");
+    expect(html).not.toContain("next-block--disabled");
   });
 });

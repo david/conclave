@@ -19,18 +19,37 @@ export function NextBlockButton({ label, command, metaContext, onRun, disabled }
   const isDisabled = disabled || clicked;
 
   return (
-    <button
-      className={`next-block-btn${isDisabled ? " next-block-btn--disabled" : ""}`}
-      disabled={isDisabled}
+    <div
+      className={`next-block${isDisabled ? " next-block--disabled" : ""}`}
+      role="button"
+      tabIndex={isDisabled ? -1 : 0}
+      aria-disabled={isDisabled}
       onClick={() => {
         if (!isDisabled) {
           setClicked(true);
           onRun({ label, command, metaContext });
         }
       }}
+      onKeyDown={(e) => {
+        if (!isDisabled && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          setClicked(true);
+          onRun({ label, command, metaContext });
+        }
+      }}
     >
-      {label}
-    </button>
+      <div className="next-block__rule">
+        <div className="next-block__line" />
+        <div className="next-block__diamond" />
+        <div className="next-block__line" />
+      </div>
+      <div className="next-block__label">
+        <span className="next-block__text">{label}</span>
+        <svg className="next-block__arrow" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 8h10M9 4l4 4-4 4" />
+        </svg>
+      </div>
+    </div>
   );
 }
 

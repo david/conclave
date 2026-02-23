@@ -1779,38 +1779,99 @@ body::before {
 }
 
 /* ============================================
-   Next Block Button
+   Next Block — Step Transition Indicator
    ============================================ */
 
-.next-block-btn {
-  display: inline-flex;
+.next-block {
+  margin: 20px 0 12px;
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+}
+
+.next-block:focus-visible .next-block__diamond {
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+/* --- Horizontal rule with diamond --- */
+
+.next-block__rule {
+  display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 20px;
-  margin: 8px 0;
-  border: 1px solid var(--accent);
-  border-radius: var(--radius-pill);
-  background: var(--accent-subtle);
-  color: var(--accent);
+  gap: 0;
+}
+
+.next-block__line {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+  transition: background 0.25s;
+}
+
+.next-block__diamond {
+  width: 9px;
+  height: 9px;
+  flex-shrink: 0;
+  margin: 0 12px;
+  background: var(--accent-dim);
+  border-radius: 2px;
+  transform: rotate(45deg);
+  transition: background 0.25s, box-shadow 0.25s, transform 0.25s;
+}
+
+/* --- Label row --- */
+
+.next-block__label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding-top: 8px;
+}
+
+.next-block__text {
   font-family: var(--font-body);
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.02em;
-  cursor: pointer;
-  transition: background 0.2s, color 0.2s, border-color 0.2s, opacity 0.2s;
+  color: var(--text-secondary);
+  transition: color 0.25s;
 }
 
-.next-block-btn:hover:not(:disabled) {
+.next-block__arrow {
+  color: var(--text-muted);
+  transition: color 0.25s, transform 0.25s;
+}
+
+/* --- Hover --- */
+
+.next-block:hover .next-block__line {
+  background: var(--accent-dim);
+}
+
+.next-block:hover .next-block__diamond {
   background: var(--accent);
-  color: var(--bg);
+  box-shadow: 0 0 8px rgba(212, 148, 76, 0.4);
 }
 
-.next-block-btn:active:not(:disabled) {
-  transform: scale(0.97);
+.next-block:hover .next-block__text {
+  color: var(--accent);
 }
 
-.next-block-btn:disabled,
-.next-block-btn--disabled {
+.next-block:hover .next-block__arrow {
+  color: var(--accent);
+  transform: translateX(2px);
+}
+
+/* --- Active --- */
+
+.next-block:active:not(.next-block--disabled) .next-block__diamond {
+  transform: rotate(45deg) scale(0.85);
+}
+
+/* --- Disabled --- */
+
+.next-block--disabled {
   opacity: 0.35;
   cursor: not-allowed;
   pointer-events: none;

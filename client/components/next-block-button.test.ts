@@ -106,7 +106,7 @@ describe("NextBlockButton", () => {
     expect(html).toContain("Run Phase 2");
   });
 
-  test("renders enabled button when disabled is false", () => {
+  test("renders enabled state when disabled is false", () => {
     const html = renderToStaticMarkup(
       React.createElement(NextBlockButton, {
         label: "Go",
@@ -116,11 +116,11 @@ describe("NextBlockButton", () => {
         disabled: false,
       }),
     );
-    expect(html).not.toContain("next-block-btn--disabled");
-    expect(html).not.toContain("disabled");
+    expect(html).not.toContain("next-block--disabled");
+    expect(html).toContain('aria-disabled="false"');
   });
 
-  test("renders disabled button when disabled prop is true", () => {
+  test("renders disabled state when disabled prop is true", () => {
     const html = renderToStaticMarkup(
       React.createElement(NextBlockButton, {
         label: "Go",
@@ -130,13 +130,11 @@ describe("NextBlockButton", () => {
         disabled: true,
       }),
     );
-    expect(html).toContain("next-block-btn--disabled");
-    expect(html).toContain("disabled");
+    expect(html).toContain("next-block--disabled");
+    expect(html).toContain('aria-disabled="true"');
   });
 
-  test("initial render is enabled when clicked state is false", () => {
-    // Verifies that the internal clicked state starts as false,
-    // so a button with disabled=false renders without the disabled attribute
+  test("renders step transition structure with rule and label", () => {
     const html = renderToStaticMarkup(
       React.createElement(NextBlockButton, {
         label: "Run",
@@ -146,7 +144,9 @@ describe("NextBlockButton", () => {
         disabled: false,
       }),
     );
-    expect(html).toContain("<button");
-    expect(html).not.toContain("disabled");
+    expect(html).toContain("next-block__rule");
+    expect(html).toContain("next-block__diamond");
+    expect(html).toContain("next-block__label");
+    expect(html).toContain("next-block__arrow");
   });
 });
