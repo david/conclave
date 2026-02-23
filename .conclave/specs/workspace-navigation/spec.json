@@ -1,0 +1,4 @@
+{
+  "description": "Rethink workspace side panel navigation to replace the single-open accordion with a layout that keeps all section links accessible without mouse travel",
+  "type": "enhancement"
+}
