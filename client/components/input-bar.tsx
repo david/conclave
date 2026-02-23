@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect, useImperativeHandle, forwardRef } from "react";
 import type { ImageAttachment } from "../../server/types.ts";
+import { useSpeechRecognition } from "../hooks/use-speech-recognition.ts";
 
 type PendingImage = {
   id: string;
@@ -58,6 +59,7 @@ let imageIdCounter = 0;
 export const InputBar = forwardRef<InputBarHandle, InputBarProps>(function InputBar({ onSubmit, onCancel, isProcessing, placeholder: placeholderProp }, ref) {
   const [text, setText] = useState("");
   const [images, setImages] = useState<PendingImage[]>([]);
+  const { isSupported: micSupported } = useSpeechRecognition();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const autoResize = useCallback(() => {
@@ -189,6 +191,9 @@ export const InputBar = forwardRef<InputBarHandle, InputBarProps>(function Input
           disabled={isProcessing}
           rows={1}
         />
+        {micSupported && !isProcessing && (
+          <button className="input-bar__btn input-bar__btn--mic" type="button">Mic</button>
+        )}
         {isProcessing ? (
           <button className="input-bar__btn input-bar__btn--cancel" onClick={onCancel}>
             Stop
