@@ -132,3 +132,39 @@ describe("MarkdownText isReplay prop", () => {
     expect(html).not.toContain("next-block--disabled");
   });
 });
+
+describe("MarkdownText heading normalization", () => {
+  test("heading immediately after text on same line is rendered as a heading", () => {
+    const html = renderToStaticMarkup(<MarkdownText text="Some text.### Heading" />);
+    expect(html).toContain("<h3");
+    expect(html).toContain("Heading");
+  });
+
+  test("heading with existing preceding newline is unchanged", () => {
+    const html = renderToStaticMarkup(<MarkdownText text={"Some text.\n\n### Heading"} />);
+    expect(html).toContain("<h3");
+    expect(html).toContain("Heading");
+  });
+
+  test("heading at start of text is unchanged", () => {
+    const html = renderToStaticMarkup(<MarkdownText text={"### Heading\n\nSome text."} />);
+    expect(html).toContain("<h3");
+    expect(html).toContain("Heading");
+  });
+
+  test("multiple heading levels without preceding newlines are all normalized", () => {
+    const html = renderToStaticMarkup(<MarkdownText text="Text.## H2 more.### H3" />);
+    expect(html).toContain("<h2");
+    expect(html).toContain("<h3");
+  });
+
+  test("hash characters in non-heading context are not affected", () => {
+    const html = renderToStaticMarkup(<MarkdownText text="Issue #123 is fixed" />);
+    expect(html).not.toContain("<h1");
+    expect(html).not.toContain("<h2");
+    expect(html).not.toContain("<h3");
+    expect(html).not.toContain("<h4");
+    expect(html).not.toContain("<h5");
+    expect(html).not.toContain("<h6");
+  });
+});
