@@ -116,7 +116,7 @@ function RenderSegmentView({
   return <ToolCallGroup blocks={segment.blocks} />;
 }
 
-function MessageBubble({ message, onNextBlockClick }: { message: Message; onNextBlockClick?: (payload: NextBlockClickPayload) => void }) {
+function MessageBubble({ message, onNextBlockClick, isReplay }: { message: Message; onNextBlockClick?: (payload: NextBlockClickPayload) => void; isReplay?: boolean }) {
   const segments = groupContentBlocks(message.content);
   return (
     <div className={`message message--${message.role}`}>
@@ -124,7 +124,7 @@ function MessageBubble({ message, onNextBlockClick }: { message: Message; onNext
         {message.role === "user" ? "You" : "Claude"}
       </div>
       {segments.map((segment, i) => (
-        <RenderSegmentView key={i} segment={segment} role={message.role} onNextBlockClick={onNextBlockClick} isReplay={true} />
+        <RenderSegmentView key={i} segment={segment} role={message.role} onNextBlockClick={onNextBlockClick} isReplay={isReplay} />
       ))}
     </div>
   );
@@ -155,9 +155,14 @@ export function MessageList({
           <span className="message-list__empty-hint">Start a conversation with Claude Code</span>
         </div>
       )}
-      {messages.map((msg, i) => (
-        <MessageBubble key={i} message={msg} onNextBlockClick={onNextBlockClick} />
-      ))}
+      {messages.map((msg, i) => {
+        // The last assistant message keeps buttons enabled; all others are replay
+        const isLastAssistant = msg.role === "assistant" && !hasStreaming &&
+          messages.slice(i + 1).every((m) => m.role !== "assistant");
+        return (
+          <MessageBubble key={i} message={msg} onNextBlockClick={onNextBlockClick} isReplay={!isLastAssistant} />
+        );
+      })}
       {hasStreaming && (
         <div className="message message--assistant message--streaming">
           <div className="message__role">Claude</div>
