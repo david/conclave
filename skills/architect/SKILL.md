@@ -62,8 +62,14 @@ Emit one `conclave:eventmodel` fenced code block per slice. If grouped use cases
 
 ### 5. Confirm with User
 
-Summarize new event types, new projections, and existing infrastructure being extended. Offer to adjust, then provide the next step:
+Summarize new event types, new projections, and existing infrastructure being extended. Offer to adjust.
 
+When you're ready for the next phase, read `skills/conclave/references/next.md` for the schema, then emit a `conclave:next` fenced code block:
+
+````
+```conclave:next
+{"label":"Continue to Planning","command":"/plan <spec-name>","metaContext":"<spec-name>"}
 ```
-/plan <spec-name>
-```
+````
+
+Replace `<spec-name>` with the resolved spec directory name.

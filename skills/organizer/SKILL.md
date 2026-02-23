@@ -153,3 +153,13 @@ After writing tasks.md, present:
 - Which tasks run in parallel vs sequentially and why
 - Any granularity decisions made (splits, merges, convention tasks)
 - Offer to adjust groupings or wave assignments
+
+When you're ready for the next phase, read `skills/conclave/references/next.md` for the schema, then emit a `conclave:next` fenced code block:
+
+````
+```conclave:next
+{"label":"Continue to Orchestration","command":"/orc <spec-name>","metaContext":"<spec-name>"}
+```
+````
+
+Replace `<spec-name>` with the resolved spec directory name.

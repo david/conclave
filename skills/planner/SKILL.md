@@ -85,4 +85,13 @@ Write `.conclave/specs/<spec-name>/implementation.md`.
 After writing implementation.md, summarize what was produced and offer to:
 - Adjust groupings or ordering
 - Add more detail to specific sections
-- Begin implementation of the first use case group
+
+When you're ready for the next phase, read `skills/conclave/references/next.md` for the schema, then emit a `conclave:next` fenced code block:
+
+````
+```conclave:next
+{"label":"Continue to Task Organization","command":"/org <spec-name>","metaContext":"<spec-name>"}
+```
+````
+
+Replace `<spec-name>` with the resolved spec directory name.

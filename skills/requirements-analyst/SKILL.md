@@ -151,13 +151,17 @@ Output one `conclave:usecase` fenced code block per use case. Read `skills/concl
 
 ### Next Step
 
-After all use cases are finalized, output a copyable command for the next phase:
+After all use cases are finalized, offer the next phase transition.
 
-```
-/arq <spec-name>
-```
+Read `skills/conclave/references/next.md` for the schema, then emit a `conclave:next` fenced code block:
 
-Replace `<spec-name>` with the resolved spec directory name (e.g. `/arq git-status-files`). This lets the user paste it into a new session to begin architecture.
+````
+```conclave:next
+{"label":"Continue to Architecture","command":"/arq <spec-name>","metaContext":"<spec-name>"}
+```
+````
+
+Replace `<spec-name>` with the resolved spec directory name (e.g. `git-status-files`).
 
 ## Anti-Patterns to Avoid
 

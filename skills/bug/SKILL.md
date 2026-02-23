@@ -73,8 +73,14 @@ This is what `/org` picks up to decompose into tasks.
 
 ### 7. Next Step
 
-Summarize what was found and written, then suggest:
+Summarize what was found and written.
 
+When you're ready for the next phase, read `skills/conclave/references/next.md` for the schema, then emit a `conclave:next` fenced code block:
+
+````
+```conclave:next
+{"label":"Continue to Task Organization","command":"/org bug-<name>","metaContext":"bug-<name>"}
 ```
-/org bug-<name>
-```
+````
+
+Replace `bug-<name>` with the resolved spec directory name.
