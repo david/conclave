@@ -760,6 +760,7 @@ body::before {
   padding: 8px 14px;
   border: 1px solid var(--border);
   text-align: left;
+  word-break: normal;
 }
 
 .message__text--markdown th {
