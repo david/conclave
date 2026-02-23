@@ -34,12 +34,15 @@ export async function scanSpecs(baseDir: string): Promise<SpecInfo[]> {
 
     // Determine phase: later phase wins (implementation > analysis > research)
     let phase: SpecInfo["phase"] = null;
-    const hasImpl = await Bun.file(join(dir, "implementation.md")).exists();
+    const hasImplJson = await Bun.file(join(dir, "implementation.json")).exists();
+    const hasBreakdown = await Bun.file(join(dir, "breakdown.md")).exists();
     const hasAnalysis = await Bun.file(join(dir, "analysis.md")).exists();
     const hasResearch = await Bun.file(join(dir, "research.md")).exists();
 
-    if (hasImpl) {
+    if (hasImplJson) {
       phase = "implementation";
+    } else if (hasBreakdown) {
+      phase = "breakdown";
     } else if (hasAnalysis) {
       phase = "analysis";
     } else if (hasResearch) {

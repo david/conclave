@@ -49,7 +49,7 @@ describe("watchSpecs", () => {
       await mkdir(specDir);
       await writeFile(join(specDir, "analysis.md"), "# A");
       await writeFile(join(specDir, "spec.json"), '{"description":"test"}');
-      await writeFile(join(specDir, "implementation.md"), "# I");
+      await writeFile(join(specDir, "implementation.json"), "[]");
 
       // Wait for debounce to settle
       await new Promise((r) => setTimeout(r, 500));

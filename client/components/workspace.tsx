@@ -167,10 +167,25 @@ function groupSpecs(specs: SpecInfo[]): { standalone: SpecInfo[]; epicGroups: Ep
   return { standalone, epicGroups };
 }
 
+const phaseOrder = ["research", "analysis", "breakdown", "implementation"] as const;
+
 function EpicGroupRow({ group }: { group: EpicGroup }) {
-  const implCount = group.children.filter((c) => c.phase === "implementation").length;
   const total = group.children.length;
-  const summary = total > 0 ? `${implCount} of ${total} in implementation` : "";
+  let highestPhase: string | null = null;
+  let highestIdx = -1;
+  for (const child of group.children) {
+    if (child.phase) {
+      const idx = phaseOrder.indexOf(child.phase as typeof phaseOrder[number]);
+      if (idx > highestIdx) {
+        highestIdx = idx;
+        highestPhase = child.phase;
+      }
+    }
+  }
+  const count = highestPhase
+    ? group.children.filter((c) => c.phase === highestPhase).length
+    : 0;
+  const summary = highestPhase ? `${count} of ${total} in ${highestPhase}` : "";
 
   return (
     <div className="spec-epic-group">
