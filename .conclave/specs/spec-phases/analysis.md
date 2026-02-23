@@ -100,3 +100,34 @@ Rename the spec pipeline's phase files and detection logic to match what each fi
   - CLAUDE.md references `breakdown.md` and `implementation.json`
   - The conclave skill's `references/tasks.md` reflects the new JSON-only format and `implementation.json` file name
   - The ACP system prompt template in CLAUDE.md matches the new convention
+
+## Event Model
+
+This spec is a rename/refactor — no new domain events or commands are introduced. All use cases flow through the existing `SpecListUpdated` global event. The changes are:
+
+1. **Type expansion:** `SpecPhase` grows from `"research" | "analysis" | "implementation"` to `"research" | "analysis" | "breakdown" | "implementation"`.
+2. **Scanner logic:** `spec-scanner.ts` checks for `implementation.json` and `breakdown.md` instead of `implementation.md`.
+3. **Client type:** `SpecInfo.phase` on the client side adds `"breakdown"` to its union.
+4. **Workspace rendering:** CSS badge for `breakdown` phase, dynamic epic summary text.
+5. **Skill file I/O:** Planner writes `breakdown.md`, organizer writes `implementation.json`, orchestrator reads `implementation.json`.
+
+```conclave:eventmodel
+{"slice":"spec-scan","label":"Spec Scan (updated)","command":{"name":"(fs watcher trigger)","new":false},"events":[{"name":"SpecListUpdated","new":false,"fields":{"specs":"SpecInfo[] — phase now includes \"breakdown\""}}],"projections":[{"name":"(client AppState.specs)","new":false,"fields":{"specs":"SpecInfo[] — SpecPhase adds \"breakdown\""}}],"sideEffects":["Broadcast SpecListUpdated to all WS clients","Client renders breakdown badge in workspace sidebar","Epic group summary text reflects highest child phase dynamically"]}
+```
+
+### Affected Infrastructure (no new slices)
+
+| Layer | File | Change |
+|-------|------|--------|
+| Server types | `server/types.ts` | `SpecPhase` adds `"breakdown"` |
+| Scanner | `server/spec-scanner.ts` | Check `implementation.json` + `breakdown.md` instead of `implementation.md` |
+| Scanner tests | `server/spec-scanner.test.ts` | Update/add cases for new file names |
+| Client types | `client/types.ts` | `SpecInfo.phase` adds `"breakdown"` |
+| Client slice | `client/slices/spec-list-updated.ts` | No change (passes through `event.specs` as-is) |
+| Workspace | `client/components/workspace.tsx` | Add `breakdown` badge CSS class, fix epic summary |
+| CSS | `client/style.css` | `.spec-entry__phase--breakdown` styling |
+| Planner skill | `skills/planner/SKILL.md` | Write `breakdown.md` |
+| Organizer skill | `skills/organizer/SKILL.md` | Write `implementation.json` (pure JSON) |
+| Orchestrator skill | `skills/orchestrator/SKILL.md` | Read `implementation.json` |
+| Conclave refs | `skills/conclave/references/tasks.md` | Update for JSON-only format |
+| CLAUDE.md | `CLAUDE.md` | Update phase/file references |
