@@ -9,7 +9,7 @@ Criteria for evaluating `implementation.json`.
 
 ## Task Completeness
 
-3. **Every UC is covered.** Each UC ID from the spec appears in at least one task's `ucs` array.
+3. **Every UC is covered.** Cross-reference the UC headings in `analysis.md` (`.conclave/specs/<spec-name>/analysis.md`) against the task `ucs` arrays. Every UC ID from the analysis must appear in at least one task.
 4. **No orphan tasks.** Every task references at least one UC (or is a structural prerequisite like "New Types").
 5. **Task IDs are sequential.** Format: `T-0`, `T-1`, etc., with no gaps.
 6. **Each task has required fields.** `id`, `name`, `ucs`, `depends`, `wave`, `kind`, `files`, `description` are all present.
