@@ -1,0 +1,145 @@
+[
+  {
+    "id": "T-0",
+    "name": "Red: UC-8 feature detection tests",
+    "ucs": ["UC-8"],
+    "depends": [],
+    "wave": 0,
+    "kind": "code",
+    "files": {
+      "create": ["client/hooks/use-speech-recognition.ts", "client/hooks/__tests__/detection.test.ts"],
+      "modify": []
+    },
+    "description": "Write tests for UC-8: Hide mic button on unsupported browsers.\n\nCreate `client/hooks/__tests__/detection.test.ts` with a `describe('useSpeechRecognition — feature detection (UC-8)')` block.\n\nTests:\n1. When `window.SpeechRecognition` and `window.webkitSpeechRecognition` are both undefined, the hook returns `isSupported: false`.\n2. When `window.SpeechRecognition` is defined (as a mock class), the hook returns `isSupported: true`.\n3. When only `window.webkitSpeechRecognition` is defined (as a mock class), the hook returns `isSupported: true`.\n\nFor testing React hooks, since this project uses Bun's test runner (not Jest), you cannot use `@testing-library/react-hooks`. Create a small `renderHook` helper that uses `React.createElement` and a simple component to call the hook and capture its return value. Place the helper inline in the test file or in a shared test utility if one exists under `client/`.\n\nAlso create a minimal stub at `client/hooks/use-speech-recognition.ts` that exports `useSpeechRecognition` returning `{ isSupported: false, isListening: false, error: null, interimText: '', start: () => {}, stop: () => {} }` so the tests can import it. The tests should FAIL because the stub always returns `isSupported: false` regardless of `window.SpeechRecognition`.\n\nThe hook's return type is defined inline:\n```ts\ntype SpeechState = { isListening: boolean; isSupported: boolean; error: string | null; interimText: string };\ntype UseSpeechRecognitionReturn = SpeechState & { start: () => void; stop: () => void };\n```\n\nMock strategy: Before each test, save and restore `window.SpeechRecognition` and `window.webkitSpeechRecognition`. Set them to `undefined` or a mock class as needed.\n\nRun: `bun test client/hooks/__tests__/detection.test.ts` — expect failures (red)."
+  },
+  {
+    "id": "T-1",
+    "name": "Green: UC-8 feature detection + mic button visibility",
+    "ucs": ["UC-8"],
+    "depends": ["T-0"],
+    "wave": 1,
+    "kind": "code",
+    "files": {
+      "create": [],
+      "modify": ["client/hooks/use-speech-recognition.ts", "client/components/input-bar.tsx"]
+    },
+    "description": "Implement UC-8: Feature detection in the hook and conditional mic button rendering in InputBar.\n\n**client/hooks/use-speech-recognition.ts:**\n1. On mount (or initialization), check `typeof window !== 'undefined' && (typeof window.SpeechRecognition !== 'undefined' || typeof window.webkitSpeechRecognition !== 'undefined')` and set `isSupported` accordingly.\n2. Return the full shape: `{ isSupported, isListening: false, error: null, interimText: '', start: noop, stop: noop }`. The `start`/`stop` and event handlers remain stubs — later tasks fill them in.\n3. The types are defined inline in the file:\n```ts\ntype SpeechState = { isListening: boolean; isSupported: boolean; error: string | null; interimText: string };\ntype UseSpeechRecognitionReturn = SpeechState & { start: () => void; stop: () => void };\n```\n\n**client/components/input-bar.tsx:**\n1. Import `useSpeechRecognition` from `../hooks/use-speech-recognition`.\n2. Call the hook inside `InputBar`.\n3. Conditionally render a mic button only when `isSupported` is `true`. Place it in `.input-bar__row` between the textarea and the send/cancel button.\n4. The mic button: `<button className=\"input-bar__btn input-bar__btn--mic\" type=\"button\">Mic</button>`. No click handler yet (UC-1+UC-4 adds it).\n5. Hide the mic button when `isProcessing` is true.\n\nRun `bun test client/hooks/__tests__/detection.test.ts` — the T-0 tests must pass green."
+  },
+  {
+    "id": "T-2",
+    "name": "Red: UC-1+UC-4 start/stop tests",
+    "ucs": ["UC-1", "UC-4"],
+    "depends": ["T-1"],
+    "wave": 2,
+    "kind": "code",
+    "files": {
+      "create": ["client/hooks/__tests__/lifecycle.test.ts"],
+      "modify": []
+    },
+    "description": "Write tests for UC-1+UC-4: Start and stop voice dictation.\n\nCreate `client/hooks/__tests__/lifecycle.test.ts` with a `describe('useSpeechRecognition — start/stop (UC-1, UC-4)')` block.\n\nMock strategy: Create a mock `SpeechRecognition` class that tracks calls to `.start()` and `.stop()`, and exposes `onend`/`onerror`/`onresult` handlers for later triggering. Assign it to `window.SpeechRecognition` before tests. Save and restore the original value.\n\nTests:\n1. Calling `start()` sets `isListening` to `true` and calls `recognition.start()` on the underlying SpeechRecognition instance.\n2. Calling `stop()` sets `isListening` to `false` and calls `recognition.stop()` on the underlying instance.\n3. When the `onend` event fires (without a preceding manual `stop()`), `isListening` is set to `false`.\n4. The SpeechRecognition instance is configured with `continuous = true`, `interimResults = true`, `lang = 'en-US'`.\n\nReuse the `renderHook` helper pattern from T-0's test (copy or import from a shared location).\n\nThese tests should FAIL because the current hook stub has noop `start`/`stop` that don't create a SpeechRecognition instance.\n\nRun: `bun test client/hooks/__tests__/lifecycle.test.ts` — new tests fail (red)."
+  },
+  {
+    "id": "T-3",
+    "name": "CSS: All mic button styles",
+    "ucs": ["UC-1", "UC-4", "UC-7", "UC-9"],
+    "depends": ["T-1"],
+    "wave": 2,
+    "kind": "code",
+    "files": {
+      "create": [],
+      "modify": ["client/style.css"]
+    },
+    "description": "Add all CSS styles for the mic button and its states. This task consolidates all style.css changes for the entire voice dictation feature into one task, since CSS class definitions are purely additive and don't conflict with hook/component logic.\n\nAdd the following to `client/style.css` in the Input Bar section:\n\n1. `.input-bar__btn--mic` — base mic button styles matching existing button dimensions (icon-sized, same padding/border-radius as send/cancel buttons). Use `background: transparent; border: 1px solid var(--border); color: var(--text-muted);` for the idle state.\n\n2. `.input-bar__btn--mic:hover:not(:disabled)` — hover state with `border-color: var(--accent); color: var(--accent); background: var(--accent-subtle);`.\n\n3. `.input-bar__btn--mic--listening` — active listening state with amber pulse/glow animation:\n```css\n.input-bar__btn--mic--listening {\n  color: var(--accent);\n  border-color: var(--accent);\n  background: var(--accent-subtle);\n  animation: mic-pulse 1.5s ease-in-out infinite;\n}\n@keyframes mic-pulse {\n  0%, 100% { box-shadow: 0 0 0 0 rgba(212, 148, 76, 0.4); }\n  50% { box-shadow: 0 0 0 6px rgba(212, 148, 76, 0); }\n}\n```\n\n4. `.input-bar__btn--mic--error` — error state with red tint:\n```css\n.input-bar__btn--mic--error {\n  color: var(--error-text);\n  border-color: var(--error);\n  background: var(--error-dim);\n}\n```\n\n5. `.input-bar__interim` — interim text indicator shown below the input row:\n```css\n.input-bar__interim {\n  font-size: 12px;\n  color: var(--text-muted);\n  padding: 4px 18px 0;\n  font-style: italic;\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n```\n\n6. `.input-bar__dictation-error` — transient error notification near the mic button:\n```css\n.input-bar__dictation-error {\n  font-size: 11px;\n  color: var(--error-text);\n  padding: 4px 18px 0;\n  animation: dictation-error-fade 3s ease-out forwards;\n}\n@keyframes dictation-error-fade {\n  0%, 70% { opacity: 1; }\n  100% { opacity: 0; }\n}\n```\n\n7. `.sr-only` — screen-reader-only utility class (if not already present) for the aria-live region:\n```css\n.sr-only {\n  position: absolute;\n  width: 1px;\n  height: 1px;\n  padding: 0;\n  margin: -1px;\n  overflow: hidden;\n  clip: rect(0, 0, 0, 0);\n  white-space: nowrap;\n  border: 0;\n}\n```\n\nNo behavioral code changes — this is purely additive CSS. No tests needed."
+  },
+  {
+    "id": "T-4",
+    "name": "Green: UC-1+UC-4 start/stop + mic button toggle",
+    "ucs": ["UC-1", "UC-4"],
+    "depends": ["T-2", "T-3"],
+    "wave": 3,
+    "kind": "code",
+    "files": {
+      "create": [],
+      "modify": ["client/hooks/use-speech-recognition.ts", "client/components/input-bar.tsx"]
+    },
+    "description": "Implement UC-1+UC-4: Start/stop dictation lifecycle.\n\n**client/hooks/use-speech-recognition.ts:**\n1. Create a `SpeechRecognition` instance via `useRef` (lazily initialized on first `start()` call). Use `window.SpeechRecognition || window.webkitSpeechRecognition` as the constructor.\n2. Configure: `continuous = true`, `interimResults = true`, `lang = 'en-US'`.\n3. `start()`: call `recognition.start()`, set `isListening = true`, clear any prior `error`.\n4. `stop()`: set a `stoppedManually` ref to `true`, call `recognition.stop()`, set `isListening = false`.\n5. Attach `onend` handler: set `isListening = false` (covers unexpected stops). Don't implement auto-restart yet (that's UC-10).\n6. The hook does NOT yet accept callbacks (those come in UC-2+UC-3+UC-6). Keep `interimText` as `''` for now.\n\n**client/components/input-bar.tsx:**\n1. Wire the mic button's `onClick` to toggle: if `isListening` call `stop()`, else call `start()`.\n2. Add conditional class: `input-bar__btn--mic--listening` when `isListening` is true.\n3. Add `aria-label` to mic button: `isListening ? 'Stop dictation' : 'Start dictation'`.\n4. Add an `aria-live=\"polite\"` visually-hidden `<span>` with class `sr-only` that announces 'Dictation started' / 'Dictation stopped' based on `isListening`.\n\nRun `bun test client/hooks/__tests__/lifecycle.test.ts` — all T-2 tests must pass green.\nRun `bun test client/hooks/__tests__/detection.test.ts` — T-0 tests must still pass."
+  },
+  {
+    "id": "T-5",
+    "name": "Red: UC-2+UC-3+UC-6 streaming tests",
+    "ucs": ["UC-2", "UC-3", "UC-6"],
+    "depends": ["T-4"],
+    "wave": 4,
+    "kind": "code",
+    "files": {
+      "create": ["client/hooks/__tests__/streaming.test.ts"],
+      "modify": []
+    },
+    "description": "Write tests for UC-2+UC-3+UC-6: Stream interim results, commit finals, coexist with typed text.\n\nCreate `client/hooks/__tests__/streaming.test.ts` with a `describe('useSpeechRecognition — streaming results (UC-2, UC-3, UC-6)')` block.\n\nTests for the hook:\n1. When `onresult` fires with `isFinal: false`, the hook's `interimText` updates to the transcript.\n2. When `onresult` fires with `isFinal: true`, the `onFinalResult` callback is called with the transcript, and `interimText` clears to `''`.\n3. Multiple interim results update `interimText` each time (last one wins).\n4. After a final result, subsequent interim results for a new phrase work correctly.\n\nThe hook now needs to accept callbacks: `onFinalResult: (text: string) => void`. Update the hook call in tests to pass this callback.\n\nMock the `onresult` event object with the correct shape:\n```ts\nconst mockResultEvent = {\n  resultIndex: 0,\n  results: [{ 0: { transcript: 'hello world' }, isFinal: false, length: 1 }]\n};\n```\n\nReuse the mock `SpeechRecognition` class pattern from T-2's lifecycle tests and the `renderHook` helper from T-0.\n\nThese tests should FAIL because the current hook doesn't handle `onresult` events or accept callbacks.\n\nRun: `bun test client/hooks/__tests__/streaming.test.ts` — new tests fail (red)."
+  },
+  {
+    "id": "T-6",
+    "name": "Red: UC-5 voice submit tests",
+    "ucs": ["UC-5"],
+    "depends": ["T-4"],
+    "wave": 4,
+    "kind": "code",
+    "files": {
+      "create": ["client/hooks/__tests__/voice-submit.test.ts"],
+      "modify": []
+    },
+    "description": "Write tests for UC-5: Submit prompt via voice command.\n\nCreate `client/hooks/__tests__/voice-submit.test.ts` with a `describe('useSpeechRecognition — voice submit (UC-5)')` block.\n\nTests:\n1. When a final result's transcript ends with ' send' (case-insensitive), `onVoiceSubmit` is called with the transcript minus the trailing 'send' (trimmed), and `onFinalResult` is NOT called.\n2. When a final result ends with ' Send' (capital S), `onVoiceSubmit` is still called (case-insensitive match).\n3. When the final result is just 'send' (only word), `onVoiceSubmit` is called with an empty string.\n4. When a final result does NOT end with 'send', `onFinalResult` is called normally and `onVoiceSubmit` is NOT called.\n5. After a voice submit trigger, `stop()` is called (isListening becomes false).\n\nThe hook accepts two callbacks: `onFinalResult: (text: string) => void` and `onVoiceSubmit: (text: string) => void`. Mock both as `mock()` functions.\n\nReuse the mock `SpeechRecognition` class and `renderHook` helper patterns.\n\nThese tests should FAIL because the current `onresult` handler doesn't check for the 'send' keyword (onresult isn't even implemented yet).\n\nRun: `bun test client/hooks/__tests__/voice-submit.test.ts` — new tests fail (red)."
+  },
+  {
+    "id": "T-7",
+    "name": "Red: UC-7+UC-9 error handling tests",
+    "ucs": ["UC-7", "UC-9"],
+    "depends": ["T-4"],
+    "wave": 4,
+    "kind": "code",
+    "files": {
+      "create": ["client/hooks/__tests__/errors.test.ts"],
+      "modify": []
+    },
+    "description": "Write tests for UC-7 (permission denied) and UC-9 (mid-dictation error recovery).\n\nCreate `client/hooks/__tests__/errors.test.ts` with two describe blocks.\n\n`describe('useSpeechRecognition — permission denied (UC-7)')` tests:\n1. When `onerror` fires with `event.error === 'not-allowed'`, the hook sets `error` to `'permission-denied'` and `isListening` to `false`.\n2. After a permission error, calling `start()` again clears the error and re-attempts.\n\n`describe('useSpeechRecognition — error recovery (UC-9)')` tests:\n1. When `onerror` fires with `event.error === 'network'`, `error` is set to `'network'` and `isListening` is `false`.\n2. When `onerror` fires with `event.error === 'no-speech'`, `error` is set to `'no-speech'` and `isListening` is `false`.\n3. Calling `start()` after an error clears the `error` state.\n\nReuse mock `SpeechRecognition` class and `renderHook` helper patterns. The mock class must expose `onerror` handler assignment so tests can trigger error events.\n\nThese tests should FAIL because the current hook doesn't have an `onerror` handler.\n\nRun: `bun test client/hooks/__tests__/errors.test.ts` — new tests fail (red)."
+  },
+  {
+    "id": "T-8",
+    "name": "Red: UC-10 auto-restart tests",
+    "ucs": ["UC-10"],
+    "depends": ["T-4"],
+    "wave": 4,
+    "kind": "code",
+    "files": {
+      "create": ["client/hooks/__tests__/auto-restart.test.ts"],
+      "modify": []
+    },
+    "description": "Write tests for UC-10: Auto-restart on silence timeout.\n\nCreate `client/hooks/__tests__/auto-restart.test.ts` with a `describe('useSpeechRecognition — auto-restart (UC-10)')` block.\n\nTests:\n1. When `onend` fires without a preceding `stop()` call and no error, `recognition.start()` is called again (auto-restart). `isListening` remains `true`.\n2. When `onend` fires after an explicit `stop()` call, no restart occurs. `isListening` is `false`.\n3. When `onend` fires after an error (`onerror` preceded it), no restart occurs.\n4. Guard against rapid restart loops: if `onend` fires within ~100ms of a `start()`, don't restart (test by checking that start is NOT called a second time when onend fires immediately).\n\nReuse mock `SpeechRecognition` class and `renderHook` helper patterns.\n\nThese tests should FAIL because the current `onend` handler just sets `isListening = false` without auto-restart logic.\n\nRun: `bun test client/hooks/__tests__/auto-restart.test.ts` — new tests fail (red)."
+  },
+  {
+    "id": "T-9",
+    "name": "Green: UC-2+UC-3+UC-6 streaming + cursor insertion",
+    "ucs": ["UC-2", "UC-3", "UC-6"],
+    "depends": ["T-5"],
+    "wave": 5,
+    "kind": "code",
+    "files": {
+      "create": [],
+      "modify": ["client/hooks/use-speech-recognition.ts", "client/components/input-bar.tsx"]
+    },
+    "description": "Implement UC-2+UC-3+UC-6: Streaming text insertion pipeline.\n\n**client/hooks/use-speech-recognition.ts:**\n1. Accept callback parameters: `onFinalResult: (text: string) => void` and `onVoiceSubmit: (text: string) => void` (include `onVoiceSubmit` now to avoid a signature change later — it remains unused until T-10).\n2. Attach an `onresult` handler to the SpeechRecognition instance. Iterate `event.results` from `event.resultIndex` onward:\n   - If `result.isFinal === false`: update `interimText` state with the transcript.\n   - If `result.isFinal === true`: call `onFinalResult(transcript)`, then clear `interimText`.\n3. Re-attach event handlers when callbacks change (use a ref to hold the latest callbacks to avoid re-creating the recognition instance).\n\n**client/components/input-bar.tsx:**\n1. Track cursor position in a `useRef<number>` (`cursorRef`). Update it on `onSelect`, `onClick`, `onKeyUp` events on the textarea.\n2. Define `onFinalResult` callback: read `cursorRef.current`, splice the final transcript into `text` at that position via `setText(prev => prev.slice(0, cursor) + transcript + prev.slice(cursor))`, then update `cursorRef` to `cursor + transcript.length`.\n3. After state update, set cursor position via `useEffect` + `textareaRef.current.setSelectionRange(cursorRef.current, cursorRef.current)`.\n4. Pass `onFinalResult` (and a noop `onVoiceSubmit` for now) to `useSpeechRecognition()`.\n5. Display interim text: show a small `.input-bar__interim` label below the input row when `isListening && interimText` is non-empty.\n\nRun `bun test client/hooks/__tests__/streaming.test.ts` — all T-5 tests must pass green.\nRun `bun test client/hooks/__tests__/detection.test.ts` and `bun test client/hooks/__tests__/lifecycle.test.ts` — earlier tests must still pass."
+  },
+  {
+    "id": "T-10",
+    "name": "Green: UC-5 voice submit + UC-7+UC-9 errors + UC-10 auto-restart",
+    "ucs": ["UC-5", "UC-7", "UC-9", "UC-10"],
+    "depends": ["T-6", "T-7", "T-8", "T-9"],
+    "wave": 6,
+    "kind": "code",
+    "files": {
+      "create": [],
+      "modify": ["client/hooks/use-speech-recognition.ts", "client/components/input-bar.tsx"]
+    },
+    "description": "Implement UC-5, UC-7, UC-9, and UC-10 together. These are small, independent behaviors in the hook's event handlers that don't conflict with each other.\n\n**client/hooks/use-speech-recognition.ts — UC-5 (voice submit):**\n1. In the `onresult` handler, when `isFinal === true`, check if the transcript (trimmed) ends with the word 'send' (case-insensitive regex: `/\\bsend\\s*$/i`).\n2. If it matches: strip 'send' from the end, trim the result, call `onVoiceSubmit(cleanedText)` instead of `onFinalResult`, and call `stop()`.\n3. If it doesn't match: call `onFinalResult(transcript)` as before.\n\n**client/hooks/use-speech-recognition.ts — UC-7 + UC-9 (error handling):**\n1. Attach an `onerror` handler. When `event.error === 'not-allowed'`: set `error` to `'permission-denied'`, set `isListening` to `false`.\n2. For all other errors (`'network'`, `'audio-capture'`, `'no-speech'`, etc.): set `error` to `event.error`, set `isListening` to `false`.\n3. In `start()`: clear `error` to `null` before starting.\n\n**client/hooks/use-speech-recognition.ts — UC-10 (auto-restart):**\n1. In the `onend` handler, check:\n   - Was `stoppedManually` ref true? If yes, reset it and return (no restart).\n   - Is there a pending error? If yes, return (no restart).\n   - Otherwise, call `recognition.start()` to auto-restart. Keep `isListening` as `true`.\n2. Reset `stoppedManually` ref to `false` after each `start()` call.\n3. Guard against rapid restart loops: track `lastStartTime` in a ref. In `onend`, if `Date.now() - lastStartTime < 100`, don't restart.\n4. Set `lastStartTime = Date.now()` in `start()` and in the auto-restart path.\n\n**client/components/input-bar.tsx — UC-5 (voice submit):**\n1. Define `onVoiceSubmit` callback: insert the cleaned text at cursor position (same as `onFinalResult`), then call `handleSubmit()` after a microtask (`queueMicrotask`). Guard: if cleaned text is empty and textarea is also empty, don't submit.\n2. Pass `onVoiceSubmit` to the hook.\n\n**client/components/input-bar.tsx — UC-7 (permission error):**\n1. When `error === 'permission-denied'`, apply `.input-bar__btn--mic--error` class to the mic button.\n2. Add a `title` attribute: 'Microphone access denied. Enable it in your browser settings.'\n\n**client/components/input-bar.tsx — UC-9 (transient error):**\n1. When `error` is set and not `'permission-denied'`, show a `.input-bar__dictation-error` notification. Auto-dismiss after 3 seconds via `setTimeout` + local state.\n\nRun ALL test files to confirm green:\n- `bun test client/hooks/__tests__/detection.test.ts`\n- `bun test client/hooks/__tests__/lifecycle.test.ts`\n- `bun test client/hooks/__tests__/streaming.test.ts`\n- `bun test client/hooks/__tests__/voice-submit.test.ts`\n- `bun test client/hooks/__tests__/errors.test.ts`\n- `bun test client/hooks/__tests__/auto-restart.test.ts`"
+  }
+]
