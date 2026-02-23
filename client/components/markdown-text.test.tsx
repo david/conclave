@@ -168,3 +168,54 @@ describe("MarkdownText heading normalization", () => {
     expect(html).not.toContain("<h6");
   });
 });
+
+describe("MarkdownText code fence separation", () => {
+  test("text on same line as closing code fence is rendered as a separate paragraph", () => {
+    const markdown = "```conclave:next\n{\"label\":\"Go\",\"command\":\"/org\",\"metaContext\":\"x\"}\n```Would you like me to commit?";
+    const html = renderToStaticMarkup(<MarkdownText text={markdown} />);
+    // "Would" should be in its own <p>, not rendered inside the code block
+    expect(html).toContain("<p>Would you like me to commit?</p>");
+  });
+
+  test("closing code fence with existing newline before text is unchanged", () => {
+    const markdown = "```js\nconst x = 1;\n```\nSome text after.";
+    const html = renderToStaticMarkup(<MarkdownText text={markdown} />);
+    expect(html).toContain("<p>Some text after.</p>");
+  });
+
+  test("closing code fence at end of text is unchanged", () => {
+    const markdown = "```js\nconst x = 1;\n```";
+    const html = renderToStaticMarkup(<MarkdownText text={markdown} />);
+    expect(html).toContain("code-block");
+  });
+
+  test("multiple code fences with text on same line as closing fence", () => {
+    const markdown = "```js\ncode1\n```Middle.\n```py\ncode2\n```After.";
+    const html = renderToStaticMarkup(<MarkdownText text={markdown} />);
+    expect(html).toContain("<p>Middle.</p>");
+    expect(html).toContain("<p>After.</p>");
+  });
+
+  test("backticks inside inline code are not affected", () => {
+    const markdown = "Use `some code` in your text.";
+    const html = renderToStaticMarkup(<MarkdownText text={markdown} />);
+    expect(html).toContain("<code>some code</code>");
+  });
+
+  test("opening code fence appended to preceding text is separated", () => {
+    const markdown = "Want me to adjust?```conclave:next\n{\"label\":\"Go\",\"command\":\"/org\",\"metaContext\":\"x\"}\n```";
+    const html = renderToStaticMarkup(<MarkdownText text={markdown} />);
+    // The conclave:next block should render as a NextBlockButton, not inline text
+    expect(html).toContain("next-block__diamond");
+    expect(html).toContain("Want me to adjust?");
+  });
+
+  test("opening code fence appended to text renders code block properly", () => {
+    const markdown = "Some text.```js\nconst x = 1;\n```";
+    const html = renderToStaticMarkup(<MarkdownText text={markdown} />);
+    // The js code block should render with the correct language header
+    expect(html).toContain("code-block__lang\">js<");
+    // "Some text." should be a separate paragraph, not inside the code block
+    expect(html).toContain("<p>Some text.</p>");
+  });
+});

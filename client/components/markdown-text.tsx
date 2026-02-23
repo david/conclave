@@ -12,7 +12,31 @@ const remarkPlugins = [remarkGfm];
 const rehypePlugins = [rehypeHighlight];
 
 export function normalizeMarkdown(text: string): string {
-  return text.replace(/([^\n#])(#{1,6}\s)/g, "$1\n\n$2");
+  let result = text.replace(/([^\n#])(#{1,6}\s)/g, "$1\n\n$2");
+  // Split mid-line ``` so opening fences start on their own line
+  result = result.replace(/([^`\n])(```)/g, "$1\n\n$2");
+  const lines = result.split("\n");
+  let inFence = false;
+  const out: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (!inFence && line.startsWith("```")) {
+      inFence = true;
+      out.push(line);
+    } else if (inFence && line.startsWith("```")) {
+      const after = line.slice(3);
+      if (after && !/^\s*$/.test(after)) {
+        out.push("```");
+        out.push(after);
+      } else {
+        out.push(line);
+      }
+      inFence = false;
+    } else {
+      out.push(line);
+    }
+  }
+  return out.join("\n");
 }
 
 function CopyButton({ text }: { text: string }) {
