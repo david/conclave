@@ -31,11 +31,62 @@ describe("scanSpecs", () => {
     expect(specs[0].phase).toBe("analysis");
   });
 
-  test("spec with both analysis.md and implementation.md has phase 'implementation'", async () => {
+  test("spec with both breakdown.md and implementation.json has phase 'implementation'", async () => {
+    const specDir = join(specsDir, "my-feature");
+    await mkdir(specDir);
+    await writeFile(join(specDir, "breakdown.md"), "# Breakdown");
+    await writeFile(
+      join(specDir, "implementation.json"),
+      JSON.stringify({ tasks: [] }),
+    );
+
+    const specs = await scanSpecs(specsDir);
+    expect(specs).toHaveLength(1);
+    expect(specs[0].phase).toBe("implementation");
+  });
+
+  test("spec with only breakdown.md has phase 'breakdown'", async () => {
+    const specDir = join(specsDir, "my-feature");
+    await mkdir(specDir);
+    await writeFile(join(specDir, "breakdown.md"), "# Breakdown");
+
+    const specs = await scanSpecs(specsDir);
+    expect(specs).toHaveLength(1);
+    expect(specs[0].phase).toBe("breakdown");
+  });
+
+  test("spec with both breakdown.md and analysis.md has phase 'breakdown'", async () => {
     const specDir = join(specsDir, "my-feature");
     await mkdir(specDir);
     await writeFile(join(specDir, "analysis.md"), "# Analysis");
-    await writeFile(join(specDir, "implementation.md"), "# Implementation");
+    await writeFile(join(specDir, "breakdown.md"), "# Breakdown");
+
+    const specs = await scanSpecs(specsDir);
+    expect(specs).toHaveLength(1);
+    expect(specs[0].phase).toBe("breakdown");
+  });
+
+  test("spec with implementation.json and breakdown.md has phase 'implementation'", async () => {
+    const specDir = join(specsDir, "my-feature");
+    await mkdir(specDir);
+    await writeFile(join(specDir, "breakdown.md"), "# Breakdown");
+    await writeFile(
+      join(specDir, "implementation.json"),
+      JSON.stringify({ tasks: [] }),
+    );
+
+    const specs = await scanSpecs(specsDir);
+    expect(specs).toHaveLength(1);
+    expect(specs[0].phase).toBe("implementation");
+  });
+
+  test("spec with only implementation.json has phase 'implementation'", async () => {
+    const specDir = join(specsDir, "my-feature");
+    await mkdir(specDir);
+    await writeFile(
+      join(specDir, "implementation.json"),
+      JSON.stringify({ tasks: [] }),
+    );
 
     const specs = await scanSpecs(specsDir);
     expect(specs).toHaveLength(1);

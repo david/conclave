@@ -1,11 +1,11 @@
 ---
 name: orc
 description: >
-  Execute a spec's task plan by orchestrating parallel agent teams. Reads tasks.md (produced
+  Execute a spec's task plan by orchestrating parallel agent teams. Reads implementation.json (produced
   by the organizer skill), spawns agents via the Task tool respecting dependency waves, monitors
-  progress, and coordinates commits. Use when a spec has a tasks.md and is ready for parallel
+  progress, and coordinates commits. Use when a spec has an implementation.json and is ready for parallel
   implementation. Triggers on: "orchestrate...", "execute tasks for...", "run the swarm",
-  "/orc", "/orc <spec-name>", or when a spec has tasks.md and the user wants to begin
+  "/orc", "/orc <spec-name>", or when a spec has implementation.json and the user wants to begin
   multi-agent execution.
 ---
 
@@ -15,21 +15,21 @@ Execute a parallelization-aware task plan using agent teams.
 
 ## Purpose
 
-Read a spec's `tasks.md`, spawn agents for each task respecting dependency waves, monitor progress, and coordinate integration. Agents follow the dev skill's TDD discipline.
+Read a spec's `implementation.json`, spawn agents for each task respecting dependency waves, monitor progress, and coordinate integration. Agents follow the dev skill's TDD discipline.
 
 ## Workflow
 
 ### 1. Locate and Parse
 
-Read `.conclave/specs/<spec-name>/tasks.md`. Parse the `conclave:tasks` JSON block to get the task graph. Also read the human-readable wave sections — these contain the full agent prompts.
+Read `.conclave/specs/<spec-name>/implementation.json` and `JSON.parse()` it directly to get the task graph. Each task's `description` field contains the full agent prompt context (files, steps, and test scenarios).
 
-If tasks.md is missing, tell the user to run the organizer first (`/org <spec-name>`).
+If implementation.json is missing, tell the user to run the organizer first (`/org <spec-name>`).
 
 ### 2. Load Context
 
 Read:
 - `CLAUDE.md` — project architecture and conventions
-- `.conclave/specs/<spec-name>/implementation.md` — full implementation plan for reference
+- `.conclave/specs/<spec-name>/breakdown.md` — full breakdown plan for reference
 - `skills/developer/SKILL.md` — the dev skill's TDD workflow and rules (embed into agent prompts)
 - `skills/committer/SKILL.md` — the committer workflow (embed into committer agent prompts)
 
@@ -53,7 +53,7 @@ The committer agent prompt must include:
    - **Type**: `docs`
    - **Scope**: spec name
    - **Description**: "add spec files for <spec-name>"
-   - **File list**: All files in `.conclave/specs/<spec-name>/` (e.g. `spec.json`, `research.md`, `analysis.md`, `implementation.md`, `tasks.md` — whatever exists)
+   - **File list**: All files in `.conclave/specs/<spec-name>/` (e.g. `spec.json`, `research.md`, `analysis.md`, `breakdown.md`, `implementation.json` — whatever exists)
 
 Wait for the commit to complete before proceeding to wave execution.
 
@@ -88,7 +88,7 @@ Each agent prompt must be self-contained. Include:
 
 2. **Project context**: Key sections from CLAUDE.md — commands (`bun test`, `bun run check`), architecture overview, key conventions. Keep it concise — only what the agent needs.
 
-3. **Task scope**: The full markdown section for this task from tasks.md, including:
+3. **Task scope**: The task's `description` field from implementation.json, which contains:
    - Files to create/modify
    - Implementation steps
    - Test scenarios
@@ -141,7 +141,7 @@ The committer agent prompt must include:
    - **Type hint** — from `spec.json`'s `type` field if available
    - **Wave summary** — what was accomplished in this wave
    - **UC list** — which use cases were implemented
-   - **File list** — the exact files created/modified by agents in this wave (collected in step 5), **plus** `.conclave/specs/<spec-name>/tasks.md` (so the task plan state is checkpointed with each wave)
+   - **File list** — the exact files created/modified by agents in this wave (collected in step 5), **plus** `.conclave/specs/<spec-name>/implementation.json` (so the task plan state is checkpointed with each wave)
 
 The committer agent handles staging, message composition, and the commit itself. Wait for it to complete before proceeding to the next wave.
 
