@@ -749,8 +749,8 @@ body::before {
   border-collapse: collapse;
   margin: 1em 0;
   width: 100%;
-  overflow-x: auto;
-  display: block;
+  display: table;
+  table-layout: auto;
   font-size: 13.5px;
   line-height: 1.55;
 }
@@ -770,6 +770,7 @@ body::before {
   letter-spacing: 0.04em;
   color: var(--text-secondary);
   background: var(--bg-elevated);
+  white-space: nowrap;
 }
 
 .message__text--markdown tr:nth-child(even) {
