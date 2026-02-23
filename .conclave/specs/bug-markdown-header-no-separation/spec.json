@@ -1,1 +1,0 @@
-{ "description": "Markdown headings render as inline text when no newline precedes the ### marker", "type": "bug" }
