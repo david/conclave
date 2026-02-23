@@ -59,7 +59,22 @@ let imageIdCounter = 0;
 export const InputBar = forwardRef<InputBarHandle, InputBarProps>(function InputBar({ onSubmit, onCancel, isProcessing, placeholder: placeholderProp }, ref) {
   const [text, setText] = useState("");
   const [images, setImages] = useState<PendingImage[]>([]);
-  const { isSupported: micSupported, isListening, start: micStart, stop: micStop } = useSpeechRecognition();
+  const cursorRef = useRef<number>(0);
+
+  const onFinalResult = useCallback((transcript: string) => {
+    setText((prev) => {
+      const pos = cursorRef.current;
+      const before = prev.slice(0, pos);
+      const after = prev.slice(pos);
+      const next = before + transcript + after;
+      cursorRef.current = pos + transcript.length;
+      return next;
+    });
+  }, []);
+
+  const onVoiceSubmit = useCallback(() => {}, []);
+
+  const { isSupported: micSupported, isListening, interimText, start: micStart, stop: micStop } = useSpeechRecognition({ onFinalResult, onVoiceSubmit });
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const autoResize = useCallback(() => {
@@ -184,8 +199,20 @@ export const InputBar = forwardRef<InputBarHandle, InputBarProps>(function Input
           ref={textareaRef}
           className="textarea-base input-bar__textarea"
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => {
+            setText(e.target.value);
+            cursorRef.current = e.target.selectionStart ?? 0;
+          }}
           onKeyDown={handleKeyDown}
+          onKeyUp={(e) => {
+            cursorRef.current = (e.target as HTMLTextAreaElement).selectionStart ?? 0;
+          }}
+          onSelect={(e) => {
+            cursorRef.current = (e.target as HTMLTextAreaElement).selectionStart ?? 0;
+          }}
+          onClick={(e) => {
+            cursorRef.current = (e.target as HTMLTextAreaElement).selectionStart ?? 0;
+          }}
           onPaste={handlePaste}
           placeholder={isProcessing ? "Waiting for response..." : (placeholderProp || "Type a message...")}
           disabled={isProcessing}
@@ -213,6 +240,9 @@ export const InputBar = forwardRef<InputBarHandle, InputBarProps>(function Input
           </button>
         )}
       </div>
+      {isListening && interimText && (
+        <div className="input-bar__interim">{interimText}</div>
+      )}
       <span className="sr-only" aria-live="polite">
         {isListening ? "Dictation started" : "Dictation stopped"}
       </span>

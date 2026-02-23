@@ -25,10 +25,17 @@ type UseSpeechRecognitionOptions = {
   onVoiceSubmit?: (text: string) => void;
 };
 
-export function useSpeechRecognition(_options?: UseSpeechRecognitionOptions): UseSpeechRecognitionReturn {
+export function useSpeechRecognition(options?: UseSpeechRecognitionOptions): UseSpeechRecognitionReturn {
   const [isSupported] = useState(() => detectSupport());
   const [isListening, setIsListening] = useState(false);
+  const [interimText, setInterimText] = useState("");
   const recognitionRef = useRef<any>(null);
+
+  const onFinalResultRef = useRef(options?.onFinalResult);
+  onFinalResultRef.current = options?.onFinalResult;
+
+  const onVoiceSubmitRef = useRef(options?.onVoiceSubmit);
+  onVoiceSubmitRef.current = options?.onVoiceSubmit;
 
   const start = useCallback(() => {
     if (!recognitionRef.current) {
@@ -40,6 +47,18 @@ export function useSpeechRecognition(_options?: UseSpeechRecognitionOptions): Us
       recognition.lang = "en-US";
       recognition.onend = () => {
         setIsListening(false);
+      };
+      recognition.onresult = (event: any) => {
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const result = event.results[i];
+          const transcript = result[0].transcript;
+          if (result.isFinal) {
+            onFinalResultRef.current?.(transcript);
+            setInterimText("");
+          } else {
+            setInterimText(transcript);
+          }
+        }
       };
       recognitionRef.current = recognition;
     }
@@ -58,7 +77,7 @@ export function useSpeechRecognition(_options?: UseSpeechRecognitionOptions): Us
     isSupported,
     isListening,
     error: null,
-    interimText: "",
+    interimText,
     start,
     stop,
   };
