@@ -59,7 +59,7 @@ let imageIdCounter = 0;
 export const InputBar = forwardRef<InputBarHandle, InputBarProps>(function InputBar({ onSubmit, onCancel, isProcessing, placeholder: placeholderProp }, ref) {
   const [text, setText] = useState("");
   const [images, setImages] = useState<PendingImage[]>([]);
-  const { isSupported: micSupported } = useSpeechRecognition();
+  const { isSupported: micSupported, isListening, start: micStart, stop: micStop } = useSpeechRecognition();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const autoResize = useCallback(() => {
@@ -192,7 +192,12 @@ export const InputBar = forwardRef<InputBarHandle, InputBarProps>(function Input
           rows={1}
         />
         {micSupported && !isProcessing && (
-          <button className="input-bar__btn input-bar__btn--mic" type="button">Mic</button>
+          <button
+            className={`input-bar__btn input-bar__btn--mic${isListening ? " input-bar__btn--mic--listening" : ""}`}
+            type="button"
+            onClick={isListening ? micStop : micStart}
+            aria-label={isListening ? "Stop dictation" : "Start dictation"}
+          >Mic</button>
         )}
         {isProcessing ? (
           <button className="input-bar__btn input-bar__btn--cancel" onClick={onCancel}>
@@ -208,6 +213,9 @@ export const InputBar = forwardRef<InputBarHandle, InputBarProps>(function Input
           </button>
         )}
       </div>
+      <span className="sr-only" aria-live="polite">
+        {isListening ? "Dictation started" : "Dictation stopped"}
+      </span>
     </div>
   );
 });
