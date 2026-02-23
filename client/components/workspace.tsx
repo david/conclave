@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { TaskIcon, Chevron, GitStatusIcon, ServiceStatusIcon } from "./icons.tsx";
+import { TaskIcon, GitStatusIcon, ServiceStatusIcon, ServicesIcon, SpecsIcon, TasksIcon, FilesIcon } from "./icons.tsx";
 import type { PlanEntryInfo, GitFileEntry, SpecInfo, ServiceProcess } from "../reducer.ts";
 
 type SectionId = "services" | "specs" | "tasks" | "files";
@@ -189,12 +189,6 @@ function EpicGroupRow({ group }: { group: EpicGroup }) {
   );
 }
 
-function servicesSummary(services: ServiceProcess[], available: boolean): string {
-  if (!available) return "unavailable";
-  const running = services.filter((s) => s.status === "Running").length;
-  return `${running} running`;
-}
-
 function ServiceRow({ service }: { service: ServiceProcess }) {
   return (
     <div className="service-row">
@@ -207,16 +201,6 @@ function ServiceRow({ service }: { service: ServiceProcess }) {
   );
 }
 
-function specsSummary(specs: SpecInfo[]): string {
-  const count = specs.filter((s) => s.type !== "epic").length;
-  return `${count} spec${count === 1 ? "" : "s"}`;
-}
-
-function tasksSummary(entries: PlanEntryInfo[]): string {
-  const completed = entries.filter((e) => e.status === "completed").length;
-  return `${completed} / ${entries.length} completed`;
-}
-
 export function filesSummary(gitFiles: GitFileEntry[]): string {
   // Deduplicated count — a file in both staged and unstaged still counts once
   const count = gitFiles.length;
@@ -226,6 +210,122 @@ export function filesSummary(gitFiles: GitFileEntry[]): string {
   if (totalAdded === 0 && totalDeleted === 0) return base;
   return `${base}  +${totalAdded} / -${totalDeleted}`;
 }
+
+/* ── Icon Bar sub-component ─────────────────────── */
+
+type IconBarProps = {
+  activeSection: SectionId | null;
+  onSelect: (section: SectionId) => void;
+  hasServices: boolean;
+  hasSpecs: boolean;
+  hasEntries: boolean;
+  hasFiles: boolean;
+};
+
+function IconBar({ activeSection, onSelect, hasServices, hasSpecs, hasEntries, hasFiles }: IconBarProps) {
+  const sections: { id: SectionId; icon: React.FC<{ size?: number; className?: string }>; has: boolean }[] = [
+    { id: "services", icon: ServicesIcon, has: hasServices },
+    { id: "specs", icon: SpecsIcon, has: hasSpecs },
+    { id: "tasks", icon: TasksIcon, has: hasEntries },
+    { id: "files", icon: FilesIcon, has: hasFiles },
+  ];
+
+  return (
+    <nav className="icon-bar">
+      {sections.map(({ id, icon: Icon, has }) => {
+        const isActive = activeSection === id;
+        const isDimmed = !has;
+        const classes = [
+          "icon-bar__item",
+          isActive ? "icon-bar__item--active" : "",
+          isDimmed ? "icon-bar__item--dimmed" : "",
+        ].filter(Boolean).join(" ");
+
+        return (
+          <div
+            key={id}
+            className={classes}
+            onClick={() => !isDimmed && onSelect(id)}
+          >
+            <Icon size={20} />
+          </div>
+        );
+      })}
+    </nav>
+  );
+}
+
+/* ── Content Panel sub-component ────────────────── */
+
+type ContentPanelProps = {
+  activeSection: SectionId;
+  entries: PlanEntryInfo[];
+  gitFiles: GitFileEntry[];
+  specs: SpecInfo[];
+  services: ServiceProcess[];
+  servicesAvailable: boolean;
+};
+
+const sectionNames: Record<SectionId, string> = {
+  services: "Services",
+  specs: "Specs",
+  tasks: "Tasks",
+  files: "Files",
+};
+
+function ContentPanel({ activeSection, entries, gitFiles, specs, services, servicesAvailable }: ContentPanelProps) {
+  return (
+    <div className="content-panel">
+      <div className="content-panel__header">{sectionNames[activeSection]}</div>
+      <div className="content-panel__body" key={activeSection}>
+        {activeSection === "services" && (
+          <div className="workspace__services">
+            {servicesAvailable ? (
+              services.map((service) => (
+                <ServiceRow key={service.name} service={service} />
+              ))
+            ) : (
+              <div className="workspace__services-unavailable">unavailable</div>
+            )}
+          </div>
+        )}
+        {activeSection === "specs" && (
+          <div className="workspace__specs">
+            {(() => {
+              const { standalone, epicGroups } = groupSpecs(specs);
+              return (
+                <>
+                  {standalone.map((spec) => (
+                    <SpecEntry key={spec.name} spec={spec} />
+                  ))}
+                  {epicGroups.map((group) => (
+                    <EpicGroupRow key={group.epic.name} group={group} />
+                  ))}
+                </>
+              );
+            })()}
+          </div>
+        )}
+        {activeSection === "tasks" && (
+          <div className="workspace__entries">
+            {entries.map((entry, i) => (
+              <PlanEntry key={i} entry={entry} />
+            ))}
+          </div>
+        )}
+        {activeSection === "files" && (
+          <div className="workspace__files">
+            {sortedGitFiles(gitFiles).map((file) => (
+              <GitFileRow key={file.path} file={file} displayStatus={effectiveStatus(file)} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Workspace component ────────────────────────── */
 
 export function Workspace({
   entries,
@@ -240,181 +340,73 @@ export function Workspace({
   const hasServices = services.length > 0 || !servicesAvailable;
   const hasContent = hasEntries || hasFiles || hasSpecs || hasServices;
 
-  const [expandedSection, setExpandedSection] = useState<SectionId | null>(null);
+  const [activeSection, setActiveSection] = useState<SectionId | null>(null);
 
-  // Track whether auto-expand has fired so manual toggles aren't overridden
-  const autoExpandedRef = useRef(false);
+  // Track whether auto-select has fired so manual selections aren't overridden
+  const autoSelectedRef = useRef(false);
 
-  // Auto-expand first section to receive content
+  // Auto-select first section to receive content
   useEffect(() => {
-    if (autoExpandedRef.current) return;
+    if (autoSelectedRef.current) return;
     if (hasServices) {
-      setExpandedSection("services");
-      autoExpandedRef.current = true;
+      setActiveSection("services");
+      autoSelectedRef.current = true;
     } else if (hasEntries) {
-      setExpandedSection("tasks");
-      autoExpandedRef.current = true;
+      setActiveSection("tasks");
+      autoSelectedRef.current = true;
     } else if (hasFiles) {
-      setExpandedSection("files");
-      autoExpandedRef.current = true;
+      setActiveSection("files");
+      autoSelectedRef.current = true;
     } else if (hasSpecs) {
-      setExpandedSection("specs");
-      autoExpandedRef.current = true;
+      setActiveSection("specs");
+      autoSelectedRef.current = true;
     }
   }, [hasServices, hasEntries, hasFiles, hasSpecs]);
 
-  // If tasks arrive after another section was auto-expanded, switch to tasks
+  // If tasks arrive after another section was auto-selected, switch to tasks
   const prevHasEntries = useRef(hasEntries);
   useEffect(() => {
     if (!prevHasEntries.current && hasEntries) {
-      setExpandedSection("tasks");
+      setActiveSection("tasks");
     }
     prevHasEntries.current = hasEntries;
   }, [hasEntries]);
 
-  // Toggle — clicking the expanded section's header is a no-op (always one open);
-  // clicking a collapsed section expands it and collapses the other.
-  const handleToggle = (section: SectionId) => {
-    if (section !== expandedSection) {
-      setExpandedSection(section);
-    }
+  // Clicking already-active icon is idempotent (no toggle-to-close)
+  const handleSelect = (section: SectionId) => {
+    setActiveSection(section);
   };
+
+  if (!hasContent) {
+    return (
+      <div className="workspace">
+        <div className="workspace__empty">
+          Tasks and file changes will appear here.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="workspace">
-      <div className="workspace__content">
-        {hasServices && (
-          <div className={`workspace__services-section${expandedSection === "services" ? " workspace__section--expanded" : ""}`}>
-            <button
-              type="button"
-              className="workspace__section-header"
-              onClick={() => handleToggle("services")}
-              aria-expanded={expandedSection === "services"}
-            >
-              <Chevron expanded={expandedSection === "services"} />
-              <span className="workspace__section-label">Services</span>
-              {expandedSection !== "services" && (
-                <span className="workspace__section-summary">
-                  {servicesSummary(services, servicesAvailable)}
-                </span>
-              )}
-            </button>
-            {expandedSection === "services" && (
-              <div className="workspace__section-scroll">
-                <div className="workspace__services">
-                  {servicesAvailable ? (
-                    services.map((service) => (
-                      <ServiceRow key={service.name} service={service} />
-                    ))
-                  ) : (
-                    <div className="workspace__services-unavailable">unavailable</div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {hasSpecs && (
-          <div className={`workspace__specs-section${expandedSection === "specs" ? " workspace__section--expanded" : ""}`}>
-            <button
-              type="button"
-              className="workspace__section-header"
-              onClick={() => handleToggle("specs")}
-              aria-expanded={expandedSection === "specs"}
-            >
-              <Chevron expanded={expandedSection === "specs"} />
-              <span className="workspace__section-label">Specs</span>
-              {expandedSection !== "specs" && (
-                <span className="workspace__section-summary">
-                  {specsSummary(specs)}
-                </span>
-              )}
-            </button>
-            {expandedSection === "specs" && (
-              <div className="workspace__section-scroll">
-                <div className="workspace__specs">
-                  {(() => {
-                    const { standalone, epicGroups } = groupSpecs(specs);
-                    return (
-                      <>
-                        {standalone.map((spec) => (
-                          <SpecEntry key={spec.name} spec={spec} />
-                        ))}
-                        {epicGroups.map((group) => (
-                          <EpicGroupRow key={group.epic.name} group={group} />
-                        ))}
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {hasEntries && (
-          <div className={`workspace__tasks-section${expandedSection === "tasks" ? " workspace__section--expanded" : ""}`}>
-            <button
-              type="button"
-              className="workspace__section-header"
-              onClick={() => handleToggle("tasks")}
-              aria-expanded={expandedSection === "tasks"}
-            >
-              <Chevron expanded={expandedSection === "tasks"} />
-              <span className="workspace__section-label">Tasks</span>
-              {expandedSection !== "tasks" && (
-                <span className="workspace__section-summary">
-                  {tasksSummary(entries)}
-                </span>
-              )}
-            </button>
-            {expandedSection === "tasks" && (
-              <div className="workspace__section-scroll">
-                <div className="workspace__entries">
-                  {entries.map((entry, i) => (
-                    <PlanEntry key={i} entry={entry} />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {hasFiles && (
-          <div className={`workspace__files-section${expandedSection === "files" ? " workspace__section--expanded" : ""}`}>
-            <button
-              type="button"
-              className="workspace__section-header"
-              onClick={() => handleToggle("files")}
-              aria-expanded={expandedSection === "files"}
-            >
-              <Chevron expanded={expandedSection === "files"} />
-              <span className="workspace__section-label">Files</span>
-              {expandedSection !== "files" && (
-                <span className="workspace__section-summary">
-                  {filesSummary(gitFiles)}
-                </span>
-              )}
-            </button>
-            {expandedSection === "files" && (
-              <div className="workspace__section-scroll">
-                <div className="workspace__files">
-                  {sortedGitFiles(gitFiles).map((file) => (
-                    <GitFileRow key={file.path} file={file} displayStatus={effectiveStatus(file)} />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {!hasContent && (
-          <div className="workspace__empty">
-            Tasks and file changes will appear here.
-          </div>
-        )}
-      </div>
+      <IconBar
+        activeSection={activeSection}
+        onSelect={handleSelect}
+        hasServices={hasServices}
+        hasSpecs={hasSpecs}
+        hasEntries={hasEntries}
+        hasFiles={hasFiles}
+      />
+      {activeSection && (
+        <ContentPanel
+          activeSection={activeSection}
+          entries={entries}
+          gitFiles={gitFiles}
+          specs={specs}
+          services={services}
+          servicesAvailable={servicesAvailable}
+        />
+      )}
     </div>
   );
 }
