@@ -12,14 +12,11 @@ const remarkPlugins = [remarkGfm];
 const rehypePlugins = [rehypeHighlight];
 
 export function normalizeMarkdown(text: string): string {
-  let result = text.replace(/([^\n#])(#{1,6}\s)/g, "$1\n\n$2");
-  // Split mid-line ``` so opening fences start on their own line
-  result = result.replace(/([^`\n])(```)/g, "$1\n\n$2");
-  const lines = result.split("\n");
+  const lines = text.split("\n");
   let inFence = false;
   const out: string[] = [];
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+    let line = lines[i];
     if (!inFence && line.startsWith("```")) {
       inFence = true;
       out.push(line);
@@ -32,7 +29,16 @@ export function normalizeMarkdown(text: string): string {
         out.push(line);
       }
       inFence = false;
+    } else if (inFence) {
+      out.push(line);
     } else {
+      const isTableRow = /^\s*\|/.test(line);
+      if (!isTableRow) {
+        // Ensure headings start on their own line
+        line = line.replace(/([^\n#])(#{1,6}\s)/g, "$1\n\n$2");
+        // Split mid-line ``` so opening fences start on their own line
+        line = line.replace(/([^`\n])(```)/g, "$1\n\n$2");
+      }
       out.push(line);
     }
   }
