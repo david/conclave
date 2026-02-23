@@ -159,6 +159,31 @@ After all waves complete, report:
 - Final test and typecheck status
 - Offer to run any additional verification
 
+### 9. Clean Up Spec
+
+After all waves complete and the final integration check passes, remove the spec directory and commit the removal.
+
+1. Delete the spec directory: `.conclave/specs/<spec-name>/`
+2. Delegate the commit to a committer agent:
+
+```
+Task tool parameters:
+  subagent_type: "general-purpose"
+  description: "commit: remove <spec-name> spec"
+  prompt: <see below>
+```
+
+The committer agent prompt must include:
+
+1. **Committer skill workflow**: Include the full Workflow section from `skills/committer/SKILL.md` verbatim.
+2. **Context**:
+   - **Type**: `chore`
+   - **Scope**: spec name
+   - **Description**: "remove <spec-name> spec"
+   - **File list**: All deleted files from `.conclave/specs/<spec-name>/`
+
+Wait for the commit to complete before reporting final results.
+
 ## Error Recovery
 
 - **Agent timeout**: If an agent doesn't complete within a reasonable time, check its output. Report to user.
