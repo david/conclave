@@ -1,13 +1,13 @@
 # Planner — Review Checklist
 
-Criteria for evaluating `implementation.md`.
+Criteria for evaluating `breakdown.md`.
 
 ## Structure
 
 1. **Has an opening summary.** A one-paragraph overview of what will be built and the approach.
 2. **Has a New Types section (if needed).** Shared types, events, state shapes that span multiple UCs are defined once at the top — not duplicated per UC section.
 3. **Has UC sections.** At least one `## UC-X: ...` section (or combined `## UC-1 + UC-2: ...`).
-4. **UC IDs match analysis.** Every UC ID referenced in implementation.md exists in the spec's analysis. No phantom UCs.
+4. **UC IDs match analysis.** Every UC ID referenced in breakdown.md exists in the spec's analysis. No phantom UCs.
 
 ## UC Sections
 

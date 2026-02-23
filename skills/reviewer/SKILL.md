@@ -20,8 +20,8 @@ Evaluate a pipeline skill's artifact against its review checklist. The review is
 | `research` | Researcher | `research.md` | `references/research-checklist.md` |
 | `gather-requirements` | Requirements Analyst | `analysis.md` (use cases + decisions) | `references/gather-requirements-checklist.md` |
 | `architect` | Architect | `analysis.md` (event model sections) | `references/architect-checklist.md` |
-| `plan` | Planner | `implementation.md` | `references/plan-checklist.md` |
-| `organize` | Organizer | `tasks.md` | `references/organize-checklist.md` |
+| `plan` | Planner | `breakdown.md` | `references/plan-checklist.md` |
+| `organize` | Organizer | `implementation.json` | `references/organize-checklist.md` |
 
 ## Workflow
 
@@ -40,8 +40,8 @@ Read the artifact file from `.conclave/specs/<spec-name>/`:
 | `research` | `research.md` — the full file |
 | `gather-requirements` | `analysis.md` — only the use cases and decisions sections (stop before `## Event Model` if present) |
 | `architect` | `analysis.md` — only the `## Event Model` section and its `conclave:eventmodel` blocks |
-| `plan` | `implementation.md` — the full file |
-| `organize` | `tasks.md` — the full file |
+| `plan` | `breakdown.md` — the full file |
+| `organize` | `implementation.json` — the full file |
 
 **Do not read any other files.** No `spec.json`, no `CLAUDE.md`, no source code, no upstream or downstream artifacts. The review is conducted in isolation — the artifact must be self-explanatory.
 
