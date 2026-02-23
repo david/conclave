@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Conclave is a full-stack TypeScript/React chat interface that bridges to Claude Code via the Agent Client Protocol (ACP). It uses an event-sourced architecture where all state changes flow through an in-memory EventStore and are streamed to the browser over WebSocket. The UI features a two-pane layout: a workspace (left) and a chat pane (right).
 
+Specs live in `.conclave/specs/<name>/`. Each spec directory contains phase files (`analysis.md`, `breakdown.md`) and an optional `spec.json` with description, type, and epic fields.
+
 ## Commands
 
 ```bash

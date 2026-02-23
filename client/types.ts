@@ -92,7 +92,7 @@ export type Message = {
 export type SpecInfo = {
   name: string;
   description: string | null;
-  phase: "research" | "analysis" | "implementation" | null;
+  phase: "research" | "analysis" | "breakdown" | "implementation" | null;
   type: "epic" | "spec";
   epic: string | null;
 };

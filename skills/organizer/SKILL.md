@@ -1,27 +1,27 @@
 ---
 name: org
 description: >
-  Analyze a spec's implementation.md and produce a parallelization-aware task plan (tasks.md).
+  Analyze a spec's breakdown.md and produce a parallelization-aware task plan (implementation.json).
   Reads UC sections, analyzes dependency chains and file mutation overlaps, determines which
   tasks can run in parallel vs sequentially, and assigns appropriate granularity. Use when
-  a spec has an implementation.md and needs task decomposition before orchestrated execution.
+  a spec has a breakdown.md and needs task decomposition before orchestrated execution.
   Triggers on: "organize tasks for...", "plan tasks for...", "decompose into tasks", "/org",
   "/org <spec-name>", or when preparing a spec for parallel agent execution.
 ---
 
 # Organizer
 
-Analyze an implementation plan and produce a parallelization-aware task graph.
+Analyze a breakdown plan and produce a parallelization-aware implementation.json.
 
 ## Purpose
 
-Bridge between the planner's `implementation.md` and the orchestrator's parallel execution. The organizer determines **what can run concurrently** and **what must be sequential** by analyzing dependency declarations and file mutation overlaps.
+Bridge between the planner's `breakdown.md` and the orchestrator's parallel execution. The organizer determines **what can run concurrently** and **what must be sequential** by analyzing dependency declarations and file mutation overlaps.
 
 ## Workflow
 
 ### 1. Locate the Spec
 
-Resolve the spec name from the user's request. Read `.conclave/specs/<spec-name>/implementation.md`.
+Resolve the spec name from the user's request. Read `.conclave/specs/<spec-name>/breakdown.md`.
 
 If missing or ambiguous, list `.conclave/specs/` and ask.
 
@@ -33,7 +33,7 @@ Extract all `## UC-X: ...` sections (including combined headings like `## UC-1 +
 - **Files**: Each file path and its operation (**create** vs **modify**)
 - **Steps**: The implementation steps
 - **Tests**: The test scenarios
-- **Dependencies**: Explicit from the analysis.md `dependencies` field, plus implicit from section ordering in implementation.md (the planner respects dependency order)
+- **Dependencies**: Explicit from the analysis.md `dependencies` field, plus implicit from section ordering in breakdown.md (the planner respects dependency order)
 
 Also check for a `## New Types` section — this is always a prerequisite for everything else.
 
@@ -50,7 +50,7 @@ Read `.conclave/specs/<spec-name>/analysis.md` to cross-reference explicit UC de
 
 ### 4. Determine Task Granularity
 
-Each UC section from implementation.md becomes one task by default. Adjust when:
+Each UC section from breakdown.md becomes one task by default. Adjust when:
 
 - **Split** a UC section if it contains clearly independent substeps touching different files with no data flow between them, AND splitting would enable more parallelism. Don't split just for granularity's sake.
 - **Merge** UC sections that are trivially small (e.g., "no code changes needed") into a parent task or mark as no-op.
@@ -86,20 +86,13 @@ Group tasks into execution waves — sets of tasks that can run concurrently:
 
 Tasks in the same wave run in parallel. Waves execute sequentially.
 
-### 7. Write tasks.md
+### 7. Write implementation.json
 
-Write the output to `.conclave/specs/<spec-name>/tasks.md`.
+Write the output to `.conclave/specs/<spec-name>/implementation.json` as a **raw JSON file** — the task array directly, no markdown wrapper, no `conclave:tasks` fenced block.
 
 #### Format
 
-````markdown
-# <Spec Name> — Tasks
-
-<One-sentence summary of the parallelization strategy.>
-
-## Task Graph
-
-```conclave:tasks
+```json
 [
   {
     "id": "T-0",
@@ -112,28 +105,10 @@ Write the output to `.conclave/specs/<spec-name>/tasks.md`.
       "create": ["server/spec-scanner.ts"],
       "modify": ["server/types.ts", "server/index.ts"]
     },
-    "description": "Brief description of what this task accomplishes."
+    "description": "Detailed description with enough context (files, steps, tests) for an agent to execute without reading breakdown.md."
   }
 ]
 ```
-
-## Wave 0 (parallel)
-
-### T-0: Short task name
-- **UCs**: UC-1, UC-2
-- **Files**: create `server/spec-scanner.ts`, modify `server/types.ts`, modify `server/index.ts`
-- **Summary**: What to build and why.
-- **Tests**: Key test scenarios from implementation.md.
-
-### T-1: Another independent task
-...
-
-## Wave 1 (after wave 0)
-
-### T-2: Dependent task
-- **Depends on**: T-0
-...
-````
 
 #### Field Definitions
 
@@ -141,14 +116,14 @@ Read `skills/conclave/references/tasks.md` for the full schema and field definit
 
 #### Guidelines
 
-- The JSON block is the machine-readable source of truth. The markdown sections below it are the human-readable expanded view with full context from implementation.md.
-- Each markdown task section should include enough context (files, steps, tests) that an agent can execute it without reading implementation.md — the orchestrator will feed these sections as agent prompts.
+- The JSON file is the sole machine-readable source of truth. There are no separate human-readable wave sections — all context lives in each task's `description` field.
+- Each task's `description` must contain enough context (files to touch, implementation steps, test scenarios) that an agent can execute it without reading breakdown.md. The orchestrator feeds these descriptions as agent prompts.
 - Preserve the planner's step details and test scenarios — don't summarize away actionable information.
 - Flag potential conflict risks in task descriptions (e.g., "Modifies `index.ts` — coordinate with T-3 if running in same wave").
 
 ### 8. Confirm with User
 
-After writing tasks.md, present:
+After writing implementation.json, present:
 - Total task count and wave count
 - Which tasks run in parallel vs sequentially and why
 - Any granularity decisions made (splits, merges, convention tasks)
@@ -158,7 +133,7 @@ When you're ready for the next phase, read `skills/conclave/references/next.md` 
 
 ````
 ```conclave:next
-{"label":"Review Tasks","command":"/review org <spec-name>","metaContext":"<spec-name>"}
+{"label":"Review Implementation","command":"/review org <spec-name>","metaContext":"<spec-name>"}
 ```
 ````
 

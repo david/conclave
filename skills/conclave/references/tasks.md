@@ -1,6 +1,6 @@
 # conclave:tasks
 
-A machine-readable task graph used by the organizer and orchestrator skills. This block is **not rendered specially** in the UI — it appears as a standard code block. It exists as structured data that the orchestrator parses to coordinate parallel agent execution.
+A machine-readable task graph used by the organizer and orchestrator skills. Written to `.conclave/specs/<name>/implementation.json` as a raw JSON file. It exists as structured data that the orchestrator parses to coordinate parallel agent execution.
 
 ## Schema
 
@@ -39,5 +39,5 @@ A machine-readable task graph used by the organizer and orchestrator skills. Thi
 ## Emission Rules
 
 - Emitted as a single JSON array (not one block per task).
-- Written to `.conclave/specs/<name>/tasks.md` inside a fenced `conclave:tasks` block.
-- The JSON block is the machine-readable source of truth; human-readable wave sections follow below it in the same file.
+- Written to `.conclave/specs/<name>/implementation.json` as a raw JSON file (no markdown wrapper, no `conclave:tasks` fenced block).
+- The JSON file is the sole machine-readable source of truth.

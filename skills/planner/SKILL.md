@@ -1,11 +1,11 @@
 ---
 name: plan
-description: Translate a spec's analysis.md (containing use cases and event models) into a concrete implementation.md plan. Use when a user wants to plan the implementation of a spec, such as "plan this spec", "create implementation plan for...", "translate analysis to implementation", "/plan <spec-name>", or when a spec has an analysis.md and needs the next phase. Reads the use cases, event models, and the project's CLAUDE.md to produce file-level implementation steps mapped to each use case.
+description: Translate a spec's analysis.md (containing use cases and event models) into a concrete breakdown.md plan. Use when a user wants to plan the implementation of a spec, such as "plan this spec", "create implementation plan for...", "translate analysis to implementation", "/plan <spec-name>", or when a spec has an analysis.md and needs the next phase. Reads the use cases, event models, and the project's CLAUDE.md to produce file-level implementation steps mapped to each use case.
 ---
 
 # Planner
 
-Translate structured requirements and event models (analysis.md) into a concrete implementation plan (implementation.md).
+Translate structured requirements and event models (analysis.md) into a concrete breakdown plan (breakdown.md).
 
 ## Workflow
 
@@ -42,7 +42,7 @@ Extract all `conclave:eventmodel` blocks from analysis.md (if present). For each
 
 ### 4. Produce the Implementation Plan
 
-Write `.conclave/specs/<spec-name>/implementation.md`.
+Write `.conclave/specs/<spec-name>/breakdown.md`.
 
 #### Structure
 
@@ -82,7 +82,7 @@ Write `.conclave/specs/<spec-name>/implementation.md`.
 
 ### 5. Confirm with User
 
-After writing implementation.md, summarize what was produced and offer to:
+After writing breakdown.md, summarize what was produced and offer to:
 - Adjust groupings or ordering
 - Add more detail to specific sections
 

@@ -144,7 +144,7 @@ export type SessionAddedToMetaContext = BaseEvent & {
 
 // --- Spec System ---
 
-export type SpecPhase = "research" | "analysis" | "implementation";
+export type SpecPhase = "research" | "analysis" | "breakdown" | "implementation";
 
 export type SpecInfo = {
   name: string;
