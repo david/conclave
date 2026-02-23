@@ -11,6 +11,10 @@ import type { NextBlockClickPayload } from "./next-block-button.tsx";
 const remarkPlugins = [remarkGfm];
 const rehypePlugins = [rehypeHighlight];
 
+export function normalizeMarkdown(text: string): string {
+  return text.replace(/([^\n#])(#{1,6}\s)/g, "$1\n\n$2");
+}
+
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -221,16 +225,18 @@ export type MarkdownTextProps = {
 };
 
 export function MarkdownText({ text, onNextBlockClick, isReplay }: MarkdownTextProps) {
+  const normalizedText = useMemo(() => normalizeMarkdown(text), [text]);
+
   const memoComponents = useMemo<Components>(() => ({
     ...baseComponents,
     pre: makePreHandler(onNextBlockClick, isReplay),
   }), [onNextBlockClick, isReplay]);
 
-  // Extract all valid conclave:eventmodel slices from raw text
+  // Extract all valid conclave:eventmodel slices from normalized text
   const validSlices: EventModelSlice[] = [];
   const eventModelRegex = /```conclave:eventmodel\n([\s\S]*?)```/g;
   let match: RegExpExecArray | null;
-  while ((match = eventModelRegex.exec(text)) !== null) {
+  while ((match = eventModelRegex.exec(normalizedText)) !== null) {
     const slice = parseEventModelSlice(match[1]);
     if (slice) validSlices.push(slice);
   }
@@ -242,7 +248,7 @@ export function MarkdownText({ text, onNextBlockClick, isReplay }: MarkdownTextP
         rehypePlugins={rehypePlugins}
         components={memoComponents}
       >
-        {text}
+        {normalizedText}
       </ReactMarkdown>
       {validSlices.length > 0 && <EventModelDiagram slices={validSlices} />}
     </div>
