@@ -15,6 +15,7 @@ type UseSpeechRecognitionReturn = SpeechState & {
 function detectSupport(): boolean {
   return (
     typeof window !== "undefined" &&
+    window.isSecureContext &&
     (typeof (window as any).SpeechRecognition !== "undefined" ||
       typeof (window as any).webkitSpeechRecognition !== "undefined")
   );
