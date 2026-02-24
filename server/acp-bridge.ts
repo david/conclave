@@ -15,7 +15,8 @@ import {
   type SessionInfo as AcpSessionInfo,
 } from "@agentclientprotocol/sdk";
 // Note: RequestPermissionRequest/Response still needed for the auto-approve handler signature
-import { join } from "path";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { translateAcpUpdate } from "./acp-translate.ts";
 import type { EventPayload, ImageAttachment } from "./types.ts";
 
@@ -55,9 +56,9 @@ export class AcpBridge {
   }
 
   async start(): Promise<void> {
-    const acpScript = this.resolveAcpScript();
+    const acpCmd = this.resolveAcpCommand();
 
-    this.proc = Bun.spawn(["bun", "run", acpScript], {
+    this.proc = Bun.spawn(acpCmd, {
       cwd: this.cwd,
       stdin: "pipe",
       stdout: "pipe",
@@ -267,11 +268,17 @@ export class AcpBridge {
     }
   }
 
-  private resolveAcpScript(): string {
+  private resolveAcpCommand(): string[] {
+    // 1. Local node_modules script (run via bun)
     const localEntry = join(import.meta.dir, "..", "node_modules", "@zed-industries", "claude-code-acp", "dist", "index.js");
-    const stat = Bun.spawnSync(["test", "-f", localEntry]);
-    if (stat.exitCode === 0) {
-      return localEntry;
+    if (existsSync(localEntry)) {
+      return ["bun", "run", localEntry];
+    }
+
+    // 2. Binary on PATH
+    const bin = Bun.which("claude-code-acp");
+    if (bin) {
+      return [bin];
     }
 
     throw new Error(
