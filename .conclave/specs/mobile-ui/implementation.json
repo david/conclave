@@ -1,0 +1,93 @@
+[
+  {
+    "id": "T-0",
+    "name": "Breakpoint & CSS infrastructure + font loading",
+    "ucs": [],
+    "depends": [],
+    "wave": 0,
+    "kind": "code",
+    "files": {
+      "create": [],
+      "modify": ["client/style.css", "client/index.html"]
+    },
+    "description": "Foundational CSS and HTML changes that all other tasks depend on.\n\n**style.css changes:**\n1. Add safe area CSS custom properties at `:root`:\n   ```css\n   --safe-top: env(safe-area-inset-top, 0px);\n   --safe-bottom: env(safe-area-inset-bottom, 0px);\n   --safe-left: env(safe-area-inset-left, 0px);\n   --safe-right: env(safe-area-inset-right, 0px);\n   ```\n2. Refine the existing `@media (max-width: 900px)` breakpoint — keep it for tablet.\n3. Add `@media (max-width: 768px)` breakpoint for phone layout. Inside it, set `.app-layout` to `display: flex; flex-direction: column; height: 100dvh;` and remove the grid template. Only one pane visible at a time (class toggling). Use `100dvh` directly — no CSS variable indirection.\n4. Inside the 768px breakpoint, add `overscroll-behavior: contain` on `.message-list` and any horizontal-scrolling containers (code blocks, tables, `.em-diagram`).\n\n**index.html changes:**\n1. Update the viewport meta tag to include `viewport-fit=cover`:\n   ```html\n   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, viewport-fit=cover\" />\n   ```\n2. Update the Google Fonts `<link>` URL to request only used weights:\n   - Bricolage Grotesque: weights 600 and 700 only (drop 400 — not used)\n   - Outfit: weights 400, 500, 600, 700 (all used)\n   - JetBrains Mono: weights 400, 500 (unchanged)\n3. Verify `&display=swap` is present in the URL.\n\n**Tests:** Visual/manual only — verify 769px+ matches current desktop behavior; verify 768px and below fills viewport correctly; verify fonts render correctly; verify fewer font file requests in Network tab."
+  },
+  {
+    "id": "T-1",
+    "name": "Red: Tab bar component tests",
+    "ucs": [],
+    "depends": [],
+    "wave": 0,
+    "kind": "code",
+    "files": {
+      "create": ["client/components/tab-bar.tsx", "client/components/tab-bar.test.ts"],
+      "modify": []
+    },
+    "description": "Create a minimal stub for the tab bar component, then write failing tests against it. The stub allows tests to fail on *assertions* (missing DOM elements, missing callbacks) rather than on import errors.\n\n**Step 1 — Create stub `client/components/tab-bar.tsx`:**\n```tsx\nexport function TabBar() {\n  return null;\n}\n```\nThis exports the component so tests can import it. Tests will fail because the stub renders nothing — no buttons, no icons, no active class, no notification dot.\n\n**Step 2 — Create `client/components/tab-bar.test.ts` with these test cases:**\n1. Renders two tab buttons with labels 'Workspace' and 'Chat'\n2. Each tab button contains an SVG icon\n3. Clicking the Workspace tab calls `onSwitch('workspace')`\n4. Clicking the Chat tab calls `onSwitch('chat')`\n5. When `activePane` is 'chat', the chat tab has the active class (`.tab-bar__tab--active`)\n6. When `activePane` is 'workspace', the workspace tab has the active class\n7. When `chatNotification` is true, a notification dot element (`.tab-bar__dot`) renders on the chat tab\n8. When `chatNotification` is false or omitted, no notification dot renders\n\nUse Bun test runner (`describe`/`test`/`expect`) with `@testing-library/react` for rendering and assertions. Import from `./tab-bar`.\n\n**All tests MUST fail** — the stub renders `null`, so queries for buttons, labels, and dot elements will return nothing. This is the correct Red state: tests fail because the *behavior* is missing, not because the file doesn't exist."
+  },
+  {
+    "id": "T-2",
+    "name": "Red: Visual viewport hook tests",
+    "ucs": [],
+    "depends": [],
+    "wave": 0,
+    "kind": "code",
+    "files": {
+      "create": ["client/hooks/use-visual-viewport.ts", "client/hooks/use-visual-viewport.test.ts"],
+      "modify": []
+    },
+    "description": "Create a minimal stub for the visual viewport hook, then write failing tests against it. The stub allows tests to fail on *assertions* (wrong values after resize events) rather than on import errors.\n\n**Step 1 — Create stub `client/hooks/use-visual-viewport.ts`:**\n```ts\nimport { useState } from 'react';\n\nexport function useVisualViewport() {\n  return { viewportHeight: window.innerHeight, keyboardOpen: false };\n}\n```\nThis exports the hook with hardcoded defaults. Tests will fail because the stub doesn't react to `visualViewport` resize events.\n\n**Step 2 — Create `client/hooks/use-visual-viewport.test.ts` with these test cases:**\n1. Returns initial `viewportHeight` matching `window.visualViewport.height` (or `window.innerHeight` fallback)\n2. Returns `keyboardOpen: false` when viewport height equals inner height\n3. When a `resize` event fires on `window.visualViewport` with height < 75% of `window.innerHeight`, `keyboardOpen` flips to `true`\n4. When the viewport height returns to normal (>= 75% of innerHeight), `keyboardOpen` returns to `false`\n5. Returns updated `viewportHeight` after resize events\n\nMock `window.visualViewport` as an EventTarget with a `height` property. Use `renderHook` from `@testing-library/react` and `act` for triggering events.\n\n**Tests 3, 4, and 5 MUST fail** — the stub returns hardcoded values and doesn't subscribe to resize events. Tests 1 and 2 may pass since the stub returns `window.innerHeight` and `false` respectively. This is the correct Red state: tests fail because the *reactive behavior* is missing, not because the file doesn't exist."
+  },
+  {
+    "id": "T-3",
+    "name": "PWA manifest & installability",
+    "ucs": [],
+    "depends": ["T-0"],
+    "wave": 1,
+    "kind": "code",
+    "files": {
+      "create": ["client/manifest.json"],
+      "modify": ["client/index.html", "server/index.ts"]
+    },
+    "description": "Add PWA manifest for installability. This task modifies `index.html` which was also modified in T-0 — use the T-0 output as the base.\n\n**Create `client/manifest.json`:**\n```json\n{\n  \"name\": \"Conclave\",\n  \"short_name\": \"Conclave\",\n  \"start_url\": \"/\",\n  \"display\": \"standalone\",\n  \"background_color\": \"#09090b\",\n  \"theme_color\": \"#09090b\",\n  \"icons\": [\n    { \"src\": \"/icon-192.png\", \"sizes\": \"192x192\", \"type\": \"image/png\" },\n    { \"src\": \"/icon-512.png\", \"sizes\": \"512x512\", \"type\": \"image/png\" }\n  ]\n}\n```\n\n**Modify `client/index.html`** — add inside `<head>`:\n```html\n<link rel=\"manifest\" href=\"/manifest.json\" />\n<meta name=\"theme-color\" content=\"#09090b\" />\n<meta name=\"apple-mobile-web-app-capable\" content=\"yes\" />\n<meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black-translucent\" />\n<link rel=\"apple-touch-icon\" href=\"/icon-192.png\" />\n```\n\n**Create app icons** at 192px and 512px: `#09090b` background with an amber `#d4944c` diamond shape (rotated square) centered. Generate as PNG — use an inline script, canvas, or SVG-to-PNG approach.\n\n**Verify `server/index.ts`** serves static files from `dist/` — ensure `manifest.json` and icons land there. If the build process doesn't copy them, add a copy step.\n\n**Tests:** Visual/manual — verify manifest loads in DevTools → Application → Manifest; verify 'Add to Home Screen' works on Android/iOS; verify `theme-color` matches obsidian background."
+  },
+  {
+    "id": "T-4",
+    "name": "CSS batch: tap targets, touch feedback, safe areas, overflow",
+    "ucs": [],
+    "depends": ["T-0"],
+    "wave": 1,
+    "kind": "code",
+    "files": {
+      "create": [],
+      "modify": ["client/style.css", "client/components/chat.tsx"]
+    },
+    "description": "Batch of CSS-focused changes that build on T-0's breakpoint infrastructure. Modifies `style.css` (which T-0 also modified — use T-0's output as base) and `chat.tsx`.\n\n## Tap Target Sizing (inside `@media (max-width: 900px)`)\n1. Increase `.chat__new-session-btn` and `.chat__copy-session-btn` from 32px to 44px (width and height). Adjust icon font-size proportionally.\n2. Increase `.icon-bar__item` from 36px to 44px. Increase `.icon-bar` width from 44px to 52px. (Tablet only — phone hides icon bar.)\n3. Ensure `.input-bar__btn` has `min-height: 44px; min-width: 44px`.\n4. Ensure `.tool-call__header` and `.tool-call-group__summary` have `min-height: 44px`.\n5. Ensure `.plan-entry` rows have at least 44px height.\n6. `.code-block__copy` button — increase to 44px touch target on mobile.\n7. In `client/components/chat.tsx`, pass mobile-aware `styles` to `react-select` `CreatableSelect`: increase `control` min-height to 44px at ≤900px. Add `menuPortalTarget={document.body}` so dropdown renders above tab bar.\n\n## Touch Feedback\n1. Move ALL existing `:hover` pseudo-class rules into a single `@media (hover: hover) { ... }` block at the end of the file (after responsive section). This consolidates ~29 hover rules. Maintain same selector specificity.\n2. Add `:active` pseudo-class styles differentiated by element type:\n   - **Chunky buttons** (`.input-bar__btn--send`, `.input-bar__btn--cancel`, `.input-bar__btn--mic`): `transform: scale(0.95)`\n   - **Icon buttons** (`.chat__new-session-btn`, `.chat__copy-session-btn`, `.code-block__copy`): `background: var(--accent-subtle); border-color: var(--accent); color: var(--accent)`\n   - **Row/list items** (`.tool-call__header`, `.tool-call-group__summary`, `.plan-entry`, `.file-change`, `.service-row`, `.spec-entry`, `.icon-bar__item`): `background: var(--bg-hover)`\n   - **Thought blocks** (`.thought-block__header`): `background: var(--bg-elevated)`\n3. Inside 768px breakpoint, add `-webkit-tap-highlight-color: transparent` on `body`.\n4. Preserve existing `:active` on `.input-bar__btn` (`transform: scale(0.96)`).\n\n## Safe Area Handling (inside 768px breakpoint)\n1. Apply `padding-top: var(--safe-top)` to `.chat__header`.\n2. Apply `padding-top: var(--safe-top)` to `.content-panel__header`.\n3. Safe bottom on `.tab-bar` handled by T-5.\n4. Apply `padding-left: var(--safe-left)` and `padding-right: var(--safe-right)` to `.app-layout`.\n\n## Horizontal Overflow & Scroll Containment (inside 768px breakpoint)\n1. Add `-webkit-overflow-scrolling: touch; overscroll-behavior-x: contain;` to `.message__text--markdown pre code`, `.message__text--markdown table`, `.em-diagram`.\n2. For tables, wrap in `overflow-x: auto` with `display: block` inside the 768px breakpoint.\n3. For `.em-diagram__slices`, ensure `overscroll-behavior-x: contain`.\n\n**Tests:** All visual/manual — verify 44px tap targets, touch feedback on mobile, safe area handling on notched devices, horizontal scroll containment."
+  },
+  {
+    "id": "T-5",
+    "name": "Green: Tab bar + workspace mobile layout",
+    "ucs": [],
+    "depends": ["T-1", "T-4"],
+    "wave": 2,
+    "kind": "code",
+    "files": {
+      "create": [],
+      "modify": ["client/components/tab-bar.tsx", "client/index.tsx", "client/style.css", "client/components/workspace.tsx"]
+    },
+    "description": "Implement the tab bar component and workspace mobile layout. This makes the T-1 tab bar tests pass green.\n\n## Tab Bar Component — replace stub in `client/components/tab-bar.tsx`\n1. Render `<nav className=\"tab-bar\">` with two `<button>` elements.\n2. Each tab has an inline SVG icon (grid/layout for Workspace, chat-bubble for Chat) and a text label.\n3. Props: `activePane: \"workspace\" | \"chat\"`, `onSwitch(pane)` callback, optional `chatNotification: boolean`.\n4. Active tab gets `.tab-bar__tab--active` class.\n5. When `chatNotification` is true, render a `.tab-bar__dot` element on the chat tab.\n\n## Tab Bar Integration — modify `client/index.tsx`\n1. Add `mobilePane` state (`\"workspace\" | \"chat\"`, default `\"chat\"`).\n2. Detect mobile via `window.matchMedia(\"(max-width: 768px)\")` with a resize listener that resets to desktop when window grows past 768px.\n3. On mobile, render `<TabBar>` after the pane containers. Apply `.pane--hidden` (`display: none`) on the inactive pane.\n4. On desktop, don't render `<TabBar>`, use existing layout.\n5. Notification dot: when on workspace tab and `isProcessing` transitions to `false` or new `AgentText` arrives, show dot. Clear on switch to chat.\n\n## Tab Bar CSS — add to `client/style.css` inside 768px breakpoint\n1. `.tab-bar`: `position: fixed; bottom: 0; left: 0; right: 0; height: 56px;` flex row, two equal buttons, `background: var(--bg-surface)`, `border-top: 1px solid var(--border)`, `padding-bottom: var(--safe-bottom)`. Z-index above content.\n2. Each tab button: flex column, icon above label, `font-size: 10px`, `font-weight: 600`, `font-family: var(--font-body)`, `letter-spacing: 0.04em`, `text-transform: uppercase`.\n3. Active tab: `color: var(--accent)` with `2px` accent top border. Inactive: `color: var(--text-muted)`.\n4. `.pane--entering`: apply `@keyframes crossfade` (150ms opacity 0→1) via `requestAnimationFrame`.\n5. `.app-layout` on mobile: `padding-bottom: calc(56px + var(--safe-bottom))`.\n\n## Workspace Mobile Layout — modify `client/components/workspace.tsx` and `style.css`\n1. Inside 768px breakpoint, hide `.icon-bar` (`display: none`).\n2. Add horizontal section switcher: row of pill-shaped buttons (Services, Specs, Tasks, Files) below `.content-panel__header`.\n3. Style pills: `display: flex; gap: 6px; padding: 0 16px 10px;` each pill `font-size: 11px; font-weight: 600; padding: 6px 14px; border-radius: var(--radius-pill); min-height: 36px;`. Active: `background: var(--accent-subtle); color: var(--accent); border: 1px solid rgba(212, 148, 76, 0.2)`. Inactive: `background: var(--bg-elevated); color: var(--text-muted); border: 1px solid var(--border)`.\n4. Reuse existing `activeSection` state. Dimmed sections: `opacity: 0.35; pointer-events: none`.\n5. Workspace content panel expands full width on mobile with `padding: 0 16px`.\n\n**Run T-1 tests (tab-bar.test.ts) — all must pass green.**\n\n**Tests:** Visual/manual — tab bar appears at ≤768px, disappears at wider widths; crossfade on pane switch; workspace shows horizontal pills on mobile; section switching works; desktop layout unchanged."
+  },
+  {
+    "id": "T-6",
+    "name": "Green: Visual viewport hook + input bar keyboard handling",
+    "ucs": [],
+    "depends": ["T-2", "T-5"],
+    "wave": 3,
+    "kind": "code",
+    "files": {
+      "create": [],
+      "modify": ["client/hooks/use-visual-viewport.ts", "client/index.tsx", "client/style.css"]
+    },
+    "description": "Implement the visual viewport hook and keyboard-aware input bar. This makes the T-2 visual viewport tests pass green.\n\n## Visual Viewport Hook — replace stub in `client/hooks/use-visual-viewport.ts`\n1. Export `useVisualViewport()` returning `{ viewportHeight: number, keyboardOpen: boolean }`.\n2. Subscribe to `window.visualViewport` `resize` events.\n3. Derive `keyboardOpen` by comparing `visualViewport.height < window.innerHeight * 0.75`.\n4. Fall back to `window.innerHeight` if `visualViewport` is not available.\n5. Clean up event listener on unmount.\n\n## Input Bar & Keyboard Integration — modify `client/index.tsx`\n1. The `.chat` pane flex layout already handles keyboard naturally with `100dvh` — input bar stays at bottom when keyboard opens.\n2. Import and use `useVisualViewport` hook.\n3. When `keyboardOpen` is true, add `.tab-bar--hidden` class to tab bar (applies `transform: translateY(100%)` with 150ms transition).\n4. Auto-scroll: when `keyboardOpen` transitions false→true, scroll `.message-list` to bottom after 300ms delay using `scrollTo({ top: scrollHeight, behavior: 'smooth' })`.\n\n## Input Bar Mobile CSS — add to `client/style.css` inside 768px breakpoint\n1. Reduce `.input-bar` padding to `8px 12px 12px`.\n2. Reduce `.input-bar__textarea` padding to `8px 14px` and `min-height: 38px`.\n3. `.tab-bar--hidden`: `transform: translateY(100%); transition: transform 150ms ease;`.\n\n**Run T-2 tests (use-visual-viewport.test.ts) — all must pass green.**\n\n**Tests:** Visual/manual — open keyboard on mobile: input bar stays visible, tab bar slides away, message list scrolls to bottom; close keyboard: tab bar slides back."
+  }
+]
