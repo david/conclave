@@ -2567,6 +2567,20 @@ body::before {
     border-top: 1px solid var(--border);
     padding-bottom: var(--safe-bottom);
     z-index: 100;
+    transition: transform 150ms ease;
+  }
+
+  .app-layout--keyboard-open .tab-bar {
+    transform: translateY(100%);
+  }
+
+  .input-bar {
+    padding: 8px 12px 12px;
+  }
+
+  .input-bar__textarea {
+    padding: 8px 14px;
+    min-height: 38px;
   }
 
   .tab-bar__tab {

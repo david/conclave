@@ -5,6 +5,7 @@ import { Chat } from "./components/chat.tsx";
 import type { InputBarHandle } from "./components/input-bar.tsx";
 import { Workspace } from "./components/workspace.tsx";
 import { TabBar } from "./components/tab-bar.tsx";
+import { useVisualViewport } from "./hooks/use-visual-viewport.ts";
 import type { WsEvent, Command, ImageAttachment } from "../server/types.ts";
 import type { NextBlockClickPayload } from "./components/next-block-button.tsx";
 import { getSessionIdFromUrl, pushSessionUrl, replaceSessionUrl, onPopState } from "./router.ts";
@@ -209,6 +210,23 @@ function App() {
     prevProcessing.current = state.isProcessing;
   }, [state.isProcessing, isMobile, mobilePane]);
 
+  // Visual viewport tracking for keyboard detection
+  const { keyboardOpen } = useVisualViewport();
+
+  // Auto-scroll message list when keyboard opens
+  const prevKeyboardOpen = useRef(false);
+  useEffect(() => {
+    if (isMobile && keyboardOpen && !prevKeyboardOpen.current) {
+      const timer = setTimeout(() => {
+        const el = document.querySelector('.message-list');
+        if (el) el.scrollTop = el.scrollHeight;
+      }, 300);
+      prevKeyboardOpen.current = keyboardOpen;
+      return () => clearTimeout(timer);
+    }
+    prevKeyboardOpen.current = keyboardOpen;
+  }, [keyboardOpen, isMobile]);
+
   // Show workspace sidebar when there are plan entries, git files, specs, or services
   const workspaceVisible = !!state.sessionId && (
     state.planEntries.length > 0 ||
@@ -220,6 +238,7 @@ function App() {
   const layoutClasses = [
     "app-layout",
     !isMobile && workspaceVisible ? "app-layout--workspace-visible" : "",
+    isMobile && keyboardOpen ? "app-layout--keyboard-open" : "",
   ].filter(Boolean).join(" ");
 
   return (
