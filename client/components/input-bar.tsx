@@ -72,9 +72,23 @@ export const InputBar = forwardRef<InputBarHandle, InputBarProps>(function Input
     });
   }, []);
 
-  const onVoiceSubmit = useCallback(() => {}, []);
+  const handleSubmitRef = useRef<() => void>(() => {});
 
-  const { isSupported: micSupported, isListening, interimText, start: micStart, stop: micStop } = useSpeechRecognition({ onFinalResult, onVoiceSubmit });
+  const onVoiceSubmit = useCallback((cleaned: string) => {
+    if (cleaned) {
+      setText((prev) => {
+        const pos = cursorRef.current;
+        const before = prev.slice(0, pos);
+        const after = prev.slice(pos);
+        const next = before + cleaned + after;
+        cursorRef.current = pos + cleaned.length;
+        return next;
+      });
+    }
+    queueMicrotask(() => handleSubmitRef.current());
+  }, []);
+
+  const { isSupported: micSupported, isListening, interimText, error: micError, start: micStart, stop: micStop } = useSpeechRecognition({ onFinalResult, onVoiceSubmit });
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const autoResize = useCallback(() => {
@@ -164,6 +178,8 @@ export const InputBar = forwardRef<InputBarHandle, InputBarProps>(function Input
     setImages([]);
   }, [text, images, isProcessing, onSubmit]);
 
+  handleSubmitRef.current = handleSubmit;
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey) {
@@ -173,6 +189,17 @@ export const InputBar = forwardRef<InputBarHandle, InputBarProps>(function Input
     },
     [handleSubmit],
   );
+
+  const [dictationError, setDictationError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (micError && micError !== "permission-denied") {
+      setDictationError(micError);
+      const timer = setTimeout(() => setDictationError(null), 3000);
+      return () => clearTimeout(timer);
+    }
+    setDictationError(null);
+  }, [micError]);
 
   const hasContent = text.trim() || images.length > 0;
 
@@ -220,10 +247,11 @@ export const InputBar = forwardRef<InputBarHandle, InputBarProps>(function Input
         />
         {micSupported && !isProcessing && (
           <button
-            className={`input-bar__btn input-bar__btn--mic${isListening ? " input-bar__btn--mic--listening" : ""}`}
+            className={`input-bar__btn input-bar__btn--mic${isListening ? " input-bar__btn--mic--listening" : ""}${micError === "permission-denied" ? " input-bar__btn--mic--error" : ""}`}
             type="button"
             onClick={isListening ? micStop : micStart}
             aria-label={isListening ? "Stop dictation" : "Start dictation"}
+            title={micError === "permission-denied" ? "Microphone access denied. Enable it in your browser settings." : undefined}
           >Mic</button>
         )}
         {isProcessing ? (
@@ -240,6 +268,9 @@ export const InputBar = forwardRef<InputBarHandle, InputBarProps>(function Input
           </button>
         )}
       </div>
+      {dictationError && (
+        <div className="input-bar__dictation-error">{dictationError}</div>
+      )}
       {isListening && interimText && (
         <div className="input-bar__interim">{interimText}</div>
       )}

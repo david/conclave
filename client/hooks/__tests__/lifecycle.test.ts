@@ -109,7 +109,7 @@ describe("useSpeechRecognition — start/stop (UC-1, UC-4)", () => {
     expect(instance.stopCallCount).toBe(1);
   });
 
-  test("when onend fires without manual stop(), isListening is set to false", () => {
+  test("when onend fires without manual stop(), auto-restart keeps isListening true", () => {
     const { result, rerender } = renderHook(() => useSpeechRecognition());
 
     // Start listening
@@ -120,7 +120,7 @@ describe("useSpeechRecognition — start/stop (UC-1, UC-4)", () => {
 
     expect(result.current.isListening).toBe(true);
 
-    // Simulate the browser firing onend (e.g. speech timeout, not user-initiated stop)
+    // Simulate the browser firing onend (e.g. silence timeout, not user-initiated stop)
     const instance = instances[instances.length - 1];
     act(() => {
       if (instance.onend) {
@@ -129,7 +129,9 @@ describe("useSpeechRecognition — start/stop (UC-1, UC-4)", () => {
     });
     rerender();
 
-    expect(result.current.isListening).toBe(false);
+    // Auto-restart: isListening stays true, start() called again
+    expect(result.current.isListening).toBe(true);
+    expect(instance.startCallCount).toBeGreaterThanOrEqual(2);
     // stop() was NOT called by the user, so stopCallCount should be 0
     expect(instance.stopCallCount).toBe(0);
   });

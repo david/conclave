@@ -157,20 +157,16 @@ describe("useSpeechRecognition — auto-restart (UC-10)", () => {
   test("guards against rapid restart loops (onend immediately after start)", () => {
     const { result, rerender } = renderHook(() => useSpeechRecognition());
 
-    // Start listening
+    // Start and immediately trigger onend in the same act block — simulates
+    // the browser rejecting the start synchronously (no time elapses)
     act(() => {
       result.current.start();
-    });
-    rerender();
-
-    const instance = instances[instances.length - 1];
-
-    // Immediately trigger onend (within same tick, simulating < 100ms)
-    act(() => {
+      const instance = instances[instances.length - 1];
       instance.onend?.();
     });
     rerender();
 
+    const instance = instances[instances.length - 1];
     // Should NOT restart to prevent infinite loop — startCallCount stays at 1
     expect(instance.startCallCount).toBe(1);
   });
