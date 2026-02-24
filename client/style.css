@@ -1364,6 +1364,12 @@ body::before {
   cursor: pointer;
   color: var(--text-muted);
   transition: background 0.15s, color 0.15s;
+  --icon-size: 20px;
+}
+
+.icon-bar__item svg {
+  width: var(--icon-size);
+  height: var(--icon-size);
 }
 
 .icon-bar__item--active {
@@ -1463,10 +1469,10 @@ body::before {
 }
 
 /* ============================================
-   Service Row
+   Sidebar Row — shared base for all workspace rows
    ============================================ */
 
-.service-row {
+.sidebar-row {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1477,11 +1483,22 @@ body::before {
   transition: background 0.15s;
 }
 
-.service-row__icon {
+.sidebar-row__icon {
   flex-shrink: 0;
   display: flex;
   align-items: center;
+  line-height: 0;
+  --icon-size: 14px;
 }
+
+.sidebar-row__icon svg {
+  width: var(--icon-size);
+  height: var(--icon-size);
+}
+
+/* ============================================
+   Service Row
+   ============================================ */
 
 .service-row__name {
   flex: 1;
@@ -1517,21 +1534,7 @@ body::before {
    Spec Entries
    ============================================ */
 
-.spec-entry {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 8px;
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  line-height: 1.55;
-  transition: background 0.15s;
-}
-
 .spec-entry__icon {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
   color: var(--text-muted);
 }
 
@@ -1631,21 +1634,7 @@ body::before {
    File Change Entries
    ============================================ */
 
-.file-change {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 8px;
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  line-height: 1.55;
-  transition: background 0.15s;
-}
-
 .file-change__icon {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
   color: var(--status-color, var(--text-muted));
 }
 
@@ -1703,22 +1692,8 @@ body::before {
    Plan Entries
    ============================================ */
 
-.plan-entry {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 6px 8px;
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  line-height: 1.55;
-  transition: background 0.15s;
-}
-
 .plan-entry__icon {
-  flex-shrink: 0;
   height: 20px;
-  display: flex;
-  align-items: center;
   color: var(--status-color, var(--text-muted));
   transition: color 0.2s;
 }
@@ -2441,14 +2416,6 @@ body::before {
 }
 
 /* ============================================
-   Section Switcher — hidden on desktop
-   ============================================ */
-
-.section-switcher {
-  display: none;
-}
-
-/* ============================================
    Responsive
    ============================================ */
 
@@ -2526,10 +2493,6 @@ body::before {
   }
 
   .chat__header {
-    padding-top: var(--safe-top);
-  }
-
-  .content-panel__header {
     padding-top: var(--safe-top);
   }
 
@@ -2637,44 +2600,63 @@ body::before {
     border-right: none;
   }
 
-  /* ── Section Switcher (mobile) ───────────── */
-
   .icon-bar {
-    display: none;
+    padding-top: calc(var(--safe-top) + 2px);
   }
 
-  .section-switcher {
-    display: flex;
-    gap: 6px;
-    padding: 0 16px 10px;
+  .icon-bar__item {
+    --icon-size: 24px;
   }
 
-  .section-switcher__pill {
-    font-size: 11px;
-    font-weight: 600;
-    padding: 6px 14px;
-    border-radius: var(--radius-pill);
-    min-height: 36px;
-    border: 1px solid var(--border);
-    background: var(--bg-elevated);
-    color: var(--text-muted);
-    cursor: pointer;
-    font-family: var(--font-body);
+  .content-panel__header {
+    padding-top: calc(var(--safe-top) + 16px);
+    font-size: 13px;
   }
 
-  .section-switcher__pill--active {
-    background: var(--accent-subtle);
-    color: var(--accent);
-    border-color: rgba(212, 148, 76, 0.2);
+  .message__role {
+    font-size: 13px;
   }
 
-  .section-switcher__pill--dimmed {
-    opacity: 0.35;
-    pointer-events: none;
+  .chat__header {
+    font-size: 15px;
   }
 
   .content-panel__body {
     padding: 0 16px 16px;
+  }
+
+  /* ── Mobile font sizing ──────────────────── */
+
+  html {
+    font-size: 17px;
+  }
+
+  .message__text--markdown {
+    font-size: 17px;
+  }
+
+  .message__text {
+    font-size: 16px;
+  }
+
+  .input-bar__textarea {
+    font-size: 16px;
+  }
+
+  .tool-call__name {
+    font-size: 14px;
+  }
+
+  .tool-call-group__label {
+    font-size: 14px;
+  }
+
+  .sidebar-row {
+    font-size: 15px;
+  }
+
+  .sidebar-row__icon {
+    --icon-size: 16px;
   }
 }
 

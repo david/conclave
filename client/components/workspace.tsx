@@ -42,8 +42,8 @@ export function groupGitFiles(files: GitFileEntry[]): GitFileGroups {
 
 function PlanEntry({ entry }: { entry: PlanEntryInfo }) {
   return (
-    <div className="plan-entry" data-status={entry.status}>
-      <span className="plan-entry__icon">
+    <div className="sidebar-row plan-entry" data-status={entry.status}>
+      <span className="sidebar-row__icon plan-entry__icon">
         <TaskIcon status={entry.status} />
       </span>
       <span className="plan-entry__content">{entry.content}</span>
@@ -59,8 +59,8 @@ export function GitFileRow({ file, displayStatus }: { file: GitFileEntry; displa
   const hasLineChanges = file.linesAdded !== 0 || file.linesDeleted !== 0;
 
   return (
-    <div className="file-change">
-      <span className="file-change__icon">
+    <div className="sidebar-row file-change">
+      <span className="sidebar-row__icon file-change__icon">
         <GitStatusIcon status={displayStatus} />
       </span>
       <span className="file-change__name" title={file.path}>
@@ -96,7 +96,7 @@ function sortedGitFiles(files: GitFileEntry[]): GitFileEntry[] {
 
 function SpecIcon({ type }: { type: string }) {
   return (
-    <span className={`spec-entry__icon spec-entry__icon--${type}`}>
+    <span className={`sidebar-row__icon spec-entry__icon spec-entry__icon--${type}`}>
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         {type === "epic" ? (
           <>
@@ -117,7 +117,7 @@ function SpecIcon({ type }: { type: string }) {
 
 function SpecEntry({ spec }: { spec: SpecInfo }) {
   return (
-    <div className="spec-entry">
+    <div className="sidebar-row spec-entry">
       <SpecIcon type={spec.type} />
       <span className="spec-entry__name">{spec.name}</span>
       {spec.phase && (
@@ -206,8 +206,8 @@ function EpicGroupRow({ group }: { group: EpicGroup }) {
 
 function ServiceRow({ service }: { service: ServiceProcess }) {
   return (
-    <div className="service-row">
-      <span className="service-row__icon">
+    <div className="sidebar-row service-row">
+      <span className="sidebar-row__icon service-row__icon">
         <ServiceStatusIcon status={service.status} />
       </span>
       <span className="service-row__name">{service.name}</span>
@@ -402,13 +402,6 @@ export function Workspace({
     );
   }
 
-  const sectionItems: { id: SectionId; label: string; has: boolean }[] = [
-    { id: "services", label: "Services", has: hasServices },
-    { id: "specs", label: "Specs", has: hasSpecs },
-    { id: "tasks", label: "Tasks", has: hasEntries },
-    { id: "files", label: "Files", has: hasFiles },
-  ];
-
   return (
     <div className="workspace">
       <IconBar
@@ -419,17 +412,6 @@ export function Workspace({
         hasEntries={hasEntries}
         hasFiles={hasFiles}
       />
-      <div className="section-switcher">
-        {sectionItems.map(({ id, label, has }) => (
-          <button
-            key={id}
-            className={`section-switcher__pill${activeSection === id ? " section-switcher__pill--active" : ""}${!has ? " section-switcher__pill--dimmed" : ""}`}
-            onClick={() => has && handleSelect(id)}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
       {activeSection && (
         <ContentPanel
           activeSection={activeSection}
