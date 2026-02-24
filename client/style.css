@@ -2441,6 +2441,14 @@ body::before {
 }
 
 /* ============================================
+   Section Switcher — hidden on desktop
+   ============================================ */
+
+.section-switcher {
+  display: none;
+}
+
+/* ============================================
    Responsive
    ============================================ */
 
@@ -2543,6 +2551,116 @@ body::before {
 
   .em-diagram__slices {
     overscroll-behavior-x: contain;
+  }
+
+  /* ── Tab Bar ─────────────────────────────── */
+
+  .tab-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    display: flex;
+    flex-direction: row;
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border);
+    padding-bottom: var(--safe-bottom);
+    z-index: 100;
+  }
+
+  .tab-bar__tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    background: none;
+    border: none;
+    border-top: 2px solid transparent;
+    color: var(--text-muted);
+    font-size: 10px;
+    font-weight: 600;
+    font-family: var(--font-body);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: 0;
+    position: relative;
+  }
+
+  .tab-bar__tab--active {
+    color: var(--accent);
+    border-top-color: var(--accent);
+  }
+
+  .tab-bar__dot {
+    position: absolute;
+    top: 6px;
+    right: calc(50% - 20px);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: mic-pulse 1.5s ease-in-out infinite;
+  }
+
+  .app-layout {
+    padding-bottom: calc(56px + var(--safe-bottom));
+  }
+
+  .chat {
+    grid-column: auto;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .workspace {
+    opacity: 1;
+    flex: 1;
+    min-height: 0;
+    border-right: none;
+  }
+
+  /* ── Section Switcher (mobile) ───────────── */
+
+  .icon-bar {
+    display: none;
+  }
+
+  .section-switcher {
+    display: flex;
+    gap: 6px;
+    padding: 0 16px 10px;
+  }
+
+  .section-switcher__pill {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: var(--radius-pill);
+    min-height: 36px;
+    border: 1px solid var(--border);
+    background: var(--bg-elevated);
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: var(--font-body);
+  }
+
+  .section-switcher__pill--active {
+    background: var(--accent-subtle);
+    color: var(--accent);
+    border-color: rgba(212, 148, 76, 0.2);
+  }
+
+  .section-switcher__pill--dimmed {
+    opacity: 0.35;
+    pointer-events: none;
+  }
+
+  .content-panel__body {
+    padding: 0 16px 16px;
   }
 }
 

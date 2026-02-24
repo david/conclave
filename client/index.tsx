@@ -1,9 +1,10 @@
-import React, { useEffect, useRef, useCallback } from "react";
+import React, { useEffect, useRef, useCallback, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { useEventStore } from "./reducer.ts";
 import { Chat } from "./components/chat.tsx";
 import type { InputBarHandle } from "./components/input-bar.tsx";
 import { Workspace } from "./components/workspace.tsx";
+import { TabBar } from "./components/tab-bar.tsx";
 import type { WsEvent, Command, ImageAttachment } from "../server/types.ts";
 import type { NextBlockClickPayload } from "./components/next-block-button.tsx";
 import { getSessionIdFromUrl, pushSessionUrl, replaceSessionUrl, onPopState } from "./router.ts";
@@ -185,6 +186,29 @@ function App() {
     });
   }, [handleSwitchSession, state.sessionId]);
 
+  // Mobile detection via matchMedia
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined" && window.matchMedia("(max-width: 768px)").matches
+  );
+  const [mobilePane, setMobilePane] = useState<"workspace" | "chat">("chat");
+  const [chatNotification, setChatNotification] = useState(false);
+
+  useEffect(() => {
+    const mql = window.matchMedia("(max-width: 768px)");
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mql.addEventListener("change", handler);
+    return () => mql.removeEventListener("change", handler);
+  }, []);
+
+  // Notification dot: when on workspace tab and isProcessing transitions to false
+  const prevProcessing = useRef(state.isProcessing);
+  useEffect(() => {
+    if (isMobile && mobilePane === "workspace" && prevProcessing.current && !state.isProcessing) {
+      setChatNotification(true);
+    }
+    prevProcessing.current = state.isProcessing;
+  }, [state.isProcessing, isMobile, mobilePane]);
+
   // Show workspace sidebar when there are plan entries, git files, specs, or services
   const workspaceVisible = !!state.sessionId && (
     state.planEntries.length > 0 ||
@@ -195,27 +219,41 @@ function App() {
 
   const layoutClasses = [
     "app-layout",
-    workspaceVisible ? "app-layout--workspace-visible" : "",
+    !isMobile && workspaceVisible ? "app-layout--workspace-visible" : "",
   ].filter(Boolean).join(" ");
 
   return (
     <div className={layoutClasses}>
-      <Workspace
-        entries={state.planEntries}
-        gitFiles={state.gitFiles}
-        specs={state.specs}
-        services={state.services}
-        servicesAvailable={state.servicesAvailable}
-      />
-      <Chat
-        ref={inputBarRef}
-        state={state}
-        onSubmit={handleSubmit}
-        onCancel={handleCancel}
-        onSwitchSession={handleSwitchSession}
-        onCreateSession={handleCreateSession}
-        onNextBlockClick={handleNextBlockClick}
-      />
+      {(!isMobile || mobilePane === "workspace") && (
+        <Workspace
+          entries={state.planEntries}
+          gitFiles={state.gitFiles}
+          specs={state.specs}
+          services={state.services}
+          servicesAvailable={state.servicesAvailable}
+        />
+      )}
+      {(!isMobile || mobilePane === "chat") && (
+        <Chat
+          ref={inputBarRef}
+          state={state}
+          onSubmit={handleSubmit}
+          onCancel={handleCancel}
+          onSwitchSession={handleSwitchSession}
+          onCreateSession={handleCreateSession}
+          onNextBlockClick={handleNextBlockClick}
+        />
+      )}
+      {isMobile && (
+        <TabBar
+          activePane={mobilePane}
+          onSwitch={(pane) => {
+            setMobilePane(pane);
+            if (pane === "chat") setChatNotification(false);
+          }}
+          chatNotification={chatNotification}
+        />
+      )}
     </div>
   );
 }

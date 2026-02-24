@@ -402,6 +402,13 @@ export function Workspace({
     );
   }
 
+  const sectionItems: { id: SectionId; label: string; has: boolean }[] = [
+    { id: "services", label: "Services", has: hasServices },
+    { id: "specs", label: "Specs", has: hasSpecs },
+    { id: "tasks", label: "Tasks", has: hasEntries },
+    { id: "files", label: "Files", has: hasFiles },
+  ];
+
   return (
     <div className="workspace">
       <IconBar
@@ -412,6 +419,17 @@ export function Workspace({
         hasEntries={hasEntries}
         hasFiles={hasFiles}
       />
+      <div className="section-switcher">
+        {sectionItems.map(({ id, label, has }) => (
+          <button
+            key={id}
+            className={`section-switcher__pill${activeSection === id ? " section-switcher__pill--active" : ""}${!has ? " section-switcher__pill--dimmed" : ""}`}
+            onClick={() => has && handleSelect(id)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
       {activeSection && (
         <ContentPanel
           activeSection={activeSection}
