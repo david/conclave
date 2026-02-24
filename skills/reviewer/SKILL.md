@@ -106,13 +106,14 @@ Read `skills/conclave/references/next.md` for the schema.
 
 - If the verdict is **Yes** or **Yes with caveats**: Emit a `conclave:next` block for the next phase based on which skill was reviewed:
 
-| Reviewed | Next label | Next command |
-|----------|-----------|-------------|
-| `research` | Continue to Requirements | `/gather-requirements <spec-name>` |
-| `gather-requirements` | Continue to Architecture | `/architect <spec-name>` |
-| `architect` | Continue to Planning | `/plan <spec-name>` |
-| `plan` | Continue to Task Organization | `/organize <spec-name>` |
-| `organize` | Continue to Orchestration | `/orchestrate <spec-name>` |
+| Reviewed | Next label | Next command | Notes |
+|----------|-----------|-------------|-------|
+| `research` | Continue to Requirements | `/gather-requirements <spec-name>` | Default path for specs that need use cases |
+| `research` | Continue to Planning | `/plan <spec-name>` | When the spec is CSS/layout/infra work where use cases add no value — offer this as an alternative |
+| `gather-requirements` | Continue to Architecture | `/architect <spec-name>` | |
+| `architect` | Continue to Planning | `/plan <spec-name>` | |
+| `plan` | Continue to Task Organization | `/organize <spec-name>` | |
+| `organize` | Continue to Orchestration | `/orchestrate <spec-name>` | |
 
 ````
 ```conclave:next
