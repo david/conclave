@@ -87,6 +87,7 @@ export const Chat = forwardRef<InputBarHandle, ChatProps>(function Chat({ state,
             onSwitch={onSwitchSession}
             onCreate={onCreateSession}
             isDisabled={false}
+            menuPortalTarget={document.body}
           />
           <button
             className="chat__new-session-btn"

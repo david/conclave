@@ -16,6 +16,7 @@ type SessionPickerProps = {
   onSwitch: (sessionId: string) => void;
   onCreate: () => void;
   isDisabled: boolean;
+  menuPortalTarget?: HTMLElement | null;
 };
 
 const styles: StylesConfig<SessionOption, false, GroupBase<SessionOption>> = {
@@ -76,6 +77,10 @@ const styles: StylesConfig<SessionOption, false, GroupBase<SessionOption>> = {
     color: "var(--text-muted)",
     padding: "0 8px",
     "&:hover": { color: "var(--text-secondary)" },
+  }),
+  menuPortal: (base) => ({
+    ...base,
+    zIndex: 9999,
   }),
   groupHeading: (base) => ({
     ...base,
@@ -162,6 +167,7 @@ export function SessionPicker({
   onSwitch,
   onCreate,
   isDisabled,
+  menuPortalTarget,
 }: SessionPickerProps) {
   const groupedOptions = buildGroupedOptions(sessions, metaContexts);
 
@@ -197,6 +203,7 @@ export function SessionPicker({
       placeholder="Select session..."
       isSearchable
       isClearable={false}
+      menuPortalTarget={menuPortalTarget}
     />
   );
 }

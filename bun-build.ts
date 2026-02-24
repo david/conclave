@@ -11,6 +11,12 @@ async function copyAssets() {
 
   const css = await Bun.file(join(clientDir, "style.css")).text();
   await Bun.write(join(distDir, "style.css"), css);
+
+  const manifest = await Bun.file(join(clientDir, "manifest.json")).text();
+  await Bun.write(join(distDir, "manifest.json"), manifest);
+
+  const icon = await Bun.file(join(clientDir, "icon.svg")).bytes();
+  await Bun.write(join(distDir, "icon.svg"), icon);
 }
 
 async function build() {
