@@ -266,12 +266,17 @@ const server = Bun.serve<{ requestedSessionId: string | null }>({
         sendWs(ws, latestServiceStatusEvent);
       }
 
-      // Determine which session to replay: prefer URL-requested, fall back to latest
+      // Determine which session to replay: prefer URL-requested, fall back to latest loaded session.
+      // Discovered-but-not-loaded sessions are excluded from auto-routing because they may
+      // belong to a previous ACP subprocess and fail to load.
       const requested = ws.data.requestedSessionId;
       const validRequested = requested && sessionRegistry.getState().sessions.has(requested)
         ? requested
         : null;
-      const targetSessionId = validRequested ?? latestSession.getState().latestSessionId;
+      const latestId = latestSession.getState().latestSessionId;
+      const latestMeta = latestId ? sessionRegistry.getState().sessions.get(latestId) : undefined;
+      const fallbackSessionId = latestMeta?.loaded ? latestId : null;
+      const targetSessionId = validRequested ?? fallbackSessionId;
 
       if (targetSessionId) {
         const switchAndReplay = () => {
