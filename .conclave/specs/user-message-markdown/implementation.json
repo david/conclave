@@ -1,0 +1,93 @@
+[
+  {
+    "id": "T-0",
+    "name": "Extract shared markdown internals + tests",
+    "ucs": ["UC-1", "UC-2", "UC-3"],
+    "depends": [],
+    "wave": 0,
+    "kind": "code",
+    "files": {
+      "create": ["client/components/markdown-shared.tsx", "client/components/markdown-shared.test.tsx"],
+      "modify": ["package.json"]
+    },
+    "description": "Structural prerequisite: install the remark-breaks dependency and extract shared markdown utilities from markdown-text.tsx into a new shared module, then write tests to verify the extraction.\n\n**Step 1 — Install dependency:**\nRun `bun add remark-breaks`.\n\n**Step 2 — Create `client/components/markdown-shared.tsx`:**\nExtract from the existing `client/components/markdown-text.tsx`:\n- `normalizeMarkdown()` function (exported) — the regex-based heading separator\n- `CopyButton` component (exported) — the copy-to-clipboard button for code blocks\n- `extractText()` helper (exported) — recursively extracts plain text from React nodes\n- `baseComponents` object (exported) — the `a` component with `target=\"_blank\"` and `rel=\"noopener noreferrer\"`\n- `makeCodeBlockPreHandler()` function (exported) — returns the standard code-block `pre` handler: language label + `CopyButton`. This renders a standard code block WITHOUT any conclave-specific parsing. Takes no arguments.\n\nDo NOT move conclave-specific components (UseCaseCard, InlineUseCases, parseEventModelSlice, NextBlockButton, EventModelDiagram) — those stay in markdown-text.tsx for now (will move to assistant-markdown.tsx in T-2).\n\nDo NOT delete or modify markdown-text.tsx in this task — it must remain functional for the existing codebase.\n\n**Step 3 — Create `client/components/markdown-shared.test.tsx`:**\nWrite 6 unit tests using `renderToStaticMarkup` (matching existing test patterns):\n\n1. **normalizeMarkdown — separates heading from text:** Import `normalizeMarkdown` from `markdown-shared.tsx`. Call with `\"Text.### Heading\"`. Assert output contains `\\n\\n### Heading`.\n\n2. **extractText — extracts plain text from nested React nodes:** Import `extractText`. Create nested elements: `<span>Hello <strong>world</strong></span>`. Call `extractText`. Assert returns `\"Hello world\"`.\n\n3. **CopyButton — renders copy icon with correct aria-label:** Import `CopyButton`. Render `<CopyButton text=\"some code\" />` to static markup. Assert contains `aria-label=\"Copy code\"` and `code-block__copy` class.\n\n4. **baseComponents — links open in new tab:** Import `baseComponents`. Render `<ReactMarkdown components={baseComponents}>[link](https://example.com)</ReactMarkdown>` to static markup. Assert `<a>` has `target=\"_blank\"` and `rel=\"noopener noreferrer\"`.\n\n5. **makeCodeBlockPreHandler — renders standard code block with language label and copy button:** Import `makeCodeBlockPreHandler`. Render `<ReactMarkdown>` with `` ```js\\nconst x = 1;\\n``` `` using `components: { pre: makeCodeBlockPreHandler() }`. Assert contains `code-block__lang\">js<` and `code-block__copy`.\n\n6. **makeCodeBlockPreHandler — does not parse conclave blocks:** Render `<ReactMarkdown>` with `` ```conclave:usecase\\n{\"id\":\"UC-1\"}\\n``` `` using `components: { pre: makeCodeBlockPreHandler() }`. Assert contains `code-block` with language label `conclave:usecase`. Assert does NOT contain `uc-card`.\n\nAll tests must pass green before this task is complete."
+  },
+  {
+    "id": "T-1",
+    "name": "Red: assistant-markdown tests",
+    "ucs": ["UC-3"],
+    "depends": ["T-0"],
+    "wave": 1,
+    "kind": "code",
+    "files": {
+      "create": ["client/components/assistant-markdown.test.tsx"],
+      "modify": []
+    },
+    "description": "Write the test file for AssistantMarkdown — these tests will be RED because `assistant-markdown.tsx` does not exist yet.\n\n**Create `client/components/assistant-markdown.test.tsx`:**\n\n1. **Migrate existing tests:** Copy all tests from `client/components/markdown-text.test.tsx` into this new file. Update imports: change `MarkdownText` to `AssistantMarkdown` and `./markdown-text` to `./assistant-markdown`. Keep all test logic and assertions identical — conclave block fallbacks, isReplay prop, heading normalization, code fence separation.\n\n2. **Add new test — renders bold, italic, lists, links, code blocks:**\n   - Render `<AssistantMarkdown text=\"**bold** *italic* [link](http://x.com)\\n\\n- item\" />`\n   - Render to static markup\n   - Assert contains `<strong>bold</strong>`, `<em>italic</em>`, `<a href=\"http://x.com\"`, `<li>item</li>`\n\n3. **Add new test — does NOT apply remark-breaks (single newline is not a br):**\n   - Render `<AssistantMarkdown text=\"line one\\nline two\" />`\n   - Render to static markup\n   - Assert does NOT contain `<br` — single newline is a soft break per standard markdown, not `<br>`\n\nThese tests should FAIL (red) because `assistant-markdown.tsx` does not exist yet. Verify they fail for the right reason (import/module not found), then leave them as-is for T-3 to make green."
+  },
+  {
+    "id": "T-2",
+    "name": "Red: user-markdown tests",
+    "ucs": ["UC-1", "UC-2", "UC-3"],
+    "depends": ["T-0"],
+    "wave": 1,
+    "kind": "code",
+    "files": {
+      "create": ["client/components/user-markdown.test.tsx"],
+      "modify": []
+    },
+    "description": "Write the test file for UserMarkdown — these tests will be RED because `user-markdown.tsx` does not exist yet.\n\n**Create `client/components/user-markdown.test.tsx`:**\nWrite 10 unit tests using `renderToStaticMarkup`:\n\n1. **renders basic markdown formatting:** Render `<UserMarkdown text=\"**bold** and \\`code\\`\\n\\n- item one\\n- item two\" />`. Assert contains `<strong>bold</strong>`, `<code>code</code>`, two `<li>` items.\n\n2. **renders links with target blank:** Render `<UserMarkdown text=\"[link](https://example.com)\" />`. Assert contains `target=\"_blank\"` and `rel=\"noopener noreferrer\"`.\n\n3. **renders code blocks with language label and copy button:** Render with `` ```python\\nprint('hi')\\n``` ``. Assert contains `code-block__lang\">python<` and `code-block__copy`.\n\n4. **single newline renders as line break via remark-breaks:** Render `<UserMarkdown text=\"line one\\nline two\" />`. Assert contains `<br` between \"line one\" and \"line two\".\n\n5. **double newline creates paragraph break:** Render `<UserMarkdown text=\"paragraph one\\n\\nparagraph two\" />`. Assert contains two separate `<p>` elements. Does NOT contain `<br` between them.\n\n6. **conclave:usecase block renders as plain code block:** Render with `` ```conclave:usecase\\n{\"id\":\"UC-1\",\"name\":\"Test\"}\\n``` ``. Assert contains `code-block` with language label. Does NOT contain `uc-card`.\n\n7. **conclave:eventmodel block renders as plain code block:** Render with `` ```conclave:eventmodel\\n{\"slice\":\"test\",\"events\":[{\"name\":\"E\"}]}\\n``` ``. Assert contains `code-block`. Does NOT contain `em-diagram`.\n\n8. **conclave:next block renders as plain code block:** Render with `` ```conclave:next\\n{\"label\":\"Go\",\"command\":\"/run\",\"metaContext\":\"x\"}\\n``` ``. Assert contains `code-block`. Does NOT contain `next-block__diamond`.\n\n9. **applies normalizeMarkdown to input:** Render `<UserMarkdown text=\"Some text.### Heading\" />`. Assert contains `<h3` — heading normalization was applied.\n\n10. **wraps output in message__text--markdown class:** Render `<UserMarkdown text=\"hello\" />`. Assert contains `message__text--markdown` class.\n\nThese tests should FAIL (red) because `user-markdown.tsx` does not exist yet. Verify they fail for the right reason (import/module not found), then leave them as-is for T-4 to make green."
+  },
+  {
+    "id": "T-3",
+    "name": "Green: create AssistantMarkdown wrapper",
+    "ucs": ["UC-3"],
+    "depends": ["T-0", "T-1"],
+    "wave": 2,
+    "kind": "code",
+    "files": {
+      "create": ["client/components/assistant-markdown.tsx"],
+      "modify": []
+    },
+    "description": "Create the AssistantMarkdown component so that all T-1 red tests pass green.\n\n**Create `client/components/assistant-markdown.tsx`:**\n- Import shared pieces from `./markdown-shared`: `normalizeMarkdown`, `CopyButton`, `extractText`, `baseComponents`, `makeCodeBlockPreHandler`\n- Move conclave-specific components INTO this file from `markdown-text.tsx`: `UseCaseCard`, `InlineUseCases`, `parseEventModelSlice`, `NextBlockButton`, `EventModelDiagram`, and any helper types/functions they depend on\n- Define `makePreHandler()` locally — the conclave-aware version that checks for `conclave:` prefixed code blocks and delegates to `makeCodeBlockPreHandler()` for non-conclave blocks. This is a refactored version of the existing `pre` handler in `markdown-text.tsx`.\n- Export `AssistantMarkdown` component with props: `{ text: string; onNextBlockClick?: (command: string, metaContext?: string) => void; isReplay?: boolean }`\n- Uses `remarkPlugins: [remarkGfm]` (no remark-breaks)\n- Uses `rehypePlugins: [rehypeHighlight]`\n- Uses `components: { ...baseComponents, pre: makePreHandler() }`\n- Wraps in `<div className=\"message__text message__text--markdown\">`\n- Calls `normalizeMarkdown()` on the input text\n- Preserves the `EventModelDiagram` rendering after `ReactMarkdown` for valid `conclave:eventmodel` slices (matches existing behavior)\n\nDo NOT delete `markdown-text.tsx` yet — that happens in T-6.\n\n**Verification:** Run `bun test client/components/assistant-markdown.test.tsx` — all migrated and new tests must pass green."
+  },
+  {
+    "id": "T-4",
+    "name": "Green: create UserMarkdown wrapper",
+    "ucs": ["UC-1", "UC-2", "UC-3"],
+    "depends": ["T-0", "T-2"],
+    "wave": 2,
+    "kind": "code",
+    "files": {
+      "create": ["client/components/user-markdown.tsx"],
+      "modify": []
+    },
+    "description": "Create the UserMarkdown component so that all T-2 red tests pass green.\n\n**Create `client/components/user-markdown.tsx`:**\n- Import shared pieces from `./markdown-shared`: `normalizeMarkdown`, `baseComponents`, `makeCodeBlockPreHandler`\n- Import `remarkBreaks` from `remark-breaks`\n- Import `remarkGfm` from `remark-gfm`\n- Import `rehypeHighlight` from `rehype-highlight`\n- Import `ReactMarkdown` from `react-markdown`\n- Export `UserMarkdown` component with a single prop: `{ text: string }`\n- Uses `remarkPlugins: [remarkGfm, remarkBreaks]`\n- Uses `rehypePlugins: [rehypeHighlight]`\n- Uses `components: { ...baseComponents, pre: makeCodeBlockPreHandler() }` — standard code blocks, NO conclave parsing\n- Wraps in `<div className=\"message__text message__text--markdown\">` (same class as assistant, so all existing CSS applies)\n- Calls `normalizeMarkdown()` on the input text\n\n**Verification:** Run `bun test client/components/user-markdown.test.tsx` — all 10 tests must pass green."
+  },
+  {
+    "id": "T-5",
+    "name": "Red: message-list integration tests",
+    "ucs": ["UC-1", "UC-2", "UC-3"],
+    "depends": ["T-3", "T-4"],
+    "wave": 3,
+    "kind": "code",
+    "files": {
+      "create": [],
+      "modify": ["client/components/message-list.test.tsx"]
+    },
+    "description": "Add integration tests to message-list.test.tsx that verify user messages render with markdown and assistant messages still render with conclave blocks. These tests will be RED because message-list.tsx still uses the old plain-text rendering for user messages.\n\n**Extend `client/components/message-list.test.tsx`:**\nAdd 3 new test cases:\n\n1. **user text blocks render with UserMarkdown:** Create a `Message` with `role: \"user\"` and content `[{ type: \"text\", text: \"**bold** text\" }]`. Render `<MessageList messages={[msg]} streamingContent={[]} isProcessing={false} />` to static markup. Assert contains `<strong>bold</strong>` — user text is rendered as markdown, not plain text. Assert contains `message__text--markdown` class.\n\n2. **user messages get line breaks from remark-breaks:** Create a user `Message` with text `\"line one\\nline two\"`. Render in `<MessageList>`. Assert contains `<br` between \"line one\" and \"line two\".\n\n3. **assistant text blocks still render with AssistantMarkdown:** Create an assistant `Message` with text containing a `conclave:next` block. Render in `<MessageList>`. Assert contains `next-block__diamond` — conclave blocks are still parsed for assistant messages.\n\nThese tests should FAIL (red) because message-list.tsx currently renders user text as plain `<div className=\"message__text\">{segment.block.text}</div>`. The first two tests fail because the output is plain text (no `<strong>`, no `<br>`). The third test may already pass if MarkdownText still works. Verify the failures are meaningful, then leave for T-6 to make green."
+  },
+  {
+    "id": "T-6",
+    "name": "Green: update message-list + cleanup",
+    "ucs": ["UC-1", "UC-2", "UC-3"],
+    "depends": ["T-3", "T-4", "T-5"],
+    "wave": 4,
+    "kind": "code",
+    "files": {
+      "create": [],
+      "modify": ["client/components/message-list.tsx", "client/components/event-model-diagram.test.tsx"]
+    },
+    "description": "Update message-list.tsx to use the new wrapper components and clean up the old file. All T-5 red tests must pass green after this task.\n\n**Step 1 — Update `client/components/message-list.tsx`:**\nIn `RenderSegmentView`:\n- Replace the user text branch: remove `return <div className=\"message__text\">{segment.block.text}</div>;` and replace with `return <UserMarkdown text={segment.block.text} />;`\n- Update the assistant text branch: replace `MarkdownText` with `AssistantMarkdown`\n- Update `ThoughtBlockView`: replace `MarkdownText` with `AssistantMarkdown`\n- Update imports: remove `MarkdownText` / `./markdown-text` import. Add `import { UserMarkdown } from './user-markdown';` and `import { AssistantMarkdown } from './assistant-markdown';`\n\n**Step 2 — Update `client/components/event-model-diagram.test.tsx`:**\nUpdate imports: change `MarkdownText`/`markdown-text` to `AssistantMarkdown`/`assistant-markdown`. Run existing tests — all must pass unchanged.\n\n**Step 3 — Delete `client/components/markdown-text.tsx`:**\nGrep the entire codebase for any remaining imports of `MarkdownText` or `markdown-text` (excluding test files that were already migrated). If any remain, update them. Then delete `client/components/markdown-text.tsx`.\n\nAlso delete `client/components/markdown-text.test.tsx` — its tests have been migrated to `assistant-markdown.test.tsx` in T-1.\n\n**Verification:** Run the full client test suite: `bun test client/` — all tests must pass green. No remaining references to `markdown-text.tsx` or `MarkdownText` in the codebase."
+  }
+]
