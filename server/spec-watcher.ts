@@ -1,4 +1,4 @@
-import { watch } from "fs";
+import { watch, mkdirSync } from "fs";
 import { scanSpecs } from "./spec-scanner.ts";
 import type { SpecInfo } from "./types.ts";
 
@@ -7,6 +7,8 @@ export function watchSpecs(
   onChange: (specs: SpecInfo[]) => void,
 ): () => void {
   let timer: ReturnType<typeof setTimeout> | null = null;
+
+  mkdirSync(specsDir, { recursive: true });
 
   const watcher = watch(specsDir, { recursive: true }, () => {
     if (timer) clearTimeout(timer);
