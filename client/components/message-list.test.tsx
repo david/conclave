@@ -116,3 +116,45 @@ describe("MessageList isReplay computation", () => {
     expect(html).not.toContain("next-block--disabled");
   });
 });
+
+describe("MessageList user message markdown rendering", () => {
+  test("user text blocks render with markdown formatting", () => {
+    const messages: Message[] = [userMsg("**bold** text")];
+    const html = renderToStaticMarkup(
+      <MessageList
+        messages={messages}
+        streamingContent={[]}
+        isProcessing={false}
+      />,
+    );
+    expect(html).toContain("<strong>bold</strong>");
+    expect(html).toContain("message__text--markdown");
+  });
+
+  test("user messages get line breaks from remark-breaks", () => {
+    const messages: Message[] = [userMsg("line one\nline two")];
+    const html = renderToStaticMarkup(
+      <MessageList
+        messages={messages}
+        streamingContent={[]}
+        isProcessing={false}
+      />,
+    );
+    expect(html).toContain("<br");
+  });
+
+  test("assistant text blocks still render conclave blocks", () => {
+    const messages: Message[] = [
+      assistantMsg(nextBlockText("Continue", "/next", "test-spec")),
+    ];
+    const html = renderToStaticMarkup(
+      <MessageList
+        messages={messages}
+        streamingContent={[]}
+        isProcessing={false}
+        onNextBlockClick={() => {}}
+      />,
+    );
+    expect(html).toContain("next-block__diamond");
+  });
+});
