@@ -2,7 +2,7 @@ import { describe, test, expect } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import React from "react";
 import { EventModelDiagram } from "./event-model-diagram.tsx";
-import { MarkdownText } from "./markdown-text.tsx";
+import { AssistantMarkdown } from "./assistant-markdown.tsx";
 import type { EventModelSlice } from "../types.ts";
 
 function render(slices: EventModelSlice[]): string {
@@ -331,7 +331,7 @@ describe("EventModelDiagram", () => {
   });
 });
 
-describe("MarkdownText eventmodel integration", () => {
+describe("AssistantMarkdown eventmodel integration", () => {
   test("renders EventModelDiagram for valid conclave:eventmodel block", () => {
     const slice = JSON.stringify({
       slice: "create-session",
@@ -340,7 +340,7 @@ describe("MarkdownText eventmodel integration", () => {
     });
     const markdown = `Here is a diagram:\n\n\`\`\`conclave:eventmodel\n${slice}\n\`\`\`\n\nAfter the diagram.`;
 
-    const html = renderToStaticMarkup(<MarkdownText text={markdown} />);
+    const html = renderToStaticMarkup(<AssistantMarkdown text={markdown} />);
 
     // The diagram should render
     expect(html).toContain("em-diagram");
@@ -355,7 +355,7 @@ describe("MarkdownText eventmodel integration", () => {
     });
     const markdown = `\`\`\`conclave:eventmodel\n${slice}\n\`\`\``;
 
-    const html = renderToStaticMarkup(<MarkdownText text={markdown} />);
+    const html = renderToStaticMarkup(<AssistantMarkdown text={markdown} />);
 
     // Should NOT render as a code block
     expect(html).not.toContain("code-block__header");
@@ -366,7 +366,7 @@ describe("MarkdownText eventmodel integration", () => {
   test("renders invalid conclave:eventmodel as a normal code block", () => {
     const markdown = `\`\`\`conclave:eventmodel\n{invalid json\n\`\`\``;
 
-    const html = renderToStaticMarkup(<MarkdownText text={markdown} />);
+    const html = renderToStaticMarkup(<AssistantMarkdown text={markdown} />);
 
     // Should render as a normal code block since it's invalid JSON
     expect(html).toContain("code-block");
@@ -385,7 +385,7 @@ describe("MarkdownText eventmodel integration", () => {
     });
     const markdown = `\`\`\`conclave:eventmodel\n${slice1}\n\`\`\`\n\n\`\`\`conclave:eventmodel\n${slice2}\n\`\`\``;
 
-    const html = renderToStaticMarkup(<MarkdownText text={markdown} />);
+    const html = renderToStaticMarkup(<AssistantMarkdown text={markdown} />);
 
     // Both slices should appear in a single diagram
     expect(html).toContain("FirstEvent");

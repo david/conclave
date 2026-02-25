@@ -9,7 +9,8 @@ import type {
 } from "../reducer.ts";
 import { ToolCallCard } from "./tool-call.tsx";
 import { ToolCallGroup } from "./tool-call-group.tsx";
-import { MarkdownText } from "./markdown-text.tsx";
+import { UserMarkdown } from "./user-markdown.tsx";
+import { AssistantMarkdown } from "./assistant-markdown.tsx";
 import type { NextBlockClickPayload } from "./next-block-button.tsx";
 import { Chevron } from "./icons.tsx";
 import { useCollapsible } from "../hooks/use-collapsible.ts";
@@ -72,7 +73,7 @@ function ThoughtBlockView({ text }: { text: string }) {
       </div>
       {expanded || !isLong ? (
         <div className="thought-block__content">
-          <MarkdownText text={text} />
+          <AssistantMarkdown text={text} />
         </div>
       ) : (
         <div className="thought-block__preview">{preview}...</div>
@@ -94,9 +95,9 @@ function RenderSegmentView({
 }) {
   if (segment.kind === "text") {
     if (role === "assistant") {
-      return <MarkdownText text={segment.block.text} onNextBlockClick={onNextBlockClick} isReplay={isReplay} />;
+      return <AssistantMarkdown text={segment.block.text} onNextBlockClick={onNextBlockClick} isReplay={isReplay} />;
     }
-    return <div className="message__text">{segment.block.text}</div>;
+    return <UserMarkdown text={segment.block.text} />;
   }
   if (segment.kind === "image") {
     return (
