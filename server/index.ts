@@ -21,6 +21,11 @@ export function setStaticAssetHandler(handler: (pathname: string) => Response | 
 const PORT = Number(process.env.PORT) || 3000;
 const CWD = process.env.CONCLAVE_CWD || process.cwd();
 
+// Unique identifier for this server process lifetime.
+// Used by clients to detect server restarts and know when a full replay is needed
+// vs. a delta catch-up.
+const SERVER_EPOCH = crypto.randomUUID();
+
 const store = new EventStore();
 
 // Read models (projections)
@@ -29,8 +34,63 @@ const latestSession = createLatestSessionProjection(store);
 const metaContextRegistry = createMetaContextRegistry(store, CWD);
 
 // Per-WS state (connection infrastructure — not domain state)
-export type WsState = { currentSessionId: string | null; unsubscribe: (() => void) | null };
+export type WsState = {
+  currentSessionId: string | null;
+  unsubscribe: (() => void) | null;
+  /** Queued events waiting to be sent after backpressure drains */
+  replayQueue: WsEvent[];
+  /** Whether this connection is currently paused due to backpressure */
+  draining: boolean;
+};
 const wsStates = new Map<object, WsState>();
+
+/**
+ * Drain the replay queue for a WS connection. Called both after initial
+ * backpressure detection and from the WebSocket `drain` callback.
+ * Sends events until the queue is empty or backpressure recurs.
+ */
+function drainReplayQueue(ws: object) {
+  const wsState = wsStates.get(ws);
+  if (!wsState || wsState.replayQueue.length === 0) {
+    if (wsState) wsState.draining = false;
+    return;
+  }
+
+  const bws = ws as { send(data: string): number; cork(cb: () => void): void };
+
+  while (wsState.replayQueue.length > 0) {
+    const event = wsState.replayQueue[0];
+    const data = JSON.stringify(event);
+    let result = 0;
+    try {
+      bws.cork(() => { result = bws.send(data); });
+    } catch (err) {
+      console.warn(`[drainReplayQueue] EXCEPTION: ${err}`);
+      if (wsState.unsubscribe) wsState.unsubscribe();
+      wsStates.delete(ws);
+      return;
+    }
+
+    if (result === 0) {
+      // Message dropped — connection gone, stop trying
+      console.warn(`[drainReplayQueue] DROPPED event, aborting queue (${wsState.replayQueue.length} remaining)`);
+      wsState.replayQueue.length = 0;
+      wsState.draining = false;
+      return;
+    }
+
+    if (result === -1) {
+      // Backpressure — leave event in queue, wait for drain callback
+      wsState.draining = true;
+      return;
+    }
+
+    // Success — remove from queue and continue
+    wsState.replayQueue.shift();
+  }
+
+  wsState.draining = false;
+}
 
 // Track latest SpecListUpdated for replay on WS connect, and broadcast to all clients
 let latestSpecListEvent: DomainEvent | null = null;
@@ -133,16 +193,34 @@ createSessionListProjection(store, sessionRegistry, () => {
 }, metaContextRegistry);
 
 export function sendWs(ws: object, event: WsEvent) {
+  // If this connection is draining from a replay, queue the event instead
+  // of sending directly — this preserves ordering.
+  const wsState = wsStates.get(ws);
+  if (wsState?.draining) {
+    wsState.replayQueue.push(event);
+    return;
+  }
+
   try {
-    const bws = ws as { send(data: string): void; cork(cb: () => void): void };
+    const bws = ws as { send(data: string): number; cork(cb: () => void): void };
     const data = JSON.stringify(event);
+    let result = 0;
     // cork() ensures the write is flushed to the wire immediately.
     // Without it, sends from outside WebSocket handler callbacks (open/message/drain)
     // — such as those triggered by ACP event-store listeners — can sit in
     // uWebSockets' internal buffer until the next socket activity.
-    bws.cork(() => bws.send(data));
-  } catch {
+    bws.cork(() => { result = bws.send(data); });
+    if (result === 0) {
+      console.warn(`[sendWs] DROPPED ${event.type} (seq=${"seq" in event ? event.seq : "?"})`);
+    } else if (result === -1) {
+      // Backpressure from a non-replay send — queue any subsequent events
+      if (wsState) {
+        wsState.draining = true;
+      }
+    }
+  } catch (err) {
     // Connection already closed — clean up
+    console.warn(`[sendWs] EXCEPTION sending ${event.type}: ${err}`);
     const wsState = wsStates.get(ws);
     if (wsState?.unsubscribe) wsState.unsubscribe();
     wsStates.delete(ws);
@@ -186,14 +264,29 @@ export function subscribeWsToSession(
   });
 }
 
-function replaySession(ws: object, sessionId: string) {
-  const events = store.getBySessionId(sessionId);
-  for (const event of events) {
-    sendWs(ws, event);
-  }
+function replaySession(ws: object, sessionId: string, afterSeq = 0) {
+  const allEvents = store.getBySessionId(sessionId);
+  const events = afterSeq > 0 ? allEvents.filter(e => e.seq > afterSeq) : allEvents;
+  console.log(`[replaySession] sessionId=${sessionId}, afterSeq=${afterSeq}, total=${allEvents.length}, sending=${events.length}`);
+
+  if (events.length === 0) return;
+
+  const wsState = wsStates.get(ws);
+  if (!wsState) return;
+
+  // Push all replay events into the queue and drain what we can immediately.
+  // If backpressure hits, the drain callback will resume sending.
+  wsState.replayQueue.push(...events);
+  drainReplayQueue(ws);
 }
 
-const server = Bun.serve<{ requestedSessionId: string | null }>({
+type WsData = {
+  requestedSessionId: string | null;
+  clientEpoch: string | null;
+  lastSeq: number;
+};
+
+const server = Bun.serve<WsData>({
   port: PORT,
 
   async fetch(req) {
@@ -202,7 +295,9 @@ const server = Bun.serve<{ requestedSessionId: string | null }>({
     // WebSocket upgrade
     if (url.pathname === "/ws") {
       const requestedSessionId = url.searchParams.get("sessionId") || null;
-      const upgraded = server.upgrade(req, { data: { requestedSessionId } });
+      const clientEpoch = url.searchParams.get("epoch") || null;
+      const lastSeq = Number(url.searchParams.get("lastSeq")) || 0;
+      const upgraded = server.upgrade(req, { data: { requestedSessionId, clientEpoch, lastSeq } });
       if (!upgraded) {
         return new Response("WebSocket upgrade failed", { status: 400 });
       }
@@ -246,7 +341,9 @@ const server = Bun.serve<{ requestedSessionId: string | null }>({
 
   websocket: {
     open(ws) {
-      wsStates.set(ws, { currentSessionId: null, unsubscribe: null });
+      const isDelta = ws.data.clientEpoch === SERVER_EPOCH && ws.data.lastSeq > 0;
+      console.log(`WS connected (${isDelta ? "delta" : "full"} replay${ws.data.requestedSessionId ? `, session=${ws.data.requestedSessionId}` : ""})`);
+      wsStates.set(ws, { currentSessionId: null, unsubscribe: null, replayQueue: [], draining: false });
 
       // Send session list
       sendWs(ws, buildSessionList(sessionRegistry, metaContextRegistry));
@@ -279,15 +376,26 @@ const server = Bun.serve<{ requestedSessionId: string | null }>({
       const targetSessionId = validRequested ?? fallbackSessionId;
 
       if (targetSessionId) {
+        // Delta reconnect: same server epoch, same session, client has prior state.
+        // Skip SessionSwitched (client already has this session) and only send new events.
+        const isDeltaReconnect =
+          isDelta && targetSessionId === ws.data.requestedSessionId;
+
         const switchAndReplay = () => {
-          sendWs(ws, {
-            type: "SessionSwitched",
-            sessionId: targetSessionId,
-            seq: -1,
-            timestamp: Date.now(),
-          } as any);
-          subscribeWsToSession(ws, targetSessionId);
-          replaySession(ws, targetSessionId);
+          if (isDeltaReconnect) {
+            subscribeWsToSession(ws, targetSessionId);
+            replaySession(ws, targetSessionId, ws.data.lastSeq);
+          } else {
+            sendWs(ws, {
+              type: "SessionSwitched",
+              sessionId: targetSessionId,
+              seq: -1,
+              timestamp: Date.now(),
+              epoch: SERVER_EPOCH,
+            } as any);
+            subscribeWsToSession(ws, targetSessionId);
+            replaySession(ws, targetSessionId);
+          }
         };
 
         // Load discovered-but-not-loaded sessions before replaying
@@ -371,6 +479,7 @@ const server = Bun.serve<{ requestedSessionId: string | null }>({
                 sessionId,
                 seq: -1,
                 timestamp: Date.now(),
+                epoch: SERVER_EPOCH,
               } as any);
               subscribeWsToSession(ws, sessionId);
 
@@ -427,6 +536,7 @@ const server = Bun.serve<{ requestedSessionId: string | null }>({
               sessionId: targetId,
               seq: -1,
               timestamp: Date.now(),
+              epoch: SERVER_EPOCH,
             } as any);
             subscribeWsToSession(ws, targetId);
             replaySession(ws, targetId);
@@ -477,6 +587,7 @@ const server = Bun.serve<{ requestedSessionId: string | null }>({
                 sessionId: newSessionId,
                 seq: -1,
                 timestamp: Date.now(),
+                epoch: SERVER_EPOCH,
               } as any);
               subscribeWsToSession(ws, newSessionId);
               replaySession(ws, newSessionId);
@@ -516,10 +627,17 @@ const server = Bun.serve<{ requestedSessionId: string | null }>({
       }
     },
 
+    drain(ws) {
+      // uWebSockets calls drain when backpressure has subsided.
+      // Resume sending queued replay/live events.
+      drainReplayQueue(ws);
+    },
+
     close(ws) {
       const wsState = wsStates.get(ws);
-      if (wsState?.unsubscribe) {
-        wsState.unsubscribe();
+      if (wsState) {
+        if (wsState.unsubscribe) wsState.unsubscribe();
+        wsState.replayQueue.length = 0;
       }
       wsStates.delete(ws);
     },

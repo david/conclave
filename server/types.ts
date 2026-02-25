@@ -99,6 +99,7 @@ export type ErrorEvent = BaseEvent & {
 
 export type SessionSwitched = BaseEvent & {
   type: "SessionSwitched";
+  epoch?: string;
 };
 
 export type SessionDiscovered = BaseEvent & {

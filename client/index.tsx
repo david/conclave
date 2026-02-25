@@ -15,11 +15,22 @@ function App() {
   const wsRef = useRef<WebSocket | null>(null);
   const inputBarRef = useRef<InputBarHandle>(null);
 
+  // Track server epoch and last-seen seq for delta reconnect.
+  // On reconnect, if the epoch matches the server's, only events after lastSeq are replayed.
+  const epochRef = useRef<string | null>(null);
+  const lastSeqRef = useRef(0);
+
   useEffect(() => {
     function connect() {
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       const sessionId = getSessionIdFromUrl();
-      const query = sessionId ? `?sessionId=${encodeURIComponent(sessionId)}` : "";
+      const params = new URLSearchParams();
+      if (sessionId) params.set("sessionId", sessionId);
+      if (epochRef.current && lastSeqRef.current > 0) {
+        params.set("epoch", epochRef.current);
+        params.set("lastSeq", String(lastSeqRef.current));
+      }
+      const query = params.toString() ? `?${params}` : "";
       const ws = new WebSocket(`${protocol}//${window.location.host}/ws${query}`);
       wsRef.current = ws;
 
@@ -36,6 +47,18 @@ function App() {
             setTimeout(() => window.location.reload(), 600);
             return;
           }
+
+          // Track epoch from SessionSwitched events (full replay from server)
+          if (data.type === "SessionSwitched" && data.epoch) {
+            epochRef.current = data.epoch;
+            lastSeqRef.current = 0;
+          }
+
+          // Track the highest seq seen for delta reconnect
+          if (typeof data.seq === "number" && data.seq > 0) {
+            lastSeqRef.current = Math.max(lastSeqRef.current, data.seq);
+          }
+
           append(data as WsEvent);
         } catch {
           // Ignore malformed messages

@@ -236,6 +236,7 @@ export class AcpBridge {
         stopReason: resp.stopReason,
       });
     } catch (err) {
+      console.error("Prompt error:", err);
       onEventError(
         this.onEvent,
         sessionId,
