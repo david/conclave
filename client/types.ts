@@ -30,9 +30,9 @@ export type UseCase = {
   name: string;
   actor: string;
   summary: string;
-  given: string[];
-  when: string[];
-  then: string[];
+  given: string | string[];
+  when: string | string[];
+  then: string | string[];
   priority: UseCasePriority;
   dependencies?: string[];
 };

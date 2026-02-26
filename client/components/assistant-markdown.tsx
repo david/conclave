@@ -12,7 +12,14 @@ import { normalizeMarkdown, CopyButton, extractText, baseComponents } from "./ma
 const remarkPlugins = [remarkGfm];
 const rehypePlugins = [rehypeHighlight];
 
+function toArray(value: string | string[]): string[] {
+  return Array.isArray(value) ? value : [value];
+}
+
 function UseCaseCard({ useCase }: { useCase: UseCase }) {
+  const given = toArray(useCase.given);
+  const when = toArray(useCase.when);
+  const then = toArray(useCase.then);
   return (
     <div className="uc-card" data-priority={useCase.priority}>
       <div className="uc-card__topline">
@@ -28,19 +35,19 @@ function UseCaseCard({ useCase }: { useCase: UseCase }) {
         <div className="uc-card__clause">
           <span className="uc-card__clause-keyword">Given</span>
           <ul className="uc-card__clause-items">
-            {useCase.given.map((item, i) => <li key={i}>{item}</li>)}
+            {given.map((item, i) => <li key={i}>{item}</li>)}
           </ul>
         </div>
         <div className="uc-card__clause">
           <span className="uc-card__clause-keyword">When</span>
           <ul className="uc-card__clause-items">
-            {useCase.when.map((item, i) => <li key={i}>{item}</li>)}
+            {when.map((item, i) => <li key={i}>{item}</li>)}
           </ul>
         </div>
         <div className="uc-card__clause">
           <span className="uc-card__clause-keyword">Then</span>
           <ul className="uc-card__clause-items">
-            {useCase.then.map((item, i) => <li key={i}>{item}</li>)}
+            {then.map((item, i) => <li key={i}>{item}</li>)}
           </ul>
         </div>
       </div>
