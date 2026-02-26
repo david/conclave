@@ -1,0 +1,1 @@
+{ "description": "PWA is not installable despite manifest.json existing", "type": "bug" }

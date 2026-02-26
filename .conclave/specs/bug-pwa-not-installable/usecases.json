@@ -1,0 +1,21 @@
+[
+  {
+    "id": "UC-1",
+    "name": "PWA install prompt is available",
+    "actor": "User",
+    "summary": "A user visiting Conclave in a supported browser can install it as a PWA.",
+    "priority": "high",
+    "dependencies": [],
+    "given": "The user navigates to Conclave in Chrome or another PWA-capable browser.",
+    "when": ["The browser evaluates PWA installability criteria against the served manifest and service worker"],
+    "then": [
+      "The manifest is served with a 192x192 and 512x512 icon entry",
+      "A service worker with a fetch handler is registered",
+      "The browser offers the install prompt"
+    ],
+    "edgeCases": [
+      "Compiled binary mode: manifest.json and icon.svg are embedded and served correctly",
+      "Development mode: manifest.json and icon.svg are served from dist/"
+    ]
+  }
+]
