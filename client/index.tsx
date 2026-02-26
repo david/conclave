@@ -9,6 +9,7 @@ import { useVisualViewport } from "./hooks/use-visual-viewport.ts";
 import type { WsEvent, Command, ImageAttachment } from "../server/types.ts";
 import type { NextBlockClickPayload } from "./components/next-block-button.tsx";
 import { getSessionIdFromUrl, pushSessionUrl, replaceSessionUrl, onPopState } from "./router.ts";
+import { isWorkspaceVisible } from "./workspace-visible.ts";
 
 function App() {
   const { state, append } = useEventStore();
@@ -250,13 +251,7 @@ function App() {
     prevKeyboardOpen.current = keyboardOpen;
   }, [keyboardOpen, isMobile]);
 
-  // Show workspace sidebar when there are plan entries, git files, specs, or services
-  const workspaceVisible = !!state.sessionId && (
-    state.planEntries.length > 0 ||
-    state.gitFiles.length > 0 ||
-    state.specs.length > 0 ||
-    state.services.length > 0
-  );
+  const workspaceVisible = isWorkspaceVisible(isMobile, state);
 
   const layoutClasses = [
     "app-layout",

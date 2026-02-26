@@ -4,6 +4,7 @@ export function isWorkspaceVisible(
   isMobile: boolean,
   state: Pick<AppState, "sessionId" | "planEntries" | "gitFiles" | "specs" | "services">,
 ): boolean {
+  if (!isMobile) return true;
   return !!state.sessionId && (
     state.planEntries.length > 0 ||
     state.gitFiles.length > 0 ||
