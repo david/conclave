@@ -18,7 +18,7 @@ export function setStaticAssetHandler(handler: (pathname: string) => Response | 
   serveStaticAsset = handler;
 }
 
-const PORT = Number(process.env.PORT) || 3000;
+const PORT = Number(process.env.PORT) || 9999;
 const CWD = process.env.CONCLAVE_CWD || process.cwd();
 const TLS_CERT = process.env.CONCLAVE_TLS_CERT || null;
 const TLS_KEY = process.env.CONCLAVE_TLS_KEY || null;
