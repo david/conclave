@@ -12,17 +12,28 @@ import indexHtml from "../dist/index.html" with { type: "file" };
 import indexJs from "../dist/index.js" with { type: "file" };
 // @ts-ignore
 import styleCss from "../dist/style.css" with { type: "file" };
+// @ts-ignore
+import manifestJson from "../dist/manifest.json" with { type: "file" };
+// @ts-ignore
+import iconSvg from "../dist/icon.svg" with { type: "file" };
+// @ts-ignore
+import swJs from "../dist/sw.js" with { type: "file" };
 
 const CONTENT_TYPES: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
   ".js": "application/javascript; charset=utf-8",
   ".css": "text/css; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".svg": "image/svg+xml",
 };
 
 const assets: Record<string, string> = {
   "/index.html": indexHtml,
   "/index.js": indexJs,
   "/style.css": styleCss,
+  "/manifest.json": manifestJson,
+  "/icon.svg": iconSvg,
+  "/sw.js": swJs,
 };
 
 export function serveEmbeddedAsset(pathname: string): Response | null {

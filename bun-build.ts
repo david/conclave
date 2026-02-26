@@ -17,6 +17,9 @@ async function copyAssets() {
 
   const icon = await Bun.file(join(clientDir, "icon.svg")).bytes();
   await Bun.write(join(distDir, "icon.svg"), icon);
+
+  const sw = await Bun.file(join(clientDir, "sw.js")).text();
+  await Bun.write(join(distDir, "sw.js"), sw);
 }
 
 async function build() {
