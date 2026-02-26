@@ -4,33 +4,22 @@ Renders structured use cases as interactive cards in the chat and workspace pane
 
 ## Schema
 
-```json
-{
-  "id": "UC-1",
-  "name": "Short descriptive name",
-  "actor": "End User",
-  "summary": "One-sentence description of what the actor accomplishes.",
-  "given": ["precondition A", "precondition B"],
-  "when": ["action the actor takes"],
-  "then": ["expected outcome A", "expected outcome B"],
-  "priority": "high",
-  "dependencies": ["UC-0"]
-}
-```
+The canonical schema is defined in the **skills** repo at `skills/use-cases/references/usecases.schema.json`. See that file for types, required fields, and constraints.
 
-## Fields
+The rendering-relevant fields are:
 
-| Field          | Type       | Required | Description                                              |
-|----------------|------------|----------|----------------------------------------------------------|
-| `id`           | string     | yes      | Unique identifier, typically `UC-1`, `UC-2`, etc.        |
-| `name`         | string     | yes      | Short action-oriented name for the use case.             |
-| `actor`        | string     | yes      | Who performs the action (e.g. `"End User"`, `"System"`). |
-| `summary`      | string     | yes      | One-sentence description of the use case.                |
-| `given`        | string[]   | yes      | Preconditions (Given clauses).                           |
-| `when`         | string[]   | yes      | Trigger actions (When clauses).                          |
-| `then`         | string[]   | yes      | Expected outcomes (Then clauses).                        |
-| `priority`     | string     | yes      | One of `"high"`, `"medium"`, or `"low"`.                 |
-| `dependencies` | string[]   | no       | IDs of use cases that must be completed first.           |
+| Field          | Type       | Description                                              |
+|----------------|------------|----------------------------------------------------------|
+| `id`           | string     | Unique identifier (`UC-1`, `UC-2`, etc.).                |
+| `name`         | string     | Short action-oriented name for the use case.             |
+| `actor`        | string     | Who performs the action (e.g. `"End User"`, `"System"`). |
+| `summary`      | string     | One-sentence description of the use case.                |
+| `given`        | string[]   | Preconditions (Given clauses).                           |
+| `when`         | string[]   | Trigger actions (When clauses).                          |
+| `then`         | string[]   | Expected outcomes (Then clauses).                        |
+| `priority`     | string     | One of `"high"`, `"medium"`, or `"low"`.                 |
+| `dependencies` | string[]   | IDs of use cases that must be completed first.           |
+| `edgeCases`    | string[]   | Key edge cases — most likely and most damaging.          |
 
 ## Example
 
@@ -44,7 +33,8 @@ Renders structured use cases as interactive cards in the chat and workspace pane
   "given": ["The server is running", "At least one session exists"],
   "when": ["The user clicks the new session button"],
   "then": ["A new ACP session is created", "The chat switches to the new session"],
-  "priority": "high"
+  "priority": "high",
+  "edgeCases": ["User rapidly clicks the button twice"]
 }
 ```
 ````
