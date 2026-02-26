@@ -1,0 +1,28 @@
+[
+  {
+    "id": "T-0",
+    "name": "Red: extract isWorkspaceVisible and write failing tests",
+    "ucs": [],
+    "depends": [],
+    "wave": 0,
+    "kind": "code",
+    "files": {
+      "create": ["client/workspace-visible.ts", "client/workspace-visible.test.ts"],
+      "modify": []
+    },
+    "description": "Extract the workspaceVisible computation from client/index.tsx into a new pure function in client/workspace-visible.ts, preserving the CURRENT (old) behavior. Then write unit tests that assert the NEW expected behavior.\n\n1. Create client/workspace-visible.ts exporting:\n   ```ts\n   export function isWorkspaceVisible(isMobile: boolean, state: Pick<AppState, 'sessionId' | 'planEntries' | 'gitFiles' | 'specs' | 'services'>): boolean\n   ```\n   Implement with the CURRENT logic (the content gate):\n   ```ts\n   if (!isMobile) {\n     return !!state.sessionId && (\n       state.planEntries.length > 0 ||\n       state.gitFiles.length > 0 ||\n       state.specs.length > 0 ||\n       state.services.length > 0\n     );\n   }\n   return !!state.sessionId && (\n     state.planEntries.length > 0 ||\n     state.gitFiles.length > 0 ||\n     state.specs.length > 0 ||\n     state.services.length > 0\n   );\n   ```\n\n2. Create client/workspace-visible.test.ts with 5 unit tests using bun:test:\n\n   Test 1: \"desktop, no content — returns true\"\n   - Arrange: isMobile = false, state with no sessionId, all content arrays empty\n   - Act: isWorkspaceVisible(false, state)\n   - Assert: returns true\n   (This test will FAIL RED — current logic returns false for desktop with no session/content)\n\n   Test 2: \"desktop, with content — returns true\"\n   - Arrange: isMobile = false, state with sessionId = 's1', planEntries = [{ ... }]\n   - Act: isWorkspaceVisible(false, state)\n   - Assert: returns true\n   (This test will PASS — current logic already returns true when there's content)\n\n   Test 3: \"mobile, no content — returns false\"\n   - Arrange: isMobile = true, state with sessionId = 's1', all content arrays empty\n   - Act: isWorkspaceVisible(true, state)\n   - Assert: returns false\n   (This test will PASS — current logic returns false with no content)\n\n   Test 4: \"mobile, with content — returns true\"\n   - Arrange: isMobile = true, state with sessionId = 's1', gitFiles = [{ ... }]\n   - Act: isWorkspaceVisible(true, state)\n   - Assert: returns true\n   (This test will PASS — current logic returns true with content)\n\n   Test 5: \"mobile, no session — returns false\"\n   - Arrange: isMobile = true, state with no sessionId, planEntries = [{ ... }]\n   - Act: isWorkspaceVisible(true, state)\n   - Assert: returns false\n   (This test will PASS — current logic requires sessionId)\n\n3. Run `bun test client/workspace-visible.test.ts` — confirm Test 1 fails red (desktop no content returns false instead of true). Tests 2-5 should pass.\n\nImport AppState type from client/types.ts. Use Pick<AppState, ...> for the state parameter to keep the function's dependency surface minimal."
+  },
+  {
+    "id": "T-1",
+    "name": "Green: implement always-visible desktop logic",
+    "ucs": [],
+    "depends": ["T-0"],
+    "wave": 1,
+    "kind": "code",
+    "files": {
+      "create": [],
+      "modify": ["client/workspace-visible.ts", "client/index.tsx"]
+    },
+    "description": "Update isWorkspaceVisible to make the workspace always visible on desktop, and wire it into index.tsx.\n\n1. In client/workspace-visible.ts, change the desktop branch to return true unconditionally (no session or content check):\n   ```ts\n   export function isWorkspaceVisible(isMobile: boolean, state: Pick<AppState, 'sessionId' | 'planEntries' | 'gitFiles' | 'specs' | 'services'>): boolean {\n     if (!isMobile) return true;\n     return !!state.sessionId && (\n       state.planEntries.length > 0 ||\n       state.gitFiles.length > 0 ||\n       state.specs.length > 0 ||\n       state.services.length > 0\n     );\n   }\n   ```\n\n2. In client/index.tsx, replace the inline workspaceVisible computation with an import:\n   - Add: `import { isWorkspaceVisible } from './workspace-visible.ts';`\n   - Replace the `const workspaceVisible = !!state.sessionId && (...)` block with:\n     `const workspaceVisible = isWorkspaceVisible(isMobile, state);`\n   - Remove no other code — the layoutClasses and conditional rendering stay as-is.\n\n3. Run `bun test client/workspace-visible.test.ts` — all 5 tests must pass green.\n\n4. Run `bun run check` to verify no type errors."
+  }
+]
