@@ -20,6 +20,8 @@ export function setStaticAssetHandler(handler: (pathname: string) => Response | 
 
 const PORT = Number(process.env.PORT) || 3000;
 const CWD = process.env.CONCLAVE_CWD || process.cwd();
+const TLS_CERT = process.env.CONCLAVE_TLS_CERT || null;
+const TLS_KEY = process.env.CONCLAVE_TLS_KEY || null;
 
 // Unique identifier for this server process lifetime.
 // Used by clients to detect server restarts and know when a full replay is needed
@@ -288,6 +290,12 @@ type WsData = {
 
 const server = Bun.serve<WsData>({
   port: PORT,
+  ...(TLS_CERT && TLS_KEY ? {
+    tls: {
+      cert: Bun.file(TLS_CERT),
+      key: Bun.file(TLS_KEY),
+    },
+  } : {}),
 
   async fetch(req) {
     const url = new URL(req.url);
@@ -644,7 +652,8 @@ const server = Bun.serve<WsData>({
   },
 });
 
-console.log(`Conclave server listening on http://localhost:${PORT}`);
+const protocol = TLS_CERT && TLS_KEY ? "https" : "http";
+console.log(`Conclave server listening on ${protocol}://localhost:${PORT}`);
 
 // Graceful shutdown — clean up child processes, timers, and the HTTP server
 let stopSpecWatcher: (() => void) | null = null;
