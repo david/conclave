@@ -1,9 +1,10 @@
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
+import { describe, test, expect, mock, beforeEach, afterEach } from "bun:test";
 import { mkdirSync, rmSync } from "node:fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import { EventStore } from "./event-store.ts";
-import { createMetaContextRegistry } from "./projections/meta-context-registry.ts";
+import { setup, withCreatedSession } from "../test-helpers.ts";
+import { EventStore } from "../../event-store.ts";
+import { createMetaContextRegistry } from "../../projections/meta-context-registry.ts";
 
 function makeTmpDir(): string {
   const dir = join(tmpdir(), `conclave-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
@@ -11,19 +12,50 @@ function makeTmpDir(): string {
   return dir;
 }
 
-/**
- * Tests for the next_block_click command handler logic.
- *
- * The actual handler lives in server/index.ts inside the WS message switch.
- * We test the event sequence it should produce by simulating the same
- * store.append() calls and verifying the resulting projection state.
- *
- * The handler's logic:
- * 1. Look up meta-context by name; create if missing
- * 2. Create a new session (SessionCreated)
- * 3. Add the new session to the meta-context (SessionAddedToMetaContext)
- * 4. Submit a prompt to the new session (PromptSubmitted)
- */
+describe("NextBlockClick handler", () => {
+  test("emits NextBlockInitiated", async () => {
+    const { store, dispatch } = setup();
+    withCreatedSession(store, "s1");
+
+    await dispatch("s1", {
+      type: "NextBlockClick",
+      currentSessionId: "s1",
+      label: "Continue",
+      commandText: "/plan feat",
+      metaContext: "Feature: Login",
+    });
+
+    const events = store.getAll();
+    const initiated = events.find(e => e.type === "NextBlockInitiated");
+    expect(initiated).toBeDefined();
+  });
+
+  test("full pipeline produces correct event sequence", async () => {
+    const { store, bridge, dispatch } = setup();
+    withCreatedSession(store, "origin-s1");
+    bridge.createSession = mock(() => Promise.resolve("new-s1"));
+
+    await dispatch("origin-s1", {
+      type: "NextBlockClick",
+      currentSessionId: "origin-s1",
+      label: "Continue",
+      commandText: "/plan feat",
+      metaContext: "Feature: Login",
+    });
+
+    const events = store.getAll();
+    const types = events.map(e => e.type);
+
+    expect(types).toContain("NextBlockInitiated");
+    expect(types).toContain("MetaContextEnsured");
+    const newSessionCreated = events.filter(e => e.type === "SessionCreated" && "sessionId" in e && e.sessionId === "new-s1");
+    expect(newSessionCreated.length).toBe(1);
+    expect(types).toContain("SessionAddedToMetaContext");
+    expect(types).toContain("PromptSubmitted");
+    expect(bridge.submitPrompt).toHaveBeenCalled();
+  });
+});
+
 describe("next_block_click event sequence", () => {
   let tmpDir: string;
 
@@ -49,8 +81,6 @@ describe("next_block_click event sequence", () => {
     const metaContextId = "mc-uuid-1";
     const commandText = "Implement login form";
 
-    // Simulate the handler logic:
-    // 1. Meta-context doesn't exist → create it
     const mcState = metaContextRegistry.getState();
     expect(mcState.nameIndex.has(metaContextName)).toBe(false);
 
@@ -63,23 +93,19 @@ describe("next_block_click event sequence", () => {
       created: true,
     });
 
-    // 2. Create new session
     store.append(newSessionId, { type: "SessionCreated" });
 
-    // 3. Add new session to meta-context
     store.append(newSessionId, {
       type: "SessionAddedToMetaContext",
       metaContextId,
       commandText,
     });
 
-    // 4. Submit prompt on new session
     store.append(newSessionId, {
       type: "PromptSubmitted",
       text: commandText,
     });
 
-    // Verify meta-context state
     const finalState = metaContextRegistry.getState();
     expect(finalState.contexts.size).toBe(1);
     expect(finalState.nameIndex.get(metaContextName)).toBe(metaContextId);
@@ -88,16 +114,13 @@ describe("next_block_click event sequence", () => {
     expect(ctx.name).toBe(metaContextName);
     expect(ctx.sessionIds).toContain(newSessionId);
 
-    // Verify event sequence in store
     const allEvents = store.getAll();
     expect(allEvents[0].type).toBe("MetaContextEnsured");
     expect(allEvents[1].type).toBe("SessionCreated");
     expect(allEvents[2].type).toBe("SessionAddedToMetaContext");
     expect(allEvents[3].type).toBe("PromptSubmitted");
 
-    // MetaContextEnsured should be on the origin session
     expect("sessionId" in allEvents[0] && allEvents[0].sessionId).toBe(currentSessionId);
-    // SessionCreated, SessionAddedToMetaContext, and PromptSubmitted should be on new session
     expect("sessionId" in allEvents[1] && allEvents[1].sessionId).toBe(newSessionId);
     expect("sessionId" in allEvents[2] && allEvents[2].sessionId).toBe(newSessionId);
     expect("sessionId" in allEvents[3] && allEvents[3].sessionId).toBe(newSessionId);
@@ -110,7 +133,6 @@ describe("next_block_click event sequence", () => {
     const metaContextName = "Feature: Login";
     const metaContextId = "mc-existing";
 
-    // Pre-create the meta-context from a previous session
     store.append("session-old", {
       type: "MetaContextEnsured",
       metaContextId,
@@ -125,34 +147,27 @@ describe("next_block_click event sequence", () => {
       commandText: "/plan login",
     });
 
-    // Verify it exists
     const mcState = metaContextRegistry.getState();
     expect(mcState.nameIndex.get(metaContextName)).toBe(metaContextId);
 
-    // Now simulate handler for a second next_block_click with same metaContext name
     const newSessionId = "session-new-2";
 
-    // Handler should find existing meta-context, skip MetaContextEnsured creation
     const existingId = mcState.nameIndex.get(metaContextName);
     expect(existingId).toBe(metaContextId);
 
-    // 1. Create new session
     store.append(newSessionId, { type: "SessionCreated" });
 
-    // 2. Add new session to the EXISTING meta-context
     store.append(newSessionId, {
       type: "SessionAddedToMetaContext",
       metaContextId: existingId!,
       commandText: "Add validation to login form",
     });
 
-    // 3. Submit prompt
     store.append(newSessionId, {
       type: "PromptSubmitted",
       text: "Add validation to login form",
     });
 
-    // Verify meta-context still has same ID, now with two sessions
     const finalState = metaContextRegistry.getState();
     expect(finalState.contexts.size).toBe(1);
     const ctx = finalState.contexts.get(metaContextId)!;
@@ -166,7 +181,6 @@ describe("next_block_click event sequence", () => {
     const currentSessionId = "session-current";
     const newSessionId = "session-spawned";
 
-    // The MetaContextEnsured event must carry the CURRENT session ID (where button was clicked)
     store.append(currentSessionId, {
       type: "MetaContextEnsured",
       metaContextId: "mc-1",
