@@ -1,43 +1,45 @@
 import type { EventStore } from "./event-store.ts";
 import type { Projection } from "./projection.ts";
 import type { SessionRegistryState, MetaContextRegistryState } from "./server-state.ts";
-import type { ServerCommand, DomainEvent, SessionEvent, EventPayload } from "./types.ts";
+import type { ServerCommand, DomainEvent, EventPayload } from "./types.ts";
+import type { BridgeLike, Processor } from "./slices/slice-types.ts";
+
+// --- Handlers (via slice barrel exports) ---
+import { handleCreateSession } from "./slices/create-session/index.ts";
+import { handleDiscoverSession } from "./slices/discover-session/index.ts";
+import { handleSwitchSession } from "./slices/switch-session/index.ts";
+import { handleLoadSession } from "./slices/load-session/index.ts";
+import { handleSubmitPrompt } from "./slices/submit-prompt/index.ts";
+import { handleCancelPrompt } from "./slices/cancel-prompt/index.ts";
+import { handleNextBlockClick } from "./slices/next-block-click/index.ts";
+import { handleEnsureMetaContext } from "./slices/ensure-meta-context/index.ts";
+import { handleAddSessionToMetaContext } from "./slices/add-session-to-meta-context/index.ts";
+import { handleRecordAgentText } from "./slices/record-agent-text/index.ts";
+import { handleRecordAgentThought } from "./slices/record-agent-thought/index.ts";
+import { handleRecordToolCallStarted } from "./slices/record-tool-call-started/index.ts";
+import { handleRecordToolCallUpdated } from "./slices/record-tool-call-updated/index.ts";
+import { handleRecordToolCallCompleted } from "./slices/record-tool-call-completed/index.ts";
+import { handleRecordPlanUpdated } from "./slices/record-plan-updated/index.ts";
+import { handleRecordUsageUpdated } from "./slices/record-usage-updated/index.ts";
+import { handleRecordSessionInfoUpdated } from "./slices/record-session-info-updated/index.ts";
+import { handleCompleteTurn } from "./slices/complete-turn/index.ts";
+import { handleRecordError } from "./slices/record-error/index.ts";
+
+// --- Processors (direct imports — not part of slice public API) ---
+import { autoSwitchAfterCreate, associateWithMetaContext } from "./slices/create-session/processor.ts";
+import { createLoadIfUnloaded } from "./slices/switch-session/processor.ts";
+import { ensureMetaContext } from "./slices/next-block-click/processor.ts";
+import { createSessionForMetaContext } from "./slices/ensure-meta-context/processor.ts";
+import { submitPromptForNextBlock } from "./slices/add-session-to-meta-context/processor.ts";
 
 export type DispatchFn = (sessionId: string, command: ServerCommand) => Promise<void>;
 
-type Processor = {
-  watches: DomainEvent["type"];
-  handler: (event: DomainEvent, dispatch: DispatchFn) => void | Promise<void>;
-};
+// Re-export for WS layer
+export { getServerEpoch } from "./slices/switch-session/index.ts";
 
 type MetaContextSource = {
   getState(): MetaContextRegistryState;
 };
-
-type BridgeLike = {
-  createSession(): Promise<string>;
-  loadSession(sessionId: string): Promise<void>;
-  submitPrompt(sessionId: string, text: string, images?: any, skipPromptEvent?: boolean): Promise<void>;
-  cancel(sessionId: string): Promise<void>;
-};
-
-// Unique identifier for this server process lifetime.
-const SERVER_EPOCH = crypto.randomUUID();
-
-/** Returns the server epoch for use by WS layer. */
-export function getServerEpoch(): string {
-  return SERVER_EPOCH;
-}
-
-/**
- * Pipeline context for tracking next-block-click processor chains.
- * Keyed by the new session ID created during the pipeline.
- */
-const pipelineContexts = new Map<string, {
-  metaContextId: string;
-  commandText: string;
-  originSessionId: string;
-}>();
 
 /**
  * Creates the dispatch function. The bridge is injected lazily to break the
@@ -57,11 +59,17 @@ export function createDispatch(
     if (!_bridge) throw new Error("Bridge not set — call setBridge() before dispatching bridge commands");
     return _bridge;
   }
-  const processors: Processor[] = [];
 
-  function registerProcessor(watches: DomainEvent["type"], handler: Processor["handler"]) {
-    processors.push({ watches, handler });
-  }
+  // --- Processor infrastructure ---
+
+  const processors: Processor[] = [
+    autoSwitchAfterCreate,
+    associateWithMetaContext,
+    createLoadIfUnloaded(registry),
+    ensureMetaContext,
+    createSessionForMetaContext,
+    submitPromptForNextBlock,
+  ];
 
   async function runProcessors(event: DomainEvent) {
     for (const proc of processors) {
@@ -71,274 +79,54 @@ export function createDispatch(
     }
   }
 
-  function emitAndProcess(sessionId: string, payload: EventPayload): Promise<DomainEvent> {
+  async function emit(sessionId: string, payload: EventPayload): Promise<DomainEvent> {
     const event = store.append(sessionId, payload);
-    return runProcessors(event).then(() => event);
+    await runProcessors(event);
+    return event;
   }
 
-  // --- Processors ---
-
-  // AutoSwitchAfterCreate: on SessionCreated, issue SwitchSession
-  registerProcessor("SessionCreated", async (event, dispatch) => {
-    if (!("sessionId" in event)) return;
-    await dispatch(event.sessionId, { type: "SwitchSession" });
-  });
-
-  // LoadIfUnloaded: on SessionSwitched, load if not yet loaded
-  registerProcessor("SessionSwitched", async (event, dispatch) => {
-    if (event.type !== "SessionSwitched" || !("sessionId" in event)) return;
-    const meta = registry.getState().sessions.get(event.sessionId);
-    if (meta && !meta.loaded) {
-      await dispatch(event.sessionId, { type: "LoadSession" });
-    }
-  });
-
-  // EnsureMetaContext: on NextBlockInitiated, issue EnsureMetaContext command
-  registerProcessor("NextBlockInitiated", async (event, dispatch) => {
-    if (event.type !== "NextBlockInitiated" || !("sessionId" in event)) return;
-    await dispatch(event.sessionId, {
-      type: "EnsureMetaContext",
-      originSessionId: event.currentSessionId,
-      metaContextName: event.metaContext,
-      commandText: event.commandText,
-    });
-  });
-
-  // CreateSessionForMetaContext: on MetaContextEnsured, create a new session
-  registerProcessor("MetaContextEnsured", async (event, dispatch) => {
-    if (event.type !== "MetaContextEnsured" || !("sessionId" in event)) return;
-    // Store pipeline context so AssociateWithMetaContext knows to fire
-    // The key will be set after CreateSession returns (keyed by new session ID)
-    // Store it temporarily keyed by metaContextId + originSessionId
-    const pipelineKey = `pending:${event.metaContextId}:${event.originSessionId}`;
-    pipelineContexts.set(pipelineKey, {
-      metaContextId: event.metaContextId,
-      commandText: event.commandText,
-      originSessionId: event.originSessionId,
-    });
-    await dispatch("_", { type: "CreateSession" });
-  });
-
-  // AssociateWithMetaContext: on SessionCreated, check if pipeline context exists
-  registerProcessor("SessionCreated", async (event, dispatch) => {
-    if (!("sessionId" in event)) return;
-    // Find any pending pipeline context
-    for (const [key, ctx] of pipelineContexts) {
-      if (key.startsWith("pending:")) {
-        pipelineContexts.delete(key);
-        // Transfer to the new session ID
-        pipelineContexts.set(event.sessionId, ctx);
-        await dispatch(event.sessionId, {
-          type: "AddSessionToMetaContext",
-          sessionId: event.sessionId,
-          metaContextId: ctx.metaContextId,
-          commandText: ctx.commandText,
-        });
-        return;
-      }
-    }
-  });
-
-  // SubmitPromptForNextBlock: on SessionAddedToMetaContext, submit the prompt
-  registerProcessor("SessionAddedToMetaContext", async (event, dispatch) => {
-    if (event.type !== "SessionAddedToMetaContext" || !("sessionId" in event)) return;
-    const ctx = pipelineContexts.get(event.sessionId);
-    if (ctx) {
-      pipelineContexts.delete(event.sessionId);
-      await dispatch(event.sessionId, {
-        type: "SubmitPrompt",
-        text: event.commandText,
-      });
-    }
-  });
-
-  // --- Command handlers ---
+  // --- Command routing ---
 
   async function dispatch(sessionId: string, command: ServerCommand): Promise<void> {
     switch (command.type) {
-      // --- Pass-through commands ---
       case "RecordAgentText":
-        await emitAndProcess(sessionId, { type: "AgentText", text: command.text });
-        break;
-
+        return handleRecordAgentText(sessionId, command, emit);
       case "RecordAgentThought":
-        await emitAndProcess(sessionId, { type: "AgentThought", text: command.text });
-        break;
-
+        return handleRecordAgentThought(sessionId, command, emit);
       case "RecordToolCallStarted":
-        await emitAndProcess(sessionId, {
-          type: "ToolCallStarted",
-          toolCallId: command.toolCallId,
-          toolName: command.toolName,
-          kind: command.kind,
-          input: command.input,
-        });
-        break;
-
+        return handleRecordToolCallStarted(sessionId, command, emit);
       case "RecordToolCallUpdated":
-        await emitAndProcess(sessionId, {
-          type: "ToolCallUpdated",
-          toolCallId: command.toolCallId,
-          status: command.status,
-          content: command.content,
-        });
-        break;
-
+        return handleRecordToolCallUpdated(sessionId, command, emit);
       case "RecordToolCallCompleted":
-        await emitAndProcess(sessionId, {
-          type: "ToolCallCompleted",
-          toolCallId: command.toolCallId,
-          status: command.status,
-          output: command.output,
-        });
-        break;
-
+        return handleRecordToolCallCompleted(sessionId, command, emit);
       case "RecordPlanUpdated":
-        await emitAndProcess(sessionId, { type: "PlanUpdated", entries: command.entries });
-        break;
-
+        return handleRecordPlanUpdated(sessionId, command, emit);
       case "RecordUsageUpdated":
-        await emitAndProcess(sessionId, {
-          type: "UsageUpdated",
-          size: command.size,
-          used: command.used,
-          ...(command.costAmount !== undefined ? { costAmount: command.costAmount, costCurrency: command.costCurrency } : {}),
-        });
-        break;
-
+        return handleRecordUsageUpdated(sessionId, command, emit);
       case "RecordSessionInfoUpdated":
-        await emitAndProcess(sessionId, {
-          type: "SessionInfoUpdated",
-          title: command.title,
-          updatedAt: command.updatedAt,
-        });
-        break;
-
+        return handleRecordSessionInfoUpdated(sessionId, command, emit);
       case "CompleteTurn":
-        await emitAndProcess(sessionId, { type: "TurnCompleted", stopReason: command.stopReason });
-        break;
-
+        return handleCompleteTurn(sessionId, command, emit);
       case "RecordError":
-        await emitAndProcess(sessionId, { type: "ErrorOccurred", message: command.message });
-        break;
-
-      // --- Session lifecycle ---
-
-      case "CreateSession": {
-        const newSessionId = await getBridge().createSession();
-        await emitAndProcess(newSessionId, { type: "SessionCreated" });
-        break;
-      }
-
+        return handleRecordError(sessionId, command, emit);
+      case "CreateSession":
+        return handleCreateSession(sessionId, command, emit, getBridge());
       case "DiscoverSession":
-        await emitAndProcess(sessionId, {
-          type: "SessionDiscovered",
-          name: command.name,
-          title: command.title,
-          createdAt: command.createdAt,
-        });
-        break;
-
-      case "SwitchSession": {
-        const meta = registry.getState().sessions.get(sessionId);
-        if (!meta) {
-          await emitAndProcess(sessionId, {
-            type: "ErrorOccurred",
-            message: `Session not found: ${sessionId}`,
-          });
-          return;
-        }
-        await emitAndProcess(sessionId, {
-          type: "SessionSwitched",
-          epoch: SERVER_EPOCH,
-        });
-        break;
-      }
-
-      case "LoadSession": {
-        const meta = registry.getState().sessions.get(sessionId);
-        if (!meta) {
-          await emitAndProcess(sessionId, {
-            type: "ErrorOccurred",
-            message: `Session not found: ${sessionId}`,
-          });
-          return;
-        }
-        if (meta.loaded) return; // Already loaded, no-op
-        await getBridge().loadSession(sessionId);
-        await emitAndProcess(sessionId, { type: "SessionLoaded" });
-        break;
-      }
-
-      case "SubmitPrompt": {
-        const meta = registry.getState().sessions.get(sessionId);
-        if (!meta || !meta.loaded) {
-          await emitAndProcess(sessionId, {
-            type: "ErrorOccurred",
-            message: meta ? "Session not loaded" : `Session not found: ${sessionId}`,
-          });
-          return;
-        }
-        await emitAndProcess(sessionId, {
-          type: "PromptSubmitted",
-          text: command.text,
-          images: command.images,
-        });
-        getBridge().submitPrompt(sessionId, command.text, command.images, true);
-        break;
-      }
-
-      case "CancelPrompt": {
-        await emitAndProcess(sessionId, { type: "CancellationRequested" });
-        getBridge().cancel(sessionId);
-        break;
-      }
-
-      // --- Next-block-click pipeline ---
-
+        return handleDiscoverSession(sessionId, command, emit);
+      case "SwitchSession":
+        return handleSwitchSession(sessionId, command, emit, registry);
+      case "LoadSession":
+        return handleLoadSession(sessionId, command, emit, registry, getBridge());
+      case "SubmitPrompt":
+        return handleSubmitPrompt(sessionId, command, emit, registry, getBridge());
+      case "CancelPrompt":
+        return handleCancelPrompt(sessionId, command, emit, getBridge());
       case "NextBlockClick":
-        await emitAndProcess(sessionId, {
-          type: "NextBlockInitiated",
-          currentSessionId: command.currentSessionId,
-          label: command.label,
-          commandText: command.commandText,
-          metaContext: command.metaContext,
-        });
-        break;
-
-      case "EnsureMetaContext": {
-        const mcState = metaContextRegistry.getState();
-        const existingId = mcState.nameIndex.get(command.metaContextName);
-        if (existingId) {
-          await emitAndProcess(sessionId, {
-            type: "MetaContextEnsured",
-            metaContextId: existingId,
-            metaContextName: command.metaContextName,
-            originSessionId: command.originSessionId,
-            commandText: command.commandText,
-            created: false,
-          });
-        } else {
-          const newId = crypto.randomUUID();
-          await emitAndProcess(sessionId, {
-            type: "MetaContextEnsured",
-            metaContextId: newId,
-            metaContextName: command.metaContextName,
-            originSessionId: command.originSessionId,
-            commandText: command.commandText,
-            created: true,
-          });
-        }
-        break;
-      }
-
+        return handleNextBlockClick(sessionId, command, emit);
+      case "EnsureMetaContext":
+        return handleEnsureMetaContext(sessionId, command, emit, metaContextRegistry);
       case "AddSessionToMetaContext":
-        await emitAndProcess(command.sessionId, {
-          type: "SessionAddedToMetaContext",
-          metaContextId: command.metaContextId,
-          commandText: command.commandText,
-        });
-        break;
+        return handleAddSessionToMetaContext(sessionId, command, emit);
     }
   }
 

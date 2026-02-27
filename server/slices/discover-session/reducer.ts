@@ -1,5 +1,5 @@
-import type { DomainEvent } from "../types.ts";
-import type { SessionRegistryState } from "../server-state.ts";
+import type { DomainEvent } from "../../types.ts";
+import type { SessionRegistryState } from "../../server-state.ts";
 
 /** SessionDiscovered → adds session entry with loaded: false, increments counter. */
 export function discoverSessionSlice(state: SessionRegistryState, event: DomainEvent): SessionRegistryState {

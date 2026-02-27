@@ -1,5 +1,5 @@
-import type { DomainEvent } from "../types.ts";
-import type { MetaContextRegistryState } from "../server-state.ts";
+import type { DomainEvent } from "../../types.ts";
+import type { MetaContextRegistryState } from "../../server-state.ts";
 
 /** MetaContextEnsured → adds entry to contexts map and nameIndex when created is true. */
 export function metaContextEnsuredSlice(state: MetaContextRegistryState, event: DomainEvent): MetaContextRegistryState {

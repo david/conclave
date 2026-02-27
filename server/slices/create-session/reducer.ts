@@ -1,5 +1,5 @@
-import type { DomainEvent } from "../types.ts";
-import type { SessionRegistryState } from "../server-state.ts";
+import type { DomainEvent } from "../../types.ts";
+import type { SessionRegistryState } from "../../server-state.ts";
 import { nextNewSessionName } from "./utils.ts";
 
 /** SessionCreated → adds session entry with loaded: true, increments counter. */

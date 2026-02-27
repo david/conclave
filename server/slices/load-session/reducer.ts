@@ -1,5 +1,5 @@
-import type { DomainEvent } from "../types.ts";
-import type { SessionRegistryState } from "../server-state.ts";
+import type { DomainEvent } from "../../types.ts";
+import type { SessionRegistryState } from "../../server-state.ts";
 
 /** SessionLoaded → sets loaded: true on the existing session entry. */
 export function loadSessionSlice(state: SessionRegistryState, event: DomainEvent): SessionRegistryState {

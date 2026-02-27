@@ -1,6 +1,6 @@
 import { describe, test, expect } from "bun:test";
 import { nextNewSessionName } from "./utils.ts";
-import type { SessionRegistryState, SessionMeta } from "../server-state.ts";
+import type { SessionRegistryState, SessionMeta } from "../../server-state.ts";
 
 function makeState(...names: string[]): SessionRegistryState {
   const sessions = new Map<string, SessionMeta>();

@@ -1,5 +1,5 @@
-import type { DomainEvent } from "../types.ts";
-import type { MetaContextRegistryState } from "../server-state.ts";
+import type { DomainEvent } from "../../types.ts";
+import type { MetaContextRegistryState } from "../../server-state.ts";
 
 /** SessionAddedToMetaContext → appends sessionId to the context's sessionIds array. */
 export function sessionAddedToMetaContextSlice(state: MetaContextRegistryState, event: DomainEvent): MetaContextRegistryState {

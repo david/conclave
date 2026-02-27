@@ -1,7 +1,7 @@
 import type { DomainEvent } from "../types.ts";
 import type { MetaContextRegistryState } from "../server-state.ts";
-import { metaContextEnsuredSlice } from "./meta-context-created.ts";
-import { sessionAddedToMetaContextSlice } from "./session-added-to-meta-context.ts";
+import { metaContextEnsuredSlice } from "./ensure-meta-context/reducer.ts";
+import { sessionAddedToMetaContextSlice } from "./add-session-to-meta-context/reducer.ts";
 
 type Slice = (state: MetaContextRegistryState, event: DomainEvent) => MetaContextRegistryState;
 

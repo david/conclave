@@ -1,7 +1,7 @@
 import { describe, test, expect } from "bun:test";
-import { sessionAddedToMetaContextSlice } from "./session-added-to-meta-context.ts";
-import type { MetaContextRegistryState } from "../server-state.ts";
-import type { DomainEvent } from "../types.ts";
+import { sessionAddedToMetaContextSlice } from "./reducer.ts";
+import type { MetaContextRegistryState } from "../../server-state.ts";
+import type { DomainEvent } from "../../types.ts";
 
 function stateWithContext(): MetaContextRegistryState {
   const contexts = new Map();

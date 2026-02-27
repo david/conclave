@@ -1,5 +1,5 @@
-import type { DomainEvent } from "../types.ts";
-import type { SessionRegistryState } from "../server-state.ts";
+import type { DomainEvent } from "../../types.ts";
+import type { SessionRegistryState } from "../../server-state.ts";
 
 /** PromptSubmitted → sets firstPrompt on the session if not already set. */
 export function trackFirstPromptSlice(state: SessionRegistryState, event: DomainEvent): SessionRegistryState {

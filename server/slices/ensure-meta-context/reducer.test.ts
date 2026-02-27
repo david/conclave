@@ -1,7 +1,7 @@
 import { describe, test, expect } from "bun:test";
-import { metaContextEnsuredSlice } from "./meta-context-created.ts";
-import { initialMetaContextRegistryState } from "../server-state.ts";
-import type { DomainEvent } from "../types.ts";
+import { metaContextEnsuredSlice } from "./reducer.ts";
+import { initialMetaContextRegistryState } from "../../server-state.ts";
+import type { DomainEvent } from "../../types.ts";
 
 describe("metaContextEnsuredSlice", () => {
   test("creates entry in state when created is true", () => {

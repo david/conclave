@@ -1,5 +1,5 @@
-import type { DomainEvent } from "../types.ts";
-import type { SessionRegistryState } from "../server-state.ts";
+import type { DomainEvent } from "../../types.ts";
+import type { SessionRegistryState } from "../../server-state.ts";
 
 /** SessionInfoUpdated → updates title on the existing session entry. */
 export function updateTitleSlice(state: SessionRegistryState, event: DomainEvent): SessionRegistryState {

@@ -1,4 +1,4 @@
-import type { SessionRegistryState } from "../server-state.ts";
+import type { SessionRegistryState } from "../../server-state.ts";
 
 const NEW_SESSION_RE = /^New Session(?: #(\d+))?$/;
 
