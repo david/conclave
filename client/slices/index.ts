@@ -1,22 +1,22 @@
 import type { ClientEvent, AppState } from "../types.ts";
-import { sessionInitiatedSlice } from "./session-initiated.ts";
-import { sessionCreatedSlice } from "./session-created.ts";
-import { sessionListSlice } from "./session-list.ts";
-import { sessionInfoUpdatedSlice } from "./session-info-updated.ts";
-import { sessionSwitchedSlice } from "./session-switched.ts";
-import { planUpdatedSlice } from "./plan-updated.ts";
-import { promptSubmittedSlice } from "./prompt-submitted.ts";
-import { agentTextSlice } from "./agent-text.ts";
-import { agentThoughtSlice } from "./agent-thought.ts";
-import { toolCallStartedSlice } from "./tool-call-started.ts";
-import { toolCallUpdatedSlice } from "./tool-call-updated.ts";
-import { toolCallCompletedSlice } from "./tool-call-completed.ts";
-import { turnCompletedSlice } from "./turn-completed.ts";
-import { errorSlice } from "./error.ts";
-import { usageUpdatedSlice } from "./usage-updated.ts";
-import { specListUpdatedSlice } from "./spec-list-updated.ts";
-import { gitStatusUpdatedSlice } from "./git-status-updated.ts";
-import { serviceStatusUpdatedSlice } from "./service-status-updated.ts";
+import { sessionInitiatedSlice } from "./session-initiated/index.ts";
+import { sessionCreatedSlice } from "./session-created/index.ts";
+import { sessionListSlice } from "./session-list/index.ts";
+import { sessionInfoUpdatedSlice } from "./session-info-updated/index.ts";
+import { sessionSwitchedSlice } from "./session-switched/index.ts";
+import { planUpdatedSlice } from "./plan-updated/index.ts";
+import { promptSubmittedSlice } from "./prompt-submitted/index.ts";
+import { agentTextSlice } from "./agent-text/index.ts";
+import { agentThoughtSlice } from "./agent-thought/index.ts";
+import { toolCallStartedSlice } from "./tool-call-started/index.ts";
+import { toolCallUpdatedSlice } from "./tool-call-updated/index.ts";
+import { toolCallCompletedSlice } from "./tool-call-completed/index.ts";
+import { turnCompletedSlice } from "./turn-completed/index.ts";
+import { errorSlice } from "./error/index.ts";
+import { usageUpdatedSlice } from "./usage-updated/index.ts";
+import { specListUpdatedSlice } from "./spec-list-updated/index.ts";
+import { gitStatusUpdatedSlice } from "./git-status-updated/index.ts";
+import { serviceStatusUpdatedSlice } from "./service-status-updated/index.ts";
 
 const slices: Array<(state: AppState, event: ClientEvent) => AppState> = [
   sessionInitiatedSlice,
