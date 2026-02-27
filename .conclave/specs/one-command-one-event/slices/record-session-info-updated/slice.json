@@ -1,0 +1,44 @@
+{
+  "slice": "record-session-info-updated",
+  "trigger": { "screen": "ACP Bridge" },
+  "commands": [
+    {
+      "type": "RecordSessionInfoUpdated",
+      "fields": [
+        { "name": "sessionId", "type": "string" },
+        { "name": "title", "type": "string?" },
+        { "name": "updatedAt", "type": "string?" }
+      ],
+      "produces": "SessionInfoUpdated",
+      "validations": []
+    }
+  ],
+  "events": [
+    {
+      "type": "SessionInfoUpdated",
+      "fields": [
+        { "name": "sessionId", "type": "string" },
+        { "name": "title", "type": "string?" },
+        { "name": "updatedAt", "type": "string?" }
+      ]
+    }
+  ],
+  "projections": [],
+  "processors": [],
+  "use-cases": [
+    {
+      "name": "Bridge records session title update",
+      "given": [
+        { "event": "create-session/SessionCreated", "fields": { "sessionId": "sess-abc-123", "name": "New Session #1" } }
+      ],
+      "when": {
+        "command": "RecordSessionInfoUpdated",
+        "fields": { "sessionId": "sess-abc-123", "title": "Debugging auth flow", "updatedAt": "2026-02-27T10:00:00Z" }
+      },
+      "then": {
+        "event": "SessionInfoUpdated",
+        "fields": { "sessionId": "sess-abc-123", "title": "Debugging auth flow", "updatedAt": "2026-02-27T10:00:00Z" }
+      }
+    }
+  ]
+}

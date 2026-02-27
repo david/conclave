@@ -1,0 +1,42 @@
+{
+  "slice": "record-agent-text",
+  "trigger": { "screen": "ACP Bridge" },
+  "commands": [
+    {
+      "type": "RecordAgentText",
+      "fields": [
+        { "name": "sessionId", "type": "string" },
+        { "name": "text", "type": "string" }
+      ],
+      "produces": "AgentText",
+      "validations": []
+    }
+  ],
+  "events": [
+    {
+      "type": "AgentText",
+      "fields": [
+        { "name": "sessionId", "type": "string" },
+        { "name": "text", "type": "string" }
+      ]
+    }
+  ],
+  "projections": [],
+  "processors": [],
+  "use-cases": [
+    {
+      "name": "Bridge records agent text chunk",
+      "given": [
+        { "event": "create-session/SessionCreated", "fields": { "sessionId": "sess-abc-123", "name": "New Session #1" } }
+      ],
+      "when": {
+        "command": "RecordAgentText",
+        "fields": { "sessionId": "sess-abc-123", "text": "Hello! How can I help?" }
+      },
+      "then": {
+        "event": "AgentText",
+        "fields": { "sessionId": "sess-abc-123", "text": "Hello! How can I help?" }
+      }
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "slice": "record-tool-call-started",
+  "trigger": { "screen": "ACP Bridge" },
+  "commands": [
+    {
+      "type": "RecordToolCallStarted",
+      "fields": [
+        { "name": "sessionId", "type": "string" },
+        { "name": "toolCallId", "type": "string" },
+        { "name": "toolName", "type": "string" },
+        { "name": "kind", "type": "string?" },
+        { "name": "input", "type": "string?" }
+      ],
+      "produces": "ToolCallStarted",
+      "validations": []
+    }
+  ],
+  "events": [
+    {
+      "type": "ToolCallStarted",
+      "fields": [
+        { "name": "sessionId", "type": "string" },
+        { "name": "toolCallId", "type": "string" },
+        { "name": "toolName", "type": "string" },
+        { "name": "kind", "type": "string?" },
+        { "name": "input", "type": "string?" }
+      ]
+    }
+  ],
+  "projections": [],
+  "processors": [],
+  "use-cases": [
+    {
+      "name": "Bridge records tool call start",
+      "given": [
+        { "event": "create-session/SessionCreated", "fields": { "sessionId": "sess-abc-123", "name": "New Session #1" } }
+      ],
+      "when": {
+        "command": "RecordToolCallStarted",
+        "fields": { "sessionId": "sess-abc-123", "toolCallId": "tc-001", "toolName": "Read", "kind": "read" }
+      },
+      "then": {
+        "event": "ToolCallStarted",
+        "fields": { "sessionId": "sess-abc-123", "toolCallId": "tc-001", "toolName": "Read", "kind": "read" }
+      }
+    }
+  ]
+}

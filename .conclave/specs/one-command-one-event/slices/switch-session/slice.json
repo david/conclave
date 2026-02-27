@@ -1,0 +1,63 @@
+{
+  "slice": "switch-session",
+  "trigger": { "screen": "Session Picker" },
+  "commands": [
+    {
+      "type": "SwitchSession",
+      "fields": [
+        { "name": "sessionId", "type": "string" }
+      ],
+      "produces": "SessionSwitched",
+      "validations": [
+        { "rule": "Session must exist in registry", "projection": "create-session/SessionRegistry" }
+      ]
+    }
+  ],
+  "events": [
+    {
+      "type": "SessionSwitched",
+      "fields": [
+        { "name": "sessionId", "type": "string" },
+        { "name": "epoch", "type": "string?" }
+      ]
+    }
+  ],
+  "projections": [],
+  "processors": [
+    {
+      "name": "LoadIfUnloaded",
+      "watches": "SessionSwitched",
+      "issues": "load-session/LoadSession"
+    }
+  ],
+  "use-cases": [
+    {
+      "name": "Switch to an existing loaded session",
+      "given": [
+        { "event": "create-session/SessionCreated", "fields": { "sessionId": "sess-abc-123", "name": "New Session #1" } },
+        { "event": "create-session/SessionCreated", "fields": { "sessionId": "sess-def-456", "name": "New Session #2" } }
+      ],
+      "when": {
+        "command": "SwitchSession",
+        "fields": { "sessionId": "sess-abc-123" }
+      },
+      "then": {
+        "event": "SessionSwitched",
+        "fields": { "sessionId": "sess-abc-123", "epoch": "epoch-001" }
+      }
+    },
+    {
+      "name": "Switch to unknown session fails",
+      "given": [
+        { "event": "create-session/SessionCreated", "fields": { "sessionId": "sess-abc-123", "name": "New Session #1" } }
+      ],
+      "when": {
+        "command": "SwitchSession",
+        "fields": { "sessionId": "sess-nonexistent" }
+      },
+      "then": {
+        "error": "Session must exist in registry"
+      }
+    }
+  ]
+}

@@ -14,13 +14,12 @@ import {
   type SessionNotification,
   type SessionInfo as AcpSessionInfo,
 } from "@agentclientprotocol/sdk";
-// Note: RequestPermissionRequest/Response still needed for the auto-approve handler signature
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { translateAcpUpdate } from "./acp-translate.ts";
-import type { EventPayload, ImageAttachment } from "./types.ts";
-
-export type OnEventCallback = (sessionId: string, payload: EventPayload) => void;
+import { translateAcpToCommands } from "./acp-translate.ts";
+import type { EventStore } from "./event-store.ts";
+import type { DispatchFn } from "./dispatch.ts";
+import type { ImageAttachment, ServerCommand, EventPayload } from "./types.ts";
 
 export type PromptBlock =
   | { type: "text"; text: string }
@@ -34,8 +33,6 @@ export function buildPromptBlocks(text: string, images?: ImageAttachment[]): Pro
       prompt.push({ type: "image", data: img.data, mimeType: img.mimeType });
     }
   }
-  // The API requires a non-empty text block in every message.
-  // When images are attached without text, use a minimal placeholder.
   const effectiveText = text || (prompt.length > 0 ? "See image." : "");
   if (effectiveText) {
     prompt.push({ type: "text", text: effectiveText });
@@ -47,12 +44,14 @@ export class AcpBridge {
   private connection: ClientSideConnection | null = null;
   private proc: ReturnType<typeof Bun.spawn> | null = null;
   private cwd: string;
-  private onEvent: OnEventCallback;
+  private store: EventStore;
+  private dispatch: DispatchFn;
   private loadingSessions = new Set<string>();
 
-  constructor(cwd: string, onEvent: OnEventCallback) {
+  constructor(cwd: string, store: EventStore, dispatch: DispatchFn) {
     this.cwd = cwd;
-    this.onEvent = onEvent;
+    this.store = store;
+    this.dispatch = dispatch;
   }
 
   async start(): Promise<void> {
@@ -82,23 +81,27 @@ export class AcpBridge {
       stdout as unknown as ReadableStream<Uint8Array>,
     );
 
-    const onEvent = this.onEvent;
-    const bridge = this;
+    const bridgeRef = this;
 
     this.connection = new ClientSideConnection(
       (_agent: Agent): Client => ({
         async sessionUpdate(params: SessionNotification): Promise<void> {
-          const isLoading = bridge.loadingSessions.has(params.sessionId);
-          const events = translateAcpUpdate(params.update, isLoading);
-          for (const payload of events) {
-            onEvent(params.sessionId, payload);
+          const isLoading = bridgeRef.loadingSessions.has(params.sessionId);
+          const items = translateAcpToCommands(params.update, isLoading);
+          for (const item of items) {
+            if (isLoading) {
+              // During replay: use appendReplay (skip subscribers/processors)
+              bridgeRef.store.appendReplay(params.sessionId, item as EventPayload);
+            } else {
+              // Live: dispatch as a command
+              await bridgeRef.dispatch(params.sessionId, item as ServerCommand);
+            }
           }
         },
 
         async requestPermission(
           params: RequestPermissionRequest,
         ): Promise<RequestPermissionResponse> {
-          // Auto-approve all tool permissions (plan mode is disabled)
           const allowOption = params.options.find(
             (o) => o.kind === "allow_once" || o.kind === "allow_always",
           );
@@ -143,11 +146,10 @@ export class AcpBridge {
     // Monitor process exit
     this.proc.exited.then((code) => {
       if (code !== 0) {
-        // Emit error without a sessionId — server must handle
-        onEvent("__system__", {
-          type: "Error",
+        bridgeRef.dispatch("__system__", {
+          type: "RecordError",
           message: `claude-code-acp exited with code ${code}`,
-        });
+        }).catch(() => {});
       }
     });
   }
@@ -186,7 +188,6 @@ export class AcpBridge {
       const resp = await this.connection.unstable_listSessions({});
       return resp.sessions;
     } catch {
-      // Agent may not support listSessions
       return [];
     }
   }
@@ -210,19 +211,19 @@ export class AcpBridge {
 
   async submitPrompt(sessionId: string, text: string, images?: ImageAttachment[], skipPromptEvent = false): Promise<void> {
     if (!this.connection) {
-      onEventError(this.onEvent, sessionId, "ACP connection not initialized");
+      await this.dispatch(sessionId, { type: "RecordError", message: "ACP connection not initialized" });
       return;
     }
 
     if (!skipPromptEvent) {
-      this.onEvent(sessionId, { type: "PromptSubmitted", text, images });
+      await this.dispatch(sessionId, { type: "SubmitPrompt", text, images });
     }
 
     try {
       const prompt = buildPromptBlocks(text, images);
 
       if (prompt.length === 0) {
-        onEventError(this.onEvent, sessionId, "Cannot submit an empty prompt");
+        await this.dispatch(sessionId, { type: "RecordError", message: "Cannot submit an empty prompt" });
         return;
       }
 
@@ -231,17 +232,16 @@ export class AcpBridge {
         prompt,
       });
 
-      this.onEvent(sessionId, {
-        type: "TurnCompleted",
+      await this.dispatch(sessionId, {
+        type: "CompleteTurn",
         stopReason: resp.stopReason,
       });
     } catch (err) {
       console.error("Prompt error:", err);
-      onEventError(
-        this.onEvent,
-        sessionId,
-        formatError(err),
-      );
+      await this.dispatch(sessionId, {
+        type: "RecordError",
+        message: formatError(err),
+      });
     }
   }
 
@@ -261,22 +261,19 @@ export class AcpBridge {
         sessionId: sessionId as SessionId,
       });
     } catch (err) {
-      onEventError(
-        this.onEvent,
-        sessionId,
-        `Cancel failed: ${formatError(err)}`,
-      );
+      await this.dispatch(sessionId, {
+        type: "RecordError",
+        message: `Cancel failed: ${formatError(err)}`,
+      });
     }
   }
 
   private resolveAcpCommand(): string[] {
-    // 1. Local node_modules script (run via bun)
     const localEntry = join(import.meta.dir, "..", "node_modules", "@zed-industries", "claude-code-acp", "dist", "index.js");
     if (existsSync(localEntry)) {
       return ["bun", "run", localEntry];
     }
 
-    // 2. Binary on PATH
     const bin = Bun.which("claude-code-acp");
     if (bin) {
       return [bin];
@@ -288,18 +285,12 @@ export class AcpBridge {
   }
 }
 
-function onEventError(onEvent: OnEventCallback, sessionId: string, message: string) {
-  onEvent(sessionId, { type: "Error", message });
-}
-
 export function formatError(err: unknown): string {
   if (err instanceof Error) return err.message;
   if (typeof err === "string") return err;
-  // JSON-RPC errors from ACP SDK are plain objects with {code, message, data?}
   if (err && typeof err === "object") {
     const obj = err as Record<string, unknown>;
     if (typeof obj.message === "string") {
-      // Include data.details if present (e.g. "Internal error: Session not found")
       const data = obj.data as Record<string, unknown> | undefined;
       if (data && typeof data.details === "string") {
         return `${obj.message}: ${data.details}`;
@@ -310,4 +301,3 @@ export function formatError(err: unknown): string {
   }
   return String(err);
 }
-

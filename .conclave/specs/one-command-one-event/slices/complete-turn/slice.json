@@ -1,0 +1,57 @@
+{
+  "slice": "complete-turn",
+  "trigger": { "screen": "ACP Bridge" },
+  "commands": [
+    {
+      "type": "CompleteTurn",
+      "fields": [
+        { "name": "sessionId", "type": "string" },
+        { "name": "stopReason", "type": "string" }
+      ],
+      "produces": "TurnCompleted",
+      "validations": []
+    }
+  ],
+  "events": [
+    {
+      "type": "TurnCompleted",
+      "fields": [
+        { "name": "sessionId", "type": "string" },
+        { "name": "stopReason", "type": "string" }
+      ]
+    }
+  ],
+  "projections": [],
+  "processors": [],
+  "use-cases": [
+    {
+      "name": "Bridge records turn completion after prompt resolves",
+      "given": [
+        { "event": "submit-prompt/PromptSubmitted", "fields": { "sessionId": "sess-abc-123", "text": "Hello" } }
+      ],
+      "when": {
+        "command": "CompleteTurn",
+        "fields": { "sessionId": "sess-abc-123", "stopReason": "end_turn" }
+      },
+      "then": {
+        "event": "TurnCompleted",
+        "fields": { "sessionId": "sess-abc-123", "stopReason": "end_turn" }
+      }
+    },
+    {
+      "name": "Turn completed due to cancellation",
+      "given": [
+        { "event": "submit-prompt/PromptSubmitted", "fields": { "sessionId": "sess-abc-123", "text": "Hello" } },
+        { "event": "cancel-prompt/CancellationRequested", "fields": { "sessionId": "sess-abc-123" } }
+      ],
+      "when": {
+        "command": "CompleteTurn",
+        "fields": { "sessionId": "sess-abc-123", "stopReason": "cancelled" }
+      },
+      "then": {
+        "event": "TurnCompleted",
+        "fields": { "sessionId": "sess-abc-123", "stopReason": "cancelled" }
+      }
+    }
+  ]
+}

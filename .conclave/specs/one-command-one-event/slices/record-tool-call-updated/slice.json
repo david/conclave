@@ -1,0 +1,46 @@
+{
+  "slice": "record-tool-call-updated",
+  "trigger": { "screen": "ACP Bridge" },
+  "commands": [
+    {
+      "type": "RecordToolCallUpdated",
+      "fields": [
+        { "name": "sessionId", "type": "string" },
+        { "name": "toolCallId", "type": "string" },
+        { "name": "status", "type": "string" },
+        { "name": "content", "type": "string?" }
+      ],
+      "produces": "ToolCallUpdated",
+      "validations": []
+    }
+  ],
+  "events": [
+    {
+      "type": "ToolCallUpdated",
+      "fields": [
+        { "name": "sessionId", "type": "string" },
+        { "name": "toolCallId", "type": "string" },
+        { "name": "status", "type": "string" },
+        { "name": "content", "type": "string?" }
+      ]
+    }
+  ],
+  "projections": [],
+  "processors": [],
+  "use-cases": [
+    {
+      "name": "Bridge records tool call progress update",
+      "given": [
+        { "event": "record-tool-call-started/ToolCallStarted", "fields": { "sessionId": "sess-abc-123", "toolCallId": "tc-001", "toolName": "Read", "kind": "read" } }
+      ],
+      "when": {
+        "command": "RecordToolCallUpdated",
+        "fields": { "sessionId": "sess-abc-123", "toolCallId": "tc-001", "status": "in_progress" }
+      },
+      "then": {
+        "event": "ToolCallUpdated",
+        "fields": { "sessionId": "sess-abc-123", "toolCallId": "tc-001", "status": "in_progress" }
+      }
+    }
+  ]
+}

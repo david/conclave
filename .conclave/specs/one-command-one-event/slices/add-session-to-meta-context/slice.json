@@ -1,0 +1,67 @@
+{
+  "slice": "add-session-to-meta-context",
+  "trigger": { "processor": "create-session/AssociateWithMetaContext" },
+  "commands": [
+    {
+      "type": "AddSessionToMetaContext",
+      "fields": [
+        { "name": "sessionId", "type": "string" },
+        { "name": "metaContextId", "type": "string" },
+        { "name": "commandText", "type": "string" }
+      ],
+      "produces": "SessionAddedToMetaContext",
+      "validations": [
+        { "rule": "Session must exist", "projection": "create-session/SessionRegistry" },
+        { "rule": "Meta-context must exist", "projection": "ensure-meta-context/MetaContextRegistry" }
+      ]
+    }
+  ],
+  "events": [
+    {
+      "type": "SessionAddedToMetaContext",
+      "fields": [
+        { "name": "sessionId", "type": "string" },
+        { "name": "metaContextId", "type": "string" },
+        { "name": "commandText", "type": "string" }
+      ]
+    }
+  ],
+  "projections": [],
+  "processors": [
+    {
+      "name": "SubmitPromptForNextBlock",
+      "watches": "SessionAddedToMetaContext",
+      "issues": "submit-prompt/SubmitPrompt"
+    }
+  ],
+  "use-cases": [
+    {
+      "name": "Add a newly created session to a meta-context",
+      "given": [
+        { "event": "ensure-meta-context/MetaContextEnsured", "fields": { "metaContextId": "mc-uuid-001", "metaContextName": "my-spec", "originSessionId": "sess-abc-123", "commandText": "/plan my-spec", "created": true } },
+        { "event": "create-session/SessionCreated", "fields": { "sessionId": "sess-new-789", "name": "New Session #2" } }
+      ],
+      "when": {
+        "command": "AddSessionToMetaContext",
+        "fields": { "sessionId": "sess-new-789", "metaContextId": "mc-uuid-001", "commandText": "/plan my-spec" }
+      },
+      "then": {
+        "event": "SessionAddedToMetaContext",
+        "fields": { "sessionId": "sess-new-789", "metaContextId": "mc-uuid-001", "commandText": "/plan my-spec" }
+      }
+    },
+    {
+      "name": "Add session to meta-context when meta-context does not exist fails",
+      "given": [
+        { "event": "create-session/SessionCreated", "fields": { "sessionId": "sess-new-789", "name": "New Session #2" } }
+      ],
+      "when": {
+        "command": "AddSessionToMetaContext",
+        "fields": { "sessionId": "sess-new-789", "metaContextId": "mc-nonexistent", "commandText": "/plan my-spec" }
+      },
+      "then": {
+        "error": "Meta-context must exist"
+      }
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "slice": "cancel-prompt",
+  "trigger": { "screen": "Chat Input Bar" },
+  "commands": [
+    {
+      "type": "CancelPrompt",
+      "fields": [
+        { "name": "sessionId", "type": "string" }
+      ],
+      "produces": "CancellationRequested",
+      "validations": [
+        { "rule": "Session must exist", "projection": "create-session/SessionRegistry" }
+      ]
+    }
+  ],
+  "events": [
+    {
+      "type": "CancellationRequested",
+      "fields": [
+        { "name": "sessionId", "type": "string" }
+      ]
+    }
+  ],
+  "projections": [],
+  "processors": [],
+  "use-cases": [
+    {
+      "name": "Cancel an in-progress prompt",
+      "given": [
+        { "event": "create-session/SessionCreated", "fields": { "sessionId": "sess-abc-123", "name": "New Session #1" } },
+        { "event": "submit-prompt/PromptSubmitted", "fields": { "sessionId": "sess-abc-123", "text": "Hello, Claude" } }
+      ],
+      "when": {
+        "command": "CancelPrompt",
+        "fields": { "sessionId": "sess-abc-123" }
+      },
+      "then": {
+        "event": "CancellationRequested",
+        "fields": { "sessionId": "sess-abc-123" }
+      }
+    }
+  ]
+}

@@ -17,6 +17,7 @@ describe("sessionAddedToMetaContextSlice", () => {
     const event: DomainEvent = {
       type: "SessionAddedToMetaContext",
       metaContextId: "mc-1",
+      commandText: "/plan feat",
       sessionId: "s2",
       seq: 2,
       timestamp: 2000,
@@ -46,6 +47,7 @@ describe("sessionAddedToMetaContextSlice", () => {
     const event: DomainEvent = {
       type: "SessionAddedToMetaContext",
       metaContextId: "mc-unknown",
+      commandText: "/plan feat",
       sessionId: "s2",
       seq: 2,
       timestamp: 2000,
@@ -60,6 +62,7 @@ describe("sessionAddedToMetaContextSlice", () => {
     const event: DomainEvent = {
       type: "SessionAddedToMetaContext",
       metaContextId: "mc-1",
+      commandText: "/plan feat",
       sessionId: "s2",
       seq: 2,
       timestamp: 2000,

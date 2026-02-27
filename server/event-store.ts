@@ -24,6 +24,19 @@ export class EventStore {
     return event;
   }
 
+  appendReplay(sessionId: string, payload: EventPayload): DomainEvent {
+    const event = {
+      ...payload,
+      sessionId,
+      seq: this.nextSeq++,
+      timestamp: Date.now(),
+    } as DomainEvent;
+
+    this.events.push(event);
+    // No listener notification — replay events bypass processors and live WS subscriptions
+    return event;
+  }
+
   appendGlobal(payload: GlobalEventPayload): DomainEvent {
     const event = {
       ...payload,

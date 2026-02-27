@@ -1,0 +1,54 @@
+{
+  "slice": "next-block-click",
+  "trigger": { "screen": "Chat Message" },
+  "commands": [
+    {
+      "type": "NextBlockClick",
+      "fields": [
+        { "name": "currentSessionId", "type": "string" },
+        { "name": "label", "type": "string" },
+        { "name": "commandText", "type": "string" },
+        { "name": "metaContext", "type": "string" }
+      ],
+      "produces": "NextBlockInitiated",
+      "validations": [
+        { "rule": "Current session must exist", "projection": "create-session/SessionRegistry" }
+      ]
+    }
+  ],
+  "events": [
+    {
+      "type": "NextBlockInitiated",
+      "fields": [
+        { "name": "currentSessionId", "type": "string" },
+        { "name": "label", "type": "string" },
+        { "name": "commandText", "type": "string" },
+        { "name": "metaContext", "type": "string" }
+      ]
+    }
+  ],
+  "projections": [],
+  "processors": [
+    {
+      "name": "EnsureMetaContext",
+      "watches": "NextBlockInitiated",
+      "issues": "ensure-meta-context/EnsureMetaContext"
+    }
+  ],
+  "use-cases": [
+    {
+      "name": "User clicks a next-block link",
+      "given": [
+        { "event": "create-session/SessionCreated", "fields": { "sessionId": "sess-abc-123", "name": "New Session #1" } }
+      ],
+      "when": {
+        "command": "NextBlockClick",
+        "fields": { "currentSessionId": "sess-abc-123", "label": "Continue to Planning", "commandText": "/plan my-spec", "metaContext": "my-spec" }
+      },
+      "then": {
+        "event": "NextBlockInitiated",
+        "fields": { "currentSessionId": "sess-abc-123", "label": "Continue to Planning", "commandText": "/plan my-spec", "metaContext": "my-spec" }
+      }
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "slice": "discover-session",
+  "trigger": { "screen": "Server Startup" },
+  "commands": [
+    {
+      "type": "DiscoverSession",
+      "fields": [
+        { "name": "sessionId", "type": "string" },
+        { "name": "name", "type": "string" },
+        { "name": "title", "type": "string?" },
+        { "name": "createdAt", "type": "number" }
+      ],
+      "produces": "SessionDiscovered",
+      "validations": []
+    }
+  ],
+  "events": [
+    {
+      "type": "SessionDiscovered",
+      "fields": [
+        { "name": "sessionId", "type": "string" },
+        { "name": "name", "type": "string" },
+        { "name": "title", "type": "string?" },
+        { "name": "createdAt", "type": "number" }
+      ]
+    }
+  ],
+  "projections": [],
+  "processors": [],
+  "use-cases": [
+    {
+      "name": "Discover an existing ACP session at startup",
+      "given": [],
+      "when": {
+        "command": "DiscoverSession",
+        "fields": { "sessionId": "sess-existing-001", "name": "Session 1", "title": "My Chat", "createdAt": 1700000000000 }
+      },
+      "then": {
+        "event": "SessionDiscovered",
+        "fields": { "sessionId": "sess-existing-001", "name": "Session 1", "title": "My Chat", "createdAt": 1700000000000 }
+      }
+    }
+  ]
+}

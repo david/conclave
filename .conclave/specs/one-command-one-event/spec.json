@@ -1,0 +1,25 @@
+{
+  "description": "Refactor to enforce one-command-one-event consistency across all event sources — user commands, ACP bridge translations, and server infrastructure",
+  "type": "refactor",
+  "slices": [
+    "create-session",
+    "switch-session",
+    "load-session",
+    "discover-session",
+    "submit-prompt",
+    "cancel-prompt",
+    "next-block-click",
+    "ensure-meta-context",
+    "add-session-to-meta-context",
+    "record-agent-text",
+    "record-agent-thought",
+    "record-tool-call-started",
+    "record-tool-call-updated",
+    "record-tool-call-completed",
+    "record-plan-updated",
+    "record-usage-updated",
+    "record-session-info-updated",
+    "complete-turn",
+    "record-error"
+  ]
+}

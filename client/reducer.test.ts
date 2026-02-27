@@ -158,7 +158,7 @@ describe("applyEvent", () => {
     );
     expect(state.isProcessing).toBe(true);
 
-    state = applyEvent(state, makeEvent("Error", { message: "boom" }, 2));
+    state = applyEvent(state, makeEvent("ErrorOccurred", { message: "boom" }, 2));
     expect(state.error).toBe("boom");
     expect(state.isProcessing).toBe(false);
   });
@@ -170,6 +170,7 @@ describe("applyEvent", () => {
     const switchEvent: WsEvent = {
       type: "SessionSwitched",
       sessionId: "s2",
+      epoch: "test-epoch",
       seq: -1,
       timestamp: Date.now(),
     };

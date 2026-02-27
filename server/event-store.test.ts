@@ -134,6 +134,32 @@ describe("EventStore", () => {
     expect(received[0].type).toBe("SpecListUpdated");
   });
 
+  test("appendReplay adds events without notifying subscribers", () => {
+    const store = new EventStore();
+    const received: any[] = [];
+    store.subscribe((e) => received.push(e));
+
+    const e = store.appendReplay("s1", { type: "AgentText", text: "replayed" });
+
+    expect(store.getAll()).toHaveLength(1);
+    expect(store.getAll()[0].type).toBe("AgentText");
+    expect(e.seq).toBe(1);
+    expect("sessionId" in e && e.sessionId).toBe("s1");
+    expect(store.getBySessionId("s1")).toHaveLength(1);
+    expect(received).toHaveLength(0);
+  });
+
+  test("appendReplay shares seq space with append", () => {
+    const store = new EventStore();
+    const e1 = store.append("s1", { type: "AgentText", text: "a" });
+    const e2 = store.appendReplay("s1", { type: "AgentText", text: "b" });
+    const e3 = store.append("s1", { type: "AgentText", text: "c" });
+
+    expect(e1.seq).toBe(1);
+    expect(e2.seq).toBe(2);
+    expect(e3.seq).toBe(3);
+  });
+
   test("appendGlobal shares seq space with append", () => {
     const store = new EventStore();
     const e1 = store.append("s1", { type: "AgentText", text: "a" });

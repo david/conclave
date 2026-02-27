@@ -1,0 +1,42 @@
+{
+  "slice": "record-plan-updated",
+  "trigger": { "screen": "ACP Bridge" },
+  "commands": [
+    {
+      "type": "RecordPlanUpdated",
+      "fields": [
+        { "name": "sessionId", "type": "string" },
+        { "name": "entries", "type": "PlanEntry[]" }
+      ],
+      "produces": "PlanUpdated",
+      "validations": []
+    }
+  ],
+  "events": [
+    {
+      "type": "PlanUpdated",
+      "fields": [
+        { "name": "sessionId", "type": "string" },
+        { "name": "entries", "type": "PlanEntry[]" }
+      ]
+    }
+  ],
+  "projections": [],
+  "processors": [],
+  "use-cases": [
+    {
+      "name": "Bridge records plan update from agent",
+      "given": [
+        { "event": "create-session/SessionCreated", "fields": { "sessionId": "sess-abc-123", "name": "New Session #1" } }
+      ],
+      "when": {
+        "command": "RecordPlanUpdated",
+        "fields": { "sessionId": "sess-abc-123", "entries": [{ "content": "Read the file", "status": "completed", "priority": "high" }] }
+      },
+      "then": {
+        "event": "PlanUpdated",
+        "fields": { "sessionId": "sess-abc-123", "entries": [{ "content": "Read the file", "status": "completed", "priority": "high" }] }
+      }
+    }
+  ]
+}

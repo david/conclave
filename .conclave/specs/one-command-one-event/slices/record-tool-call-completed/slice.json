@@ -1,0 +1,46 @@
+{
+  "slice": "record-tool-call-completed",
+  "trigger": { "screen": "ACP Bridge" },
+  "commands": [
+    {
+      "type": "RecordToolCallCompleted",
+      "fields": [
+        { "name": "sessionId", "type": "string" },
+        { "name": "toolCallId", "type": "string" },
+        { "name": "status", "type": "string" },
+        { "name": "output", "type": "string?" }
+      ],
+      "produces": "ToolCallCompleted",
+      "validations": []
+    }
+  ],
+  "events": [
+    {
+      "type": "ToolCallCompleted",
+      "fields": [
+        { "name": "sessionId", "type": "string" },
+        { "name": "toolCallId", "type": "string" },
+        { "name": "status", "type": "string" },
+        { "name": "output", "type": "string?" }
+      ]
+    }
+  ],
+  "projections": [],
+  "processors": [],
+  "use-cases": [
+    {
+      "name": "Bridge records tool call completion",
+      "given": [
+        { "event": "record-tool-call-started/ToolCallStarted", "fields": { "sessionId": "sess-abc-123", "toolCallId": "tc-001", "toolName": "Read", "kind": "read" } }
+      ],
+      "when": {
+        "command": "RecordToolCallCompleted",
+        "fields": { "sessionId": "sess-abc-123", "toolCallId": "tc-001", "status": "completed", "output": "file contents here" }
+      },
+      "then": {
+        "event": "ToolCallCompleted",
+        "fields": { "sessionId": "sess-abc-123", "toolCallId": "tc-001", "status": "completed", "output": "file contents here" }
+      }
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "slice": "load-session",
+  "trigger": { "processor": "switch-session/LoadIfUnloaded" },
+  "commands": [
+    {
+      "type": "LoadSession",
+      "fields": [
+        { "name": "sessionId", "type": "string" }
+      ],
+      "produces": "SessionLoaded",
+      "validations": [
+        { "rule": "Session must exist in registry", "projection": "create-session/SessionRegistry" },
+        { "rule": "Session must not already be loaded", "projection": "create-session/SessionRegistry" }
+      ]
+    }
+  ],
+  "events": [
+    {
+      "type": "SessionLoaded",
+      "fields": [
+        { "name": "sessionId", "type": "string" }
+      ]
+    }
+  ],
+  "projections": [],
+  "processors": [],
+  "use-cases": [
+    {
+      "name": "Load a discovered but unloaded session",
+      "given": [
+        { "event": "discover-session/SessionDiscovered", "fields": { "sessionId": "sess-old-001", "name": "Session 1", "title": null, "createdAt": 1700000000000 } }
+      ],
+      "when": {
+        "command": "LoadSession",
+        "fields": { "sessionId": "sess-old-001" }
+      },
+      "then": {
+        "event": "SessionLoaded",
+        "fields": { "sessionId": "sess-old-001" }
+      }
+    },
+    {
+      "name": "Loading an already-loaded session is rejected",
+      "given": [
+        { "event": "create-session/SessionCreated", "fields": { "sessionId": "sess-abc-123", "name": "New Session #1" } }
+      ],
+      "when": {
+        "command": "LoadSession",
+        "fields": { "sessionId": "sess-abc-123" }
+      },
+      "then": {
+        "error": "Session must not already be loaded"
+      }
+    }
+  ]
+}

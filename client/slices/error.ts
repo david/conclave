@@ -1,6 +1,6 @@
 import { createSlice } from "./create-slice.ts";
 
-/** Error → sets error message and stops processing. */
-export const errorSlice = createSlice("Error", (state, event) => {
+/** ErrorOccurred → sets error message and stops processing. */
+export const errorSlice = createSlice("ErrorOccurred", (state, event) => {
   return { ...state, error: event.message, isProcessing: false };
 });

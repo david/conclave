@@ -1,6 +1,7 @@
 import { EventStore } from "./event-store.ts";
 import { AcpBridge, formatError } from "./acp-bridge.ts";
-import type { Command, DomainEvent, WsEvent } from "./types.ts";
+import { createDispatch, getServerEpoch } from "./dispatch.ts";
+import type { WsCommand, DomainEvent, WsEvent } from "./types.ts";
 import { join } from "path";
 import { createSessionRegistry } from "./projections/session-registry.ts";
 import { createLatestSessionProjection } from "./projections/latest-session.ts";
@@ -23,17 +24,21 @@ const CWD = process.env.CONCLAVE_CWD || process.cwd();
 const TLS_CERT = process.env.CONCLAVE_TLS_CERT || null;
 const TLS_KEY = process.env.CONCLAVE_TLS_KEY || null;
 
-// Unique identifier for this server process lifetime.
-// Used by clients to detect server restarts and know when a full replay is needed
-// vs. a delta catch-up.
-const SERVER_EPOCH = crypto.randomUUID();
-
 const store = new EventStore();
 
 // Read models (projections)
 const sessionRegistry = createSessionRegistry(store);
 const latestSession = createLatestSessionProjection(store);
 const metaContextRegistry = createMetaContextRegistry(store, CWD);
+
+// Create dispatch (bridge injected lazily after construction)
+const dispatch = createDispatch(store, sessionRegistry, metaContextRegistry);
+
+// Create bridge with dispatch + store, then wire it into dispatch
+const bridge = new AcpBridge(CWD, store, dispatch);
+dispatch.setBridge(bridge);
+
+const SERVER_EPOCH = getServerEpoch();
 
 // Per-WS state (connection infrastructure — not domain state)
 export type WsState = {
@@ -74,7 +79,6 @@ function drainReplayQueue(ws: object) {
     }
 
     if (result === 0) {
-      // Message dropped — connection gone, stop trying
       console.warn(`[drainReplayQueue] DROPPED event, aborting queue (${wsState.replayQueue.length} remaining)`);
       wsState.replayQueue.length = 0;
       wsState.draining = false;
@@ -82,12 +86,10 @@ function drainReplayQueue(ws: object) {
     }
 
     if (result === -1) {
-      // Backpressure — leave event in queue, wait for drain callback
       wsState.draining = true;
       return;
     }
 
-    // Success — remove from queue and continue
     wsState.replayQueue.shift();
   }
 
@@ -172,16 +174,6 @@ let latestServiceStatusEvent: DomainEvent | null = null;
   });
 }
 
-const bridge = new AcpBridge(CWD, (sessionId, payload) => {
-  // Skip system-level errors without a real session
-  if (sessionId === "__system__") {
-    console.error("System error:", (payload as { message?: string }).message);
-    return;
-  }
-
-  store.append(sessionId, payload);
-});
-
 // Reactive session list broadcast — triggers whenever a session-affecting event lands
 function broadcastSessionList() {
   const event = buildSessionList(sessionRegistry, metaContextRegistry);
@@ -195,8 +187,6 @@ createSessionListProjection(store, sessionRegistry, () => {
 }, metaContextRegistry);
 
 export function sendWs(ws: object, event: WsEvent) {
-  // If this connection is draining from a replay, queue the event instead
-  // of sending directly — this preserves ordering.
   const wsState = wsStates.get(ws);
   if (wsState?.draining) {
     wsState.replayQueue.push(event);
@@ -207,21 +197,15 @@ export function sendWs(ws: object, event: WsEvent) {
     const bws = ws as { send(data: string): number; cork(cb: () => void): void };
     const data = JSON.stringify(event);
     let result = 0;
-    // cork() ensures the write is flushed to the wire immediately.
-    // Without it, sends from outside WebSocket handler callbacks (open/message/drain)
-    // — such as those triggered by ACP event-store listeners — can sit in
-    // uWebSockets' internal buffer until the next socket activity.
     bws.cork(() => { result = bws.send(data); });
     if (result === 0) {
       console.warn(`[sendWs] DROPPED ${event.type} (seq=${"seq" in event ? event.seq : "?"})`);
     } else if (result === -1) {
-      // Backpressure from a non-replay send — queue any subsequent events
       if (wsState) {
         wsState.draining = true;
       }
     }
   } catch (err) {
-    // Connection already closed — clean up
     console.warn(`[sendWs] EXCEPTION sending ${event.type}: ${err}`);
     const wsState = wsStates.get(ws);
     if (wsState?.unsubscribe) wsState.unsubscribe();
@@ -238,16 +222,12 @@ export function subscribeWsToSession(
   const state = wsStatesArg.get(ws);
   if (!state) return;
 
-  // Unsubscribe from previous
   if (state.unsubscribe) {
     state.unsubscribe();
   }
 
   state.currentSessionId = sessionId;
 
-  // Subscribe with session filter — batch events and flush asynchronously
-  // via setTimeout(fn, 0) to break the microtask chain that starves
-  // uWebSockets' IO loop during burst ACP processing.
   let pending: DomainEvent[] = [];
   let flushScheduled = false;
   state.unsubscribe = storeArg.subscribe((event: DomainEvent) => {
@@ -276,8 +256,6 @@ function replaySession(ws: object, sessionId: string, afterSeq = 0) {
   const wsState = wsStates.get(ws);
   if (!wsState) return;
 
-  // Push all replay events into the queue and drain what we can immediately.
-  // If backpressure hits, the drain callback will resume sending.
   wsState.replayQueue.push(...events);
   drainReplayQueue(ws);
 }
@@ -317,7 +295,6 @@ const server = Bun.serve<WsData>({
       const embedded = serveStaticAsset(url.pathname);
       if (embedded) return embedded;
 
-      // SPA fallback
       if (url.pathname.startsWith("/session/")) {
         const fallback = serveStaticAsset("/index.html");
         if (fallback) return fallback;
@@ -337,7 +314,6 @@ const server = Bun.serve<WsData>({
       });
     }
 
-    // SPA fallback: serve index.html for /session/* routes
     if (url.pathname.startsWith("/session/")) {
       return new Response(Bun.file(join(distDir, "index.html")), {
         headers: { "Cache-Control": "no-cache" },
@@ -353,27 +329,12 @@ const server = Bun.serve<WsData>({
       console.log(`WS connected (${isDelta ? "delta" : "full"} replay${ws.data.requestedSessionId ? `, session=${ws.data.requestedSessionId}` : ""})`);
       wsStates.set(ws, { currentSessionId: null, unsubscribe: null, replayQueue: [], draining: false });
 
-      // Send session list
       sendWs(ws, buildSessionList(sessionRegistry, metaContextRegistry));
 
-      // Send latest spec list if available
-      if (latestSpecListEvent) {
-        sendWs(ws, latestSpecListEvent);
-      }
+      if (latestSpecListEvent) sendWs(ws, latestSpecListEvent);
+      if (latestGitStatusEvent) sendWs(ws, latestGitStatusEvent);
+      if (latestServiceStatusEvent) sendWs(ws, latestServiceStatusEvent);
 
-      // Send latest git status if available
-      if (latestGitStatusEvent) {
-        sendWs(ws, latestGitStatusEvent);
-      }
-
-      // Send latest service status if available
-      if (latestServiceStatusEvent) {
-        sendWs(ws, latestServiceStatusEvent);
-      }
-
-      // Determine which session to replay: prefer URL-requested, fall back to latest loaded session.
-      // Discovered-but-not-loaded sessions are excluded from auto-routing because they may
-      // belong to a previous ACP subprocess and fail to load.
       const requested = ws.data.requestedSessionId;
       const validRequested = requested && sessionRegistry.getState().sessions.has(requested)
         ? requested
@@ -384,8 +345,6 @@ const server = Bun.serve<WsData>({
       const targetSessionId = validRequested ?? fallbackSessionId;
 
       if (targetSessionId) {
-        // Delta reconnect: same server epoch, same session, client has prior state.
-        // Skip SessionSwitched (client already has this session) and only send new events.
         const isDeltaReconnect =
           isDelta && targetSessionId === ws.data.requestedSessionId;
 
@@ -409,13 +368,10 @@ const server = Bun.serve<WsData>({
         // Load discovered-but-not-loaded sessions before replaying
         const meta = sessionRegistry.getState().sessions.get(targetSessionId);
         if (meta && !meta.loaded) {
-          bridge.loadSession(targetSessionId).then(() => {
-            store.append(targetSessionId, { type: "TurnCompleted", stopReason: "end_turn" });
-            store.append(targetSessionId, { type: "SessionLoaded" });
+          dispatch(targetSessionId, { type: "LoadSession" }).then(() => {
             switchAndReplay();
           }).catch((err) => {
             console.error(`Failed to load session ${targetSessionId} on connect:`, err);
-            // Still switch to the session so the client isn't stuck
             switchAndReplay();
           });
         } else {
@@ -426,7 +382,7 @@ const server = Bun.serve<WsData>({
 
     async message(ws, message) {
       try {
-        const cmd = JSON.parse(String(message)) as Command;
+        const cmd = JSON.parse(String(message)) as WsCommand;
         const wsState = wsStates.get(ws);
 
         switch (cmd.command) {
@@ -434,7 +390,7 @@ const server = Bun.serve<WsData>({
             const sessionId = wsState?.currentSessionId;
             if (!sessionId) {
               sendWs(ws, {
-                type: "Error",
+                type: "ErrorOccurred",
                 message: "No active session",
                 seq: -1,
                 timestamp: Date.now(),
@@ -442,110 +398,40 @@ const server = Bun.serve<WsData>({
               });
               return;
             }
-
-            // Load discovered-but-not-loaded sessions before prompting
-            const meta = sessionRegistry.getState().sessions.get(sessionId);
-            if (meta && !meta.loaded) {
-              try {
-                await bridge.loadSession(sessionId);
-                store.append(sessionId, { type: "TurnCompleted", stopReason: "end_turn" });
-                store.append(sessionId, { type: "SessionLoaded" });
-              } catch (err) {
-                sendWs(ws, {
-                  type: "Error",
-                  message: `Failed to load session: ${formatError(err)}`,
-                  seq: -1,
-                  timestamp: Date.now(),
-                  sessionId: "",
-                });
-                return;
-              }
-            }
-
-            // Emit PromptSubmitted with the user text
-            store.append(sessionId, { type: "PromptSubmitted", text: cmd.text, images: cmd.images });
-            bridge.submitPrompt(sessionId, cmd.text, cmd.images, true);
+            await dispatch(sessionId, { type: "SubmitPrompt", text: cmd.text, images: cmd.images });
             break;
           }
 
           case "cancel": {
             const sessionId = wsState?.currentSessionId;
             if (sessionId) {
-              bridge.cancel(sessionId);
+              await dispatch(sessionId, { type: "CancelPrompt" });
             }
             break;
           }
 
           case "create_session": {
-            try {
-              const sessionId = await bridge.createSession();
-              store.append(sessionId, { type: "SessionCreated" });
-
-              // Switch this client to the new session
-              sendWs(ws, {
-                type: "SessionSwitched",
-                sessionId,
-                seq: -1,
-                timestamp: Date.now(),
-                epoch: SERVER_EPOCH,
-              } as any);
-              subscribeWsToSession(ws, sessionId);
-
-              // Replay the new session (has SessionCreated)
-              replaySession(ws, sessionId);
-            } catch (err) {
-              sendWs(ws, {
-                type: "Error",
-                message: `Failed to create session: ${formatError(err)}`,
-                seq: -1,
-                timestamp: Date.now(),
-                sessionId: "",
-              });
+            await dispatch("_", { type: "CreateSession" });
+            // The AutoSwitchAfterCreate processor emits SessionSwitched,
+            // which the WS subscription picks up. The WS open handler on
+            // the *next* connect will subscribe to that session.
+            // For the current connection, we need to subscribe manually.
+            // We find the latest created session from the registry.
+            const latest = latestSession.getState().latestSessionId;
+            if (latest) {
+              subscribeWsToSession(ws, latest);
+              replaySession(ws, latest);
             }
             break;
           }
 
           case "switch_session": {
             const targetId = cmd.sessionId;
-            const targetMeta = sessionRegistry.getState().sessions.get(targetId);
-            if (!targetMeta) {
-              sendWs(ws, {
-                type: "Error",
-                message: `Session not found: ${targetId}`,
-                seq: -1,
-                timestamp: Date.now(),
-                sessionId: "",
-              });
-              return;
-            }
+            // Dispatch SwitchSession — this validates, emits SessionSwitched,
+            // and triggers LoadIfUnloaded processor if needed
+            await dispatch(targetId, { type: "SwitchSession" });
 
-            // Load the session from ACP if not yet loaded (replays history via sessionUpdate notifications)
-            if (!targetMeta.loaded) {
-              try {
-                await bridge.loadSession(targetId);
-                // Append a synthetic TurnCompleted so the client's isProcessing settles to false
-                store.append(targetId, { type: "TurnCompleted", stopReason: "end_turn" });
-                store.append(targetId, { type: "SessionLoaded" });
-              } catch (err) {
-                sendWs(ws, {
-                  type: "Error",
-                  message: `Failed to load session: ${formatError(err)}`,
-                  seq: -1,
-                  timestamp: Date.now(),
-                  sessionId: "",
-                });
-                return;
-              }
-            }
-
-            // Send SessionSwitched, then replay stored events
-            sendWs(ws, {
-              type: "SessionSwitched",
-              sessionId: targetId,
-              seq: -1,
-              timestamp: Date.now(),
-              epoch: SERVER_EPOCH,
-            } as any);
+            // Subscribe this WS connection to the new session and replay
             subscribeWsToSession(ws, targetId);
             replaySession(ws, targetId);
             break;
@@ -555,7 +441,7 @@ const server = Bun.serve<WsData>({
             const currentSessionId = wsState?.currentSessionId;
             if (!currentSessionId) {
               sendWs(ws, {
-                type: "Error",
+                type: "ErrorOccurred",
                 message: "No active session",
                 seq: -1,
                 timestamp: Date.now(),
@@ -563,61 +449,25 @@ const server = Bun.serve<WsData>({
               });
               return;
             }
-
-            try {
-              const metaContextName = cmd.metaContext;
-              const mcState = metaContextRegistry.getState();
-              let metaContextId = mcState.nameIndex.get(metaContextName);
-
-              // If meta-context doesn't exist, create it
-              if (!metaContextId) {
-                metaContextId = crypto.randomUUID();
-                store.append(currentSessionId, {
-                  type: "MetaContextCreated",
-                  metaContextId,
-                  name: metaContextName,
-                });
-              }
-
-              // Create a new ACP session
-              const newSessionId = await bridge.createSession();
-              store.append(newSessionId, { type: "SessionCreated" });
-
-              // Add the new session to the meta-context
-              store.append(newSessionId, {
-                type: "SessionAddedToMetaContext",
-                metaContextId,
-              });
-
-              // Switch this client to the new session
-              sendWs(ws, {
-                type: "SessionSwitched",
-                sessionId: newSessionId,
-                seq: -1,
-                timestamp: Date.now(),
-                epoch: SERVER_EPOCH,
-              } as any);
-              subscribeWsToSession(ws, newSessionId);
-              replaySession(ws, newSessionId);
-
-              // Submit the prompt
-              store.append(newSessionId, { type: "PromptSubmitted", text: cmd.commandText });
-              bridge.submitPrompt(newSessionId, cmd.commandText, undefined, true);
-            } catch (err) {
-              sendWs(ws, {
-                type: "Error",
-                message: `Failed to handle next block click: ${formatError(err)}`,
-                seq: -1,
-                timestamp: Date.now(),
-                sessionId: "",
-              });
+            await dispatch(currentSessionId, {
+              type: "NextBlockClick",
+              currentSessionId,
+              label: cmd.label,
+              commandText: cmd.commandText,
+              metaContext: cmd.metaContext,
+            });
+            // The pipeline creates a new session — subscribe to it
+            const latest = latestSession.getState().latestSessionId;
+            if (latest && latest !== currentSessionId) {
+              subscribeWsToSession(ws, latest);
+              replaySession(ws, latest);
             }
             break;
           }
 
           default:
             sendWs(ws, {
-              type: "Error",
+              type: "ErrorOccurred",
               message: `Unknown command: ${(cmd as { command: string }).command}`,
               seq: -1,
               timestamp: Date.now(),
@@ -626,7 +476,7 @@ const server = Bun.serve<WsData>({
         }
       } catch (err) {
         sendWs(ws, {
-          type: "Error",
+          type: "ErrorOccurred",
           message: `Invalid command: ${formatError(err)}`,
           seq: -1,
           timestamp: Date.now(),
@@ -636,8 +486,6 @@ const server = Bun.serve<WsData>({
     },
 
     drain(ws) {
-      // uWebSockets calls drain when backpressure has subsided.
-      // Resume sending queued replay/live events.
       drainReplayQueue(ws);
     },
 
@@ -655,7 +503,7 @@ const server = Bun.serve<WsData>({
 const protocol = TLS_CERT && TLS_KEY ? "https" : "http";
 console.log(`Conclave server listening on ${protocol}://localhost:${PORT}`);
 
-// Graceful shutdown — clean up child processes, timers, and the HTTP server
+// Graceful shutdown
 let stopSpecWatcher: (() => void) | null = null;
 let stopGitPoller: (() => void) | null = null;
 let stopServicePoller: (() => void) | null = null;
@@ -675,7 +523,6 @@ process.on("SIGINT", shutdown);
 
 // Start the ACP bridge, discover existing sessions, then create one if needed
 bridge.start().then(async () => {
-  // Run start hook (fire-and-forget) before session discovery
   runStartHook(CWD);
 
   // Discover existing sessions from the ACP agent
@@ -684,8 +531,8 @@ bridge.start().then(async () => {
   for (let i = 0; i < existing.length; i++) {
     const s = existing[i];
     const name = s.title || `Session ${i + 1}`;
-    store.append(s.sessionId, {
-      type: "SessionDiscovered",
+    await dispatch(s.sessionId, {
+      type: "DiscoverSession",
       name,
       title: s.title ?? null,
       createdAt: now - i,
@@ -733,8 +580,7 @@ bridge.start().then(async () => {
 
   // Always create a fresh session to start with
   try {
-    const sessionId = await bridge.createSession();
-    store.append(sessionId, { type: "SessionCreated" });
+    await dispatch("_", { type: "CreateSession" });
   } catch (err) {
     console.error("Failed to create initial session:", err);
   }
@@ -743,7 +589,7 @@ bridge.start().then(async () => {
 }).catch((err) => {
   console.error("Failed to start ACP bridge:", err);
   store.append("__error__", {
-    type: "Error",
+    type: "ErrorOccurred",
     message: `ACP bridge failed to start: ${formatError(err)}`,
   });
 });

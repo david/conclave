@@ -8,7 +8,7 @@ const SESSION_AFFECTING_EVENTS = new Set([
   "SessionDiscovered",
   "PromptSubmitted",
   "SessionInfoUpdated",
-  "MetaContextCreated",
+  "MetaContextEnsured",
   "SessionAddedToMetaContext",
 ]);
 

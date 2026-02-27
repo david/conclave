@@ -7,6 +7,7 @@ import type { WsEvent } from "../../server/types.ts";
 const switchEvent: WsEvent = {
   type: "SessionSwitched",
   sessionId: "s2",
+  epoch: "test-epoch",
   seq: -1,
   timestamp: Date.now(),
 };

@@ -58,7 +58,7 @@ export function createMetaContextRegistry(store: EventStore, cwd: string): MetaC
 
   // Subscribe to new events
   store.subscribe((event) => {
-    if (event.type === "MetaContextCreated" || event.type === "SessionAddedToMetaContext") {
+    if (event.type === "MetaContextEnsured" || event.type === "SessionAddedToMetaContext") {
       state = metaContextRegistryReducer(state, event);
       persistToJson(filePath, state);
     }

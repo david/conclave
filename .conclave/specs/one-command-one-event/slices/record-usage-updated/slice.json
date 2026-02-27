@@ -1,0 +1,48 @@
+{
+  "slice": "record-usage-updated",
+  "trigger": { "screen": "ACP Bridge" },
+  "commands": [
+    {
+      "type": "RecordUsageUpdated",
+      "fields": [
+        { "name": "sessionId", "type": "string" },
+        { "name": "size", "type": "number" },
+        { "name": "used", "type": "number" },
+        { "name": "costAmount", "type": "number?" },
+        { "name": "costCurrency", "type": "string?" }
+      ],
+      "produces": "UsageUpdated",
+      "validations": []
+    }
+  ],
+  "events": [
+    {
+      "type": "UsageUpdated",
+      "fields": [
+        { "name": "sessionId", "type": "string" },
+        { "name": "size", "type": "number" },
+        { "name": "used", "type": "number" },
+        { "name": "costAmount", "type": "number?" },
+        { "name": "costCurrency", "type": "string?" }
+      ]
+    }
+  ],
+  "projections": [],
+  "processors": [],
+  "use-cases": [
+    {
+      "name": "Bridge records usage update",
+      "given": [
+        { "event": "create-session/SessionCreated", "fields": { "sessionId": "sess-abc-123", "name": "New Session #1" } }
+      ],
+      "when": {
+        "command": "RecordUsageUpdated",
+        "fields": { "sessionId": "sess-abc-123", "size": 200000, "used": 45000, "costAmount": 0.15, "costCurrency": "USD" }
+      },
+      "then": {
+        "event": "UsageUpdated",
+        "fields": { "sessionId": "sess-abc-123", "size": 200000, "used": 45000, "costAmount": 0.15, "costCurrency": "USD" }
+      }
+    }
+  ]
+}

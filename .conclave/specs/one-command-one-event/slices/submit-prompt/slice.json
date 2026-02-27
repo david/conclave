@@ -1,0 +1,74 @@
+{
+  "slice": "submit-prompt",
+  "trigger": { "screen": "Chat Input Bar" },
+  "commands": [
+    {
+      "type": "SubmitPrompt",
+      "fields": [
+        { "name": "sessionId", "type": "string" },
+        { "name": "text", "type": "string" },
+        { "name": "images", "type": "ImageAttachment[]?" }
+      ],
+      "produces": "PromptSubmitted",
+      "validations": [
+        { "rule": "Session must exist", "projection": "create-session/SessionRegistry" },
+        { "rule": "Session must be loaded", "projection": "create-session/SessionRegistry" }
+      ]
+    }
+  ],
+  "events": [
+    {
+      "type": "PromptSubmitted",
+      "fields": [
+        { "name": "sessionId", "type": "string" },
+        { "name": "text", "type": "string" },
+        { "name": "images", "type": "ImageAttachment[]?" }
+      ]
+    }
+  ],
+  "projections": [],
+  "processors": [],
+  "use-cases": [
+    {
+      "name": "Submit a text prompt to a loaded session",
+      "given": [
+        { "event": "create-session/SessionCreated", "fields": { "sessionId": "sess-abc-123", "name": "New Session #1" } }
+      ],
+      "when": {
+        "command": "SubmitPrompt",
+        "fields": { "sessionId": "sess-abc-123", "text": "Hello, Claude" }
+      },
+      "then": {
+        "event": "PromptSubmitted",
+        "fields": { "sessionId": "sess-abc-123", "text": "Hello, Claude" }
+      }
+    },
+    {
+      "name": "Submit prompt with image attachment",
+      "given": [
+        { "event": "create-session/SessionCreated", "fields": { "sessionId": "sess-abc-123", "name": "New Session #1" } }
+      ],
+      "when": {
+        "command": "SubmitPrompt",
+        "fields": { "sessionId": "sess-abc-123", "text": "What is this?", "images": [{ "data": "iVBORw0KGgo=", "mimeType": "image/png" }] }
+      },
+      "then": {
+        "event": "PromptSubmitted",
+        "fields": { "sessionId": "sess-abc-123", "text": "What is this?", "images": [{ "data": "iVBORw0KGgo=", "mimeType": "image/png" }] }
+      }
+    },
+    {
+      "name": "Submit to unloaded session fails",
+      "given": [
+        { "event": "discover-session/SessionDiscovered", "fields": { "sessionId": "sess-old-001", "name": "Session 1", "title": null, "createdAt": 1700000000000 } }
+      ],
+      "when": {
+        "command": "SubmitPrompt",
+        "fields": { "sessionId": "sess-old-001", "text": "Hello" }
+      },
+      "then": {
+        "error": "Session must be loaded"
+      }
+    }
+  ]
+}

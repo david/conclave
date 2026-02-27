@@ -1,0 +1,70 @@
+{
+  "slice": "create-session",
+  "trigger": { "screen": "Session Picker" },
+  "commands": [
+    {
+      "type": "CreateSession",
+      "fields": [],
+      "produces": "SessionCreated",
+      "validations": []
+    }
+  ],
+  "events": [
+    {
+      "type": "SessionCreated",
+      "fields": [
+        { "name": "sessionId", "type": "string" },
+        { "name": "name", "type": "string?" }
+      ]
+    }
+  ],
+  "projections": [
+    {
+      "type": "SessionRegistry",
+      "fields": [
+        { "name": "sessions", "type": "SessionMeta[]" },
+        { "name": "sessionCounter", "type": "number" }
+      ]
+    }
+  ],
+  "processors": [
+    {
+      "name": "AutoSwitchAfterCreate",
+      "watches": "SessionCreated",
+      "issues": "switch-session/SwitchSession"
+    },
+    {
+      "name": "AssociateWithMetaContext",
+      "watches": "SessionCreated",
+      "issues": "add-session-to-meta-context/AddSessionToMetaContext"
+    }
+  ],
+  "use-cases": [
+    {
+      "name": "Create a new session",
+      "given": [],
+      "when": {
+        "command": "CreateSession",
+        "fields": {}
+      },
+      "then": {
+        "event": "SessionCreated",
+        "fields": { "sessionId": "sess-abc-123", "name": "New Session #1" }
+      }
+    },
+    {
+      "name": "Second session increments counter",
+      "given": [
+        { "event": "SessionCreated", "fields": { "sessionId": "sess-abc-123", "name": "New Session #1" } }
+      ],
+      "when": {
+        "command": "CreateSession",
+        "fields": {}
+      },
+      "then": {
+        "event": "SessionCreated",
+        "fields": { "sessionId": "sess-def-456", "name": "New Session #2" }
+      }
+    }
+  ]
+}

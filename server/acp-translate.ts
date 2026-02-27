@@ -1,18 +1,21 @@
 import type { SessionUpdate } from "@agentclientprotocol/sdk";
-import type { EventPayload } from "./types.ts";
+import type { ServerCommand, EventPayload } from "./types.ts";
 
 /**
- * Translates an ACP SessionUpdate into zero or more domain event payloads.
+ * Translates an ACP SessionUpdate into zero or more server commands.
  * Pure function — no side effects.
  *
- * @param isReplay — true when replaying a loaded session (user_message_chunk → PromptSubmitted)
+ * During replay (isReplay=true), user_message_chunk returns an EventPayload
+ * instead of a command — the bridge uses appendReplay for these.
+ *
+ * @param isReplay — true when replaying a loaded session
  */
-export function translateAcpUpdate(update: SessionUpdate, isReplay = false): EventPayload[] {
+export function translateAcpToCommands(update: SessionUpdate, isReplay = false): (ServerCommand | EventPayload)[] {
   switch (update.sessionUpdate) {
     case "agent_message_chunk": {
       const content = update.content;
       if (content.type === "text") {
-        return [{ type: "AgentText", text: content.text }];
+        return [{ type: "RecordAgentText", text: content.text }];
       }
       return [];
     }
@@ -20,7 +23,7 @@ export function translateAcpUpdate(update: SessionUpdate, isReplay = false): Eve
     case "tool_call": {
       return [
         {
-          type: "ToolCallStarted",
+          type: "RecordToolCallStarted",
           toolCallId: update.toolCallId,
           toolName: update.title,
           kind: update.kind,
@@ -36,7 +39,7 @@ export function translateAcpUpdate(update: SessionUpdate, isReplay = false): Eve
       ) {
         return [
           {
-            type: "ToolCallCompleted",
+            type: "RecordToolCallCompleted",
             toolCallId: update.toolCallId,
             status: update.status,
             output: update.rawOutput,
@@ -45,7 +48,7 @@ export function translateAcpUpdate(update: SessionUpdate, isReplay = false): Eve
       }
       return [
         {
-          type: "ToolCallUpdated",
+          type: "RecordToolCallUpdated",
           toolCallId: update.toolCallId,
           status: update.status ?? "in_progress",
           content: update.content,
@@ -67,7 +70,7 @@ export function translateAcpUpdate(update: SessionUpdate, isReplay = false): Eve
 
     case "plan":
       return [{
-        type: "PlanUpdated",
+        type: "RecordPlanUpdated",
         entries: update.entries.map(e => ({
           content: e.content,
           status: e.status,
@@ -78,14 +81,14 @@ export function translateAcpUpdate(update: SessionUpdate, isReplay = false): Eve
     case "agent_thought_chunk": {
       const content = update.content;
       if (content.type === "text") {
-        return [{ type: "AgentThought", text: content.text }];
+        return [{ type: "RecordAgentThought", text: content.text }];
       }
       return [];
     }
 
     case "usage_update":
       return [{
-        type: "UsageUpdated",
+        type: "RecordUsageUpdated",
         size: update.size,
         used: update.used,
         ...(update.cost ? { costAmount: update.cost.amount, costCurrency: update.cost.currency } : {}),
@@ -93,7 +96,7 @@ export function translateAcpUpdate(update: SessionUpdate, isReplay = false): Eve
 
     case "session_info_update":
       return [{
-        type: "SessionInfoUpdated",
+        type: "RecordSessionInfoUpdated",
         title: update.title,
         updatedAt: update.updatedAt,
       }];

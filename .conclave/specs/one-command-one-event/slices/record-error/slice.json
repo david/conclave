@@ -1,0 +1,42 @@
+{
+  "slice": "record-error",
+  "trigger": { "screen": "ACP Bridge" },
+  "commands": [
+    {
+      "type": "RecordError",
+      "fields": [
+        { "name": "sessionId", "type": "string" },
+        { "name": "message", "type": "string" }
+      ],
+      "produces": "ErrorOccurred",
+      "validations": []
+    }
+  ],
+  "events": [
+    {
+      "type": "ErrorOccurred",
+      "fields": [
+        { "name": "sessionId", "type": "string" },
+        { "name": "message", "type": "string" }
+      ]
+    }
+  ],
+  "projections": [],
+  "processors": [],
+  "use-cases": [
+    {
+      "name": "Bridge records an error from ACP",
+      "given": [
+        { "event": "create-session/SessionCreated", "fields": { "sessionId": "sess-abc-123", "name": "New Session #1" } }
+      ],
+      "when": {
+        "command": "RecordError",
+        "fields": { "sessionId": "sess-abc-123", "message": "ACP connection lost" }
+      },
+      "then": {
+        "event": "ErrorOccurred",
+        "fields": { "sessionId": "sess-abc-123", "message": "ACP connection lost" }
+      }
+    }
+  ]
+}

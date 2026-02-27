@@ -79,27 +79,14 @@ export type PlanUpdated = BaseEvent & {
   entries: Array<{ content: string; status: string; priority: string }>;
 };
 
-export type PermissionOption = {
-  optionId: string;
-  name: string;
-  kind: string;
-};
-
-export type PermissionRequested = BaseEvent & {
-  type: "PermissionRequested";
-  options: PermissionOption[];
-  toolName?: string;
-  planContent?: string;
-};
-
-export type ErrorEvent = BaseEvent & {
-  type: "Error";
+export type ErrorOccurred = BaseEvent & {
+  type: "ErrorOccurred";
   message: string;
 };
 
 export type SessionSwitched = BaseEvent & {
   type: "SessionSwitched";
-  epoch?: string;
+  epoch: string;
 };
 
 export type SessionDiscovered = BaseEvent & {
@@ -132,15 +119,31 @@ export type SessionInfoUpdated = BaseEvent & {
   updatedAt?: string | null;
 };
 
-export type MetaContextCreated = BaseEvent & {
-  type: "MetaContextCreated";
+export type CancellationRequested = BaseEvent & {
+  type: "CancellationRequested";
+};
+
+export type NextBlockInitiated = BaseEvent & {
+  type: "NextBlockInitiated";
+  currentSessionId: string;
+  label: string;
+  commandText: string;
+  metaContext: string;
+};
+
+export type MetaContextEnsured = BaseEvent & {
+  type: "MetaContextEnsured";
   metaContextId: string;
-  name: string;
+  metaContextName: string;
+  originSessionId: string;
+  commandText: string;
+  created: boolean;
 };
 
 export type SessionAddedToMetaContext = BaseEvent & {
   type: "SessionAddedToMetaContext";
   metaContextId: string;
+  commandText: string;
 };
 
 // --- Spec System ---
@@ -201,14 +204,15 @@ export type SessionEvent =
   | ToolCallCompleted
   | TurnCompleted
   | PlanUpdated
-  | PermissionRequested
-  | ErrorEvent
+  | ErrorOccurred
   | SessionSwitched
   | SessionDiscovered
   | SessionLoaded
   | UsageUpdated
   | SessionInfoUpdated
-  | MetaContextCreated
+  | CancellationRequested
+  | NextBlockInitiated
+  | MetaContextEnsured
   | SessionAddedToMetaContext;
 
 // --- Service Status ---
@@ -243,7 +247,7 @@ export type EventPayload = DistributiveOmit<SessionEvent, "seq" | "timestamp" | 
 // Payload for global events (no sessionId to strip)
 export type GlobalEventPayload = DistributiveOmit<GlobalEvent, "seq" | "timestamp">;
 
-// --- Commands (browser → server) ---
+// --- WS Commands (browser → server) ---
 
 export type SubmitPromptCommand = {
   command: "submit_prompt";
@@ -264,12 +268,6 @@ export type SwitchSessionCommand = {
   sessionId: string;
 };
 
-export type PermissionResponseCommand = {
-  command: "permission_response";
-  optionId: string;
-  feedback?: string;
-};
-
 export type NextBlockClickCommand = {
   command: "next_block_click";
   label: string;
@@ -277,4 +275,48 @@ export type NextBlockClickCommand = {
   metaContext: string;
 };
 
-export type Command = SubmitPromptCommand | CancelCommand | CreateSessionCommand | SwitchSessionCommand | PermissionResponseCommand | NextBlockClickCommand;
+export type WsCommand = SubmitPromptCommand | CancelCommand | CreateSessionCommand | SwitchSessionCommand | NextBlockClickCommand;
+
+// --- Server Commands (dispatch) ---
+
+export type CreateSessionCmd = { type: "CreateSession" };
+export type SwitchSessionCmd = { type: "SwitchSession" };
+export type LoadSessionCmd = { type: "LoadSession" };
+export type DiscoverSessionCmd = { type: "DiscoverSession"; name: string; title: string | null; createdAt: number };
+export type SubmitPromptCmd = { type: "SubmitPrompt"; text: string; images?: ImageAttachment[] };
+export type CancelPromptCmd = { type: "CancelPrompt" };
+export type NextBlockClickCmd = { type: "NextBlockClick"; currentSessionId: string; label: string; commandText: string; metaContext: string };
+export type EnsureMetaContextCmd = { type: "EnsureMetaContext"; originSessionId: string; metaContextName: string; commandText: string };
+export type AddSessionToMetaContextCmd = { type: "AddSessionToMetaContext"; sessionId: string; metaContextId: string; commandText: string };
+
+export type RecordAgentTextCmd = { type: "RecordAgentText"; text: string };
+export type RecordAgentThoughtCmd = { type: "RecordAgentThought"; text: string };
+export type RecordToolCallStartedCmd = { type: "RecordToolCallStarted"; toolCallId: string; toolName: string; kind?: ToolKind | null; input?: unknown };
+export type RecordToolCallUpdatedCmd = { type: "RecordToolCallUpdated"; toolCallId: string; status: ToolCallStatus; content?: ToolCallContent[] | null };
+export type RecordToolCallCompletedCmd = { type: "RecordToolCallCompleted"; toolCallId: string; status: ToolCallStatus; output?: unknown };
+export type RecordPlanUpdatedCmd = { type: "RecordPlanUpdated"; entries: Array<{ content: string; status: string; priority: string }> };
+export type RecordUsageUpdatedCmd = { type: "RecordUsageUpdated"; size: number; used: number; costAmount?: number; costCurrency?: string };
+export type RecordSessionInfoUpdatedCmd = { type: "RecordSessionInfoUpdated"; title?: string | null; updatedAt?: string | null };
+export type CompleteTurnCmd = { type: "CompleteTurn"; stopReason: StopReason };
+export type RecordErrorCmd = { type: "RecordError"; message: string };
+
+export type ServerCommand =
+  | CreateSessionCmd
+  | SwitchSessionCmd
+  | LoadSessionCmd
+  | DiscoverSessionCmd
+  | SubmitPromptCmd
+  | CancelPromptCmd
+  | NextBlockClickCmd
+  | EnsureMetaContextCmd
+  | AddSessionToMetaContextCmd
+  | RecordAgentTextCmd
+  | RecordAgentThoughtCmd
+  | RecordToolCallStartedCmd
+  | RecordToolCallUpdatedCmd
+  | RecordToolCallCompletedCmd
+  | RecordPlanUpdatedCmd
+  | RecordUsageUpdatedCmd
+  | RecordSessionInfoUpdatedCmd
+  | CompleteTurnCmd
+  | RecordErrorCmd;

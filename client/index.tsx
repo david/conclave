@@ -6,7 +6,7 @@ import type { InputBarHandle } from "./components/input-bar.tsx";
 import { Workspace } from "./components/workspace.tsx";
 import { TabBar } from "./components/tab-bar.tsx";
 import { useVisualViewport } from "./hooks/use-visual-viewport.ts";
-import type { WsEvent, Command, ImageAttachment } from "../server/types.ts";
+import type { WsEvent, WsCommand, ImageAttachment } from "../server/types.ts";
 import type { NextBlockClickPayload } from "./components/next-block-button.tsx";
 import { getSessionIdFromUrl, pushSessionUrl, replaceSessionUrl, onPopState } from "./router.ts";
 import { isWorkspaceVisible } from "./workspace-visible.ts";
@@ -84,7 +84,7 @@ function App() {
     };
   }, []);
 
-  const sendCommand = useCallback((cmd: Command) => {
+  const sendCommand = useCallback((cmd: WsCommand) => {
     const ws = wsRef.current;
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(cmd));

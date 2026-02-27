@@ -1,0 +1,42 @@
+{
+  "slice": "record-agent-thought",
+  "trigger": { "screen": "ACP Bridge" },
+  "commands": [
+    {
+      "type": "RecordAgentThought",
+      "fields": [
+        { "name": "sessionId", "type": "string" },
+        { "name": "text", "type": "string" }
+      ],
+      "produces": "AgentThought",
+      "validations": []
+    }
+  ],
+  "events": [
+    {
+      "type": "AgentThought",
+      "fields": [
+        { "name": "sessionId", "type": "string" },
+        { "name": "text", "type": "string" }
+      ]
+    }
+  ],
+  "projections": [],
+  "processors": [],
+  "use-cases": [
+    {
+      "name": "Bridge records agent thought chunk",
+      "given": [
+        { "event": "create-session/SessionCreated", "fields": { "sessionId": "sess-abc-123", "name": "New Session #1" } }
+      ],
+      "when": {
+        "command": "RecordAgentThought",
+        "fields": { "sessionId": "sess-abc-123", "text": "Let me think about this..." }
+      },
+      "then": {
+        "event": "AgentThought",
+        "fields": { "sessionId": "sess-abc-123", "text": "Let me think about this..." }
+      }
+    }
+  ]
+}

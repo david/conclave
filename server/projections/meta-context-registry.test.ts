@@ -26,14 +26,17 @@ describe("MetaContextRegistry projection", () => {
     }
   });
 
-  test("processes MetaContextCreated events", () => {
+  test("processes MetaContextEnsured events", () => {
     const store = new EventStore();
     const registry = createMetaContextRegistry(store, tmpDir);
 
     store.append("s1", {
-      type: "MetaContextCreated",
+      type: "MetaContextEnsured",
       metaContextId: "mc-1",
-      name: "Feature Work",
+      metaContextName: "Feature Work",
+      originSessionId: "s1",
+      commandText: "/plan feat",
+      created: true,
     });
 
     const state = registry.getState();
@@ -47,14 +50,18 @@ describe("MetaContextRegistry projection", () => {
     const registry = createMetaContextRegistry(store, tmpDir);
 
     store.append("s1", {
-      type: "MetaContextCreated",
+      type: "MetaContextEnsured",
       metaContextId: "mc-1",
-      name: "Feature Work",
+      metaContextName: "Feature Work",
+      originSessionId: "s1",
+      commandText: "/plan feat",
+      created: true,
     });
 
     store.append("s2", {
       type: "SessionAddedToMetaContext",
       metaContextId: "mc-1",
+      commandText: "/plan feat",
     });
 
     const ctx = registry.getState().contexts.get("mc-1")!;
@@ -66,20 +73,27 @@ describe("MetaContextRegistry projection", () => {
     const registry = createMetaContextRegistry(store, tmpDir);
 
     store.append("s1", {
-      type: "MetaContextCreated",
+      type: "MetaContextEnsured",
       metaContextId: "mc-1",
-      name: "Feature Work",
+      metaContextName: "Feature Work",
+      originSessionId: "s1",
+      commandText: "/plan feat",
+      created: true,
     });
 
     store.append("s2", {
       type: "SessionAddedToMetaContext",
       metaContextId: "mc-1",
+      commandText: "/plan feat",
     });
 
     store.append("s3", {
-      type: "MetaContextCreated",
+      type: "MetaContextEnsured",
       metaContextId: "mc-2",
-      name: "Bug Fixes",
+      metaContextName: "Bug Fixes",
+      originSessionId: "s3",
+      commandText: "/fix bugs",
+      created: true,
     });
 
     const list = registry.toMetaContextInfoList();
@@ -121,9 +135,12 @@ describe("MetaContextRegistry projection", () => {
     const registry = createMetaContextRegistry(store, tmpDir);
 
     store.append("s1", {
-      type: "MetaContextCreated",
+      type: "MetaContextEnsured",
       metaContextId: "mc-1",
-      name: "New Context",
+      metaContextName: "New Context",
+      originSessionId: "s1",
+      commandText: "/plan feat",
+      created: true,
     });
 
     // Wait a tick for async write to complete
@@ -152,13 +169,17 @@ describe("MetaContextRegistry projection", () => {
 
     // Append events before creating registry
     store.append("s1", {
-      type: "MetaContextCreated",
+      type: "MetaContextEnsured",
       metaContextId: "mc-1",
-      name: "Pre-existing",
+      metaContextName: "Pre-existing",
+      originSessionId: "s1",
+      commandText: "/plan feat",
+      created: true,
     });
     store.append("s2", {
       type: "SessionAddedToMetaContext",
       metaContextId: "mc-1",
+      commandText: "/plan feat",
     });
 
     const registry = createMetaContextRegistry(store, tmpDir);

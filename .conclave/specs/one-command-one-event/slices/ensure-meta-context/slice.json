@@ -1,0 +1,72 @@
+{
+  "slice": "ensure-meta-context",
+  "trigger": { "processor": "next-block-click/EnsureMetaContext" },
+  "commands": [
+    {
+      "type": "EnsureMetaContext",
+      "fields": [
+        { "name": "originSessionId", "type": "string" },
+        { "name": "metaContextName", "type": "string" },
+        { "name": "commandText", "type": "string" }
+      ],
+      "produces": "MetaContextEnsured",
+      "validations": []
+    }
+  ],
+  "events": [
+    {
+      "type": "MetaContextEnsured",
+      "fields": [
+        { "name": "metaContextId", "type": "string" },
+        { "name": "metaContextName", "type": "string" },
+        { "name": "originSessionId", "type": "string" },
+        { "name": "commandText", "type": "string" },
+        { "name": "created", "type": "boolean" }
+      ]
+    }
+  ],
+  "projections": [
+    {
+      "type": "MetaContextRegistry",
+      "fields": [
+        { "name": "contexts", "type": "MetaContextMeta[]" },
+        { "name": "nameIndex", "type": "string[]" }
+      ]
+    }
+  ],
+  "processors": [
+    {
+      "name": "CreateSessionForMetaContext",
+      "watches": "MetaContextEnsured",
+      "issues": "create-session/CreateSession"
+    }
+  ],
+  "use-cases": [
+    {
+      "name": "Meta-context does not exist yet — creates it",
+      "given": [],
+      "when": {
+        "command": "EnsureMetaContext",
+        "fields": { "originSessionId": "sess-abc-123", "metaContextName": "my-spec", "commandText": "/plan my-spec" }
+      },
+      "then": {
+        "event": "MetaContextEnsured",
+        "fields": { "metaContextId": "mc-uuid-001", "metaContextName": "my-spec", "originSessionId": "sess-abc-123", "commandText": "/plan my-spec", "created": true }
+      }
+    },
+    {
+      "name": "Meta-context already exists — reuses it",
+      "given": [
+        { "event": "MetaContextEnsured", "fields": { "metaContextId": "mc-uuid-001", "metaContextName": "my-spec", "originSessionId": "sess-abc-123", "commandText": "/plan my-spec", "created": true } }
+      ],
+      "when": {
+        "command": "EnsureMetaContext",
+        "fields": { "originSessionId": "sess-def-456", "metaContextName": "my-spec", "commandText": "/develop my-spec" }
+      },
+      "then": {
+        "event": "MetaContextEnsured",
+        "fields": { "metaContextId": "mc-uuid-001", "metaContextName": "my-spec", "originSessionId": "sess-def-456", "commandText": "/develop my-spec", "created": false }
+      }
+    }
+  ]
+}
