@@ -1,13 +1,15 @@
 import { readFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "path";
 import type { EventStore } from "../event-store.ts";
+import type { DomainEvent } from "../types.ts";
 import {
   initialMetaContextRegistryState,
   type MetaContextRegistryState,
   type MetaContextMeta,
 } from "../server-state.ts";
 import type { MetaContextInfo } from "../types.ts";
-import { metaContextRegistryReducer } from "../slices/meta-context-index.ts";
+import { metaContextEnsuredSlice } from "../slices/ensure-meta-context/projector.ts";
+import { sessionAddedToMetaContextSlice } from "../slices/add-session-to-meta-context/projector.ts";
 
 type MetaContextRegistry = {
   getState(): MetaContextRegistryState;
@@ -17,6 +19,17 @@ type MetaContextRegistry = {
 type PersistedState = {
   contexts: Array<MetaContextMeta>;
 };
+
+type Slice = (state: MetaContextRegistryState, event: DomainEvent) => MetaContextRegistryState;
+
+const projectors: Slice[] = [
+  metaContextEnsuredSlice,
+  sessionAddedToMetaContextSlice,
+];
+
+function metaContextRegistryReducer(state: MetaContextRegistryState, event: DomainEvent): MetaContextRegistryState {
+  return projectors.reduce((s, p) => p(s, event), state);
+}
 
 function hydrateFromJson(filePath: string): MetaContextRegistryState {
   try {

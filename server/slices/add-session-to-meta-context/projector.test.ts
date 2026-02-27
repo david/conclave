@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { sessionAddedToMetaContextSlice } from "./reducer.ts";
+import { sessionAddedToMetaContextSlice } from "./projector.ts";
 import type { MetaContextRegistryState } from "../../server-state.ts";
 import type { DomainEvent } from "../../types.ts";
 

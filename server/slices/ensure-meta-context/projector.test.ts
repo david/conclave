@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { metaContextEnsuredSlice } from "./reducer.ts";
+import { metaContextEnsuredSlice } from "./projector.ts";
 import { initialMetaContextRegistryState } from "../../server-state.ts";
 import type { DomainEvent } from "../../types.ts";
 
